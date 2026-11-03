@@ -3,11 +3,12 @@
 | | |
 |---|---|
 | **Document** | Functional & technical specification (the *how*) |
-| **Companion** | [`CONCEPT.md`](CONCEPT.md) (brand, characters, stages, items in detail) |
-| **Version** | 0.1 (draft) |
+| **Related** | [`CONCEPT.md`](CONCEPT.md) (brand, fighters, stages, items) · [`DECISIONS.md`](DECISIONS.md) (every decision) · [`BRAINSTORM.md`](BRAINSTORM.md) (ideas not yet decided) · [`../mockup/index.html`](../mockup/index.html) (visual mock-up) |
+| **Version** | 0.2 (draft) |
 | **Team** | 2–3 people |
 | **Timeline** | 3 weeks |
-| **Language** | Python 3.11+ with Pygame (the phone controller page is HTML/JS) |
+| **Code** | Python 3.11+ with Pygame (the phone controller page is HTML/JS) |
+| **Text language** | **English only**: no Portuguese words or slang ([D-023](DECISIONS.md)) |
 
 ---
 
@@ -28,31 +29,11 @@
 
 ---
 
-## 2. Decisions made (kick-off Q&A)
+## 2. Decisions
 
-| Topic | Decision |
-|---|---|
-| Tech | **Python + Pygame** |
-| Players | **Up to 6** |
-| Setup | **Shared big screen** + phones as controllers |
-| KO system | **Hybrid**: % increases knockback + instant KO at **200 %** |
-| Moveset | **Medium**: attack, special, double jump, shield, dodge, directional attacks |
-| Controller layout | **D-pad + buttons** |
-| Game modes | **Stock mode (3 lives)** only |
-| Brand / setting | **Nova SBE (Carcavelos)**, own brand **NOVA Brawl** |
-| Fighters | **Student archetypes** (fictional) |
-| Art style | **Flat cartoon / vector** |
-| Humour | **Cheeky but presentable** |
-| Campus hazards | Bad Wi-Fi, Exam Season, Pop-Quiz Professor, Train / strike |
-| Beach hazards | Big Wave, Surfboard, Sunburn, Seagulls |
-| Bairro Alto hazards | Drinks, Tram 28, Steep Alleys |
-| Tipsy effect | **Short effect + explanation on the phone** |
-| Global catastrophes | **Decide later** |
-| Universal items | Pastel de Nata, Book / Laptop, Bica / Galão, Sardine |
-| Phone extras | Vibration, fighter select on phone, own % and lives |
-| Networking | **Decide later** (see §5.4) |
-| Language | **English** (docs and game) |
-| Course requirements | OOP, tests, docs / README, live demo (**more to follow**) |
+All decisions (made and open) live in **[`DECISIONS.md`](DECISIONS.md)**, the single source of truth. This spec only implements them. When a decision changes, update `DECISIONS.md` first, then this file.
+
+Key decisions in short: Python + Pygame · up to 6 players · shared screen + phones as controllers · hybrid KO (knockback + 200 % burnout) · medium moveset · D-pad + buttons · stock mode with 3 lives · Nova SBE setting · fictional student archetypes · flat cartoon style · English only.
 
 ---
 
@@ -82,9 +63,9 @@
 | F-CTL-05 | **Multi-touch**: holding a D-pad direction while pressing a button must work | MUST |
 | F-CTL-06 | Inputs are sent as **state changes** (press/release). Quick taps must never be lost between two game frames (see §5.5). | MUST |
 | F-CTL-07 | A top bar shows **slot, name, current %, remaining lives**, updated live | MUST |
-| F-CTL-08 | **Effect banners** with countdown: tipsy (incl. what changed + "Bebe água!"), sunburn warning, Bad Wi-Fi ("eduroam: reconnecting..."), hazard warnings. Banners never cover the buttons. | MUST |
+| F-CTL-08 | **Effect banners** with countdown: tipsy (incl. what changed + "Drink water!"), sunburn warning, Bad Wi-Fi ("eduroam: reconnecting..."), hazard warnings. Banners never cover the buttons. | MUST |
 | F-CTL-09 | **Vibration** on hit (short) and KO (long) where supported. Screen flash as a fallback (iPhone Safari doesn't support the Vibration API). | SHOULD |
-| F-CTL-10 | Screens for **KO'd** ("LAUNCHED! 2 lives left"), **eliminated** ("Que seca!...") and **results** (placement + award) | SHOULD |
+| F-CTL-10 | Screens for **KO'd** ("LAUNCHED! 2 lives left"), **eliminated** ("You're out! Grab a coffee and watch.") and **results** (placement + award) | SHOULD |
 | F-CTL-11 | **Reconnect**: if the phone locks or loses the connection, the player keeps their slot for 30 s and rejoins automatically (session token in `localStorage`) | SHOULD |
 | F-CTL-12 | "Rotate your phone" hint in portrait mode | SHOULD |
 | F-CTL-13 | Pick a slot colour on the phone | COULD |
@@ -99,7 +80,7 @@
 | F-MAT-04 | **Burnout**: when damage reaches **≥ 200 %** the fighter is KO'd instantly ("BURNOUT!") | MUST |
 | F-MAT-05 | A KO costs **1 life**. The fighter respawns on a respawn platform at 0 % with **2 s invincibility**. | MUST |
 | F-MAT-06 | With 0 lives the player is **eliminated**. The last player with lives left **wins**. | MUST |
-| F-MAT-07 | Countdown "3, 2, 1, BORA!" before the match. Inputs are ignored until "BORA!". | MUST |
+| F-MAT-07 | Countdown "3, 2, 1, BRAWL!" before the match. Inputs are ignored until "BRAWL!". | MUST |
 | F-MAT-08 | **Pause** with `Esc` on the laptop (freezes everything, phones show "Paused") | SHOULD |
 | F-MAT-09 | A **disconnected** player's fighter stands idle. A "P3 disconnected" badge appears on the HUD. | SHOULD |
 
@@ -129,7 +110,7 @@ Details and flavour: [`CONCEPT.md` §4.3](CONCEPT.md#43-roster-student-archetype
 |---|---|---|
 | F-FTR-01 | A common `Fighter` base class. Each fighter is a subclass that only defines **stats + moveset**. | MUST |
 | F-FTR-02 | **Excel Eddie** (all-rounder) and **Sofia Swell** (fast/light) fully playable | MUST |
-| F-FTR-03 | **Erasmus Erik**, **Bookworm Bea**, **Founder Filipa** and **Tuna Tomás** playable | SHOULD |
+| F-FTR-03 | **Erasmus Erik**, **Bookworm Bea**, **Founder Filipa** and **Busker Bruno** playable | SHOULD |
 | F-FTR-04 | Passives: Sofia rides the Big Wave, Bea is immune to Exam Season, Erik has halved tipsy duration, Filipa has a larger item pickup range | SHOULD |
 | F-FTR-05 | Each fighter has animations: idle, run, jump, fall, attack(s), hurt, shield, KO. Few frames + code-driven squash & stretch are fine. | SHOULD |
 | F-FTR-06 | Player-slot outline + "P1"–"P6" label above each fighter | MUST |
@@ -143,7 +124,7 @@ Details and flavour: [`CONCEPT.md` §4.3](CONCEPT.md#43-roster-student-archetype
 | Erasmus Erik | 105 | 4.5 | −12.5 | Strong close range |
 | Bookworm Bea | 90 | 3.8 | −12.5 | Projectiles |
 | Founder Filipa | 90 | 5.2 | −13.5 | Reflect special |
-| Tuna Tomás | 125 | 3.5 | −11.5 | Heavy, slow |
+| Busker Bruno | 125 | 3.5 | −11.5 | Heavy, slow |
 
 ### 3.6 Stages & hazards (`F-STG`)
 
@@ -152,12 +133,12 @@ Details and flavour: [`CONCEPT.md` §4.4](CONCEPT.md#44-stages).
 | ID | Requirement | Priority |
 |---|---|---|
 | F-STG-01 | A common `Stage` base class: background layers, platforms, blast zones, spawn points (fighters + items), respawn platform, hazard list | MUST |
-| F-STG-02 | Three stages: **Nova SBE Campus**, **Praia de Carcavelos**, **Bairro Alto** | MUST |
+| F-STG-02 | Three stages: **Nova SBE Campus**, **Carcavelos Beach**, **Bairro Alto** | MUST |
 | F-STG-03 | A **HazardDirector** per stage triggers one hazard at a time every 25–40 s (random), each with a **3 s telegraph** (visual + sound + phone banner) | MUST |
 | F-STG-04 | Campus: **Bad Wi-Fi**: all inputs delayed ~200 ms for 6 s, buffering spinner, phones show "eduroam: reconnecting..." | MUST |
 | F-STG-05 | Campus: **Exam Season**: 12 s, everyone −25 % speed, falling books (8 % each, shadow telegraph) | SHOULD |
 | F-STG-06 | Campus: **Pop-Quiz Professor** NPC walks across. Contact = 10 % + 1 s stun. | SHOULD |
-| F-STG-07 | Campus: **Linha de Cascais train** through the lower lane (20 % + strong horizontal knockback). 25 % chance of **"GREVE!"** (no train). | SHOULD |
+| F-STG-07 | Campus: **Cascais Line train** through the lower lane (20 % + strong horizontal knockback). 25 % chance of **"STRIKE! Train cancelled."** (no train). | SHOULD |
 | F-STG-08 | Beach: **Big Wave**: pushes fighters on the sand level towards the edge (+5 %). High platforms are safe. | MUST |
 | F-STG-09 | Beach: **Sunburn**: per-fighter sun meter, +1 %/s when full, reset after 3 s in a shade zone | SHOULD |
 | F-STG-10 | Beach: **Seagulls** steal a held item or a ground item and drop it elsewhere (2 % peck) | SHOULD |
@@ -174,12 +155,12 @@ Details and flavour: [`CONCEPT.md` §4.4](CONCEPT.md#44-stages).
 |---|---|---|
 | F-ITM-01 | Items spawn every 12–20 s at stage spawn points, **max 3** on the stage at once | MUST |
 | F-ITM-02 | Pick up with **A** while overlapping. Throwables are thrown with **A** + direction. Consumables apply immediately. | MUST |
-| F-ITM-03 | **Pastel de Nata**: heals 20 % (minimum 0 %) | MUST |
+| F-ITM-03 | **Custard Tart**: heals 20 % (minimum 0 %) | MUST |
 | F-ITM-04 | **Book** (throw, 14 %) and **Laptop** (throw, 10 % + 0.5 s stun) | MUST |
-| F-ITM-05 | **Bica / Galão**: +30 % movement speed for 8 s | MUST |
+| F-ITM-05 | **Espresso**: +30 % movement speed for 8 s | MUST |
 | F-ITM-06 | **Sardine**: melee weapon, 5 swings, 6 % but very high knockback growth | MUST |
 | F-ITM-07 | **Surfboard** (Beach): ride for 6 s (faster, ram 12 %, immune to Big Wave) or throw | SHOULD |
-| F-ITM-08 | **Drinks** (Bairro Alto) give **Tipsy** for **8 s**: *Imperial* = random drift, *Blue Drink* = left/right swapped, *Ginjinha* = up/down swapped. No stacking: a new drink replaces the effect and resets the timer. | MUST |
+| F-ITM-08 | **Drinks** (Bairro Alto) give **Tipsy** for **8 s**: *Beer* = random drift, *Blue Drink* = left/right swapped, *Cherry Shot* = up/down swapped. No stacking: a new drink replaces the effect and resets the timer. | MUST |
 | F-ITM-09 | Every status effect sends a **phone banner** explaining *what* changed and *for how long* | MUST |
 | F-ITM-10 | Status effects as classes: `Tipsy`, `SpeedBoost`, `Stun`, `Sunburn`, `InputDelay`, `Slowdown` | MUST |
 
@@ -190,7 +171,7 @@ Details and flavour: [`CONCEPT.md` §4.4](CONCEPT.md#44-stages).
 | F-UI-01 | Screens: Title → Lobby → Stage select → Countdown → Match → Results | MUST |
 | F-UI-02 | **HUD at the top**: one card per player (slot colour, portrait, name, **big %**, life icons) | MUST |
 | F-UI-03 | The % colour shifts white → yellow → red as damage rises. From 150 % a **"BURNOUT WARNING"** pulse appears. | SHOULD |
-| F-UI-04 | Big announcer texts: "BORA!", "LAUNCHED!", "BURNOUT!", "GREVE!", "{name} graduates with honours!" | MUST |
+| F-UI-04 | Big announcer texts: "BRAWL!", "LAUNCHED!", "BURNOUT!", "STRIKE! Train cancelled.", "{name} graduates with honours!" | MUST |
 | F-UI-05 | Hazard telegraphs: Tram Yellow / black stripes + icon | MUST |
 | F-UI-06 | Results screen with winner and **awards** (see CONCEPT §4.7) | SHOULD |
 | F-UI-07 | Internal resolution **1280×720**, scaled to window/fullscreen (`F11`) | MUST |
@@ -215,7 +196,9 @@ Details and flavour: [`CONCEPT.md` §4.4](CONCEPT.md#44-stages).
 
 ### 3.11 Out of scope for now (`WON'T`)
 
-Bots / single player, time mode, tournament mode, online play over the internet (unless we choose the cloud relay, §5.4), emotes, tilt controls, a 7th secret fighter. Ideas are collected in [`CONCEPT.md` §5](CONCEPT.md#5-parking-lot-later--maybe).
+Bots / single player, time mode, tournament mode, online play over the internet (unless we choose the cloud relay, §5.4), emotes, tilt controls, a 7th secret fighter.
+
+Not decided yet (see [`BRAINSTORM.md`](BRAINSTORM.md)): login / profiles, persistent stats & leaderboard, XP & levels, unlockable skins, achievements. They move into this spec only after a decision in [`DECISIONS.md`](DECISIONS.md).
 
 ---
 
@@ -258,7 +241,11 @@ Nova-Smash-Bros/
 ├── CREDITS.md
 ├── docs/
 │   ├── CONCEPT.md
-│   └── SPECS.md
+│   ├── SPECS.md
+│   ├── DECISIONS.md
+│   └── BRAINSTORM.md
+├── mockup/
+│   └── index.html           # clickable visual mock-up
 ├── nova_brawl/
 │   ├── __main__.py          # entry point: python -m nova_brawl
 │   ├── config.py            # all tuning values & constants
@@ -337,7 +324,7 @@ classDiagram
     Fighter <|-- ErasmusErik
     Fighter <|-- BookwormBea
     Fighter <|-- FounderFilipa
-    Fighter <|-- TunaTomas
+    Fighter <|-- BuskerBruno
 
     class Stage {
         <<abstract>>
@@ -439,7 +426,7 @@ flowchart LR
 {"type": "phase",   "value": "lobby | select | countdown | match | ko | eliminated | results"}
 {"type": "status",  "percent": 87, "stocks": 2}
 {"type": "effect",  "id": "tipsy_blue", "title": "You're tipsy!",
-                    "text": "LEFT and RIGHT are swapped for 8 s. Bebe água!", "duration": 8}
+                    "text": "LEFT and RIGHT are swapped for 8 s. Drink water!", "duration": 8}
 {"type": "vibrate", "pattern": [40]}
 {"type": "pong",    "t": 1730640000123}
 ```
@@ -501,7 +488,7 @@ Tests live in `tests/` and run with `pytest`. All game logic runs headless (NFR-
 | Blast zones | A fighter past `blast_zone.right` → KO, respawn at 0 % with invincibility |
 | Match rules | Last player with stocks wins. Eliminated players can't respawn. |
 | Status effects | `Tipsy(blue)` swaps left/right in `ControllerState` and expires after 8 s. A new drink resets the timer instead of stacking. |
-| Items | Nata never heals below 0 %. Sardine breaks after 5 swings. Max 3 items on the stage. |
+| Items | The Custard Tart never heals below 0 %. Sardine breaks after 5 swings. Max 3 items on the stage. |
 | Hazards | The director never runs two hazards at once. The telegraph always comes before damage. |
 | Input | Latched presses: press + release within one frame still registers once |
 | Protocol | Valid JSON messages are parsed; invalid or unknown messages are ignored without crashing |
@@ -546,7 +533,7 @@ Tests live in `tests/` and run with `pytest`. All game logic runs headless (NFR-
 - Fighters 3 + 4, first real art pass
 
 **Week 3: Spice & polish** *(goal: demo-ready)*
-- Remaining hazards (Exam Season, Professor, Train/Greve, Sunburn, Seagulls, Surfboard, Tram 28, Steep Alleys)
+- Remaining hazards (Exam Season, Professor, Train/Strike, Sunburn, Seagulls, Surfboard, Tram 28, Steep Alleys)
 - Fighters 5 + 6 and passives, results screen + awards, audio
 - Balancing playtests (at least 2 sessions with 4+ players), bug fixing
 - Full test suite, README, `CREDITS.md`, demo rehearsal on the real network
@@ -567,12 +554,12 @@ Tests live in `tests/` and run with `pytest`. All game logic runs headless (NFR-
 
 ## 11. Open questions
 
+The full list with owners and deadlines is in [`DECISIONS.md` → Open decisions](DECISIONS.md#open-decisions). The ones that block implementation:
+
 | # | Question | Decide by |
 |---|---|---|
-| Q1 | **Networking:** local server, cloud relay or both? (§5.4) | End of week 1 (after the spike) |
-| Q2 | **Global catastrophe events:** which ones, if any? (CONCEPT §5) | Week 2 |
-| Q3 | **Further course requirements** ("more to follow") | As soon as they're announced |
-| Q4 | Final fighter names, looks and signature colours | Week 1 |
-| Q5 | Music & SFX: make our own or use CC0 packs? | Week 2 |
-| Q6 | Stage select: host picks, phone vote or always random? | Week 2 |
-| Q7 | Who is the "host": the laptop keyboard, the P1 phone or both? | Week 1 |
+| O-01 | **Networking:** local server, cloud relay or both? (§5.4) | End of week 1 (after the spike) |
+| O-02 | **Global catastrophe events:** which ones, if any? | Week 2 |
+| O-03 | **Further course requirements** ("more to follow") | As soon as they're announced |
+| O-08 | **Login / profiles:** none, nickname + PIN, or real accounts? | Week 1 (affects storage design) |
+| O-09 | **Gamification scope for v1:** stats only, or also XP, achievements and skins? | Week 1 |

@@ -54,7 +54,7 @@
   <section id="select" class="screen" hidden>
     <header class="bar">
       <span id="selectTag" class="pill"></span>
-      <button id="leave" class="ghost">Leave</button>
+      <span class="barButtons"><button id="leave" class="ghost">Leave</button><button id="logout" class="ghost">Log out</button></span>
     </header>
     <div id="carousel" class="carousel" aria-label="Fighters: swipe to choose"></div>
     <div id="dots" class="dots" aria-hidden="true"></div>
@@ -94,7 +94,6 @@
       <div class="key action jump" data-b="jump"><div><b>J</b><small>JUMP</small></div></div>
     </div>
     <div id="hazard" class="hazard" hidden><span id="hazardName"></span><b id="hazardCount"></b></div>
-    <div id="message" class="message" hidden></div>
     <div id="overlay" class="overlay" hidden>
       <h2 id="overlayTitle"></h2>
       <p id="overlayText"></p>
@@ -113,6 +112,7 @@
     <p id="resultNote" class="hint">Waiting for the host…</p>
   </section>
 
+  <div id="message" class="message" role="status" hidden></div>
   <div id="flash" class="flash"></div>
   <div id="offline" class="offline" hidden>Connection lost, reconnecting…</div>
   <script type="module" src="/play/main.js"></script>

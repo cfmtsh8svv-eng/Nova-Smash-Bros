@@ -90,13 +90,14 @@ input.bad { border-color: var(--red); }
 .special.ready { border-color: var(--yellow); box-shadow: 0 0.6vw 0 rgba(0, 0, 0, 0.45), inset 0 0 0 0.5vw rgba(246, 195, 67, 0.55); }
 .cooldown { position: absolute; left: 0; bottom: 0; height: 1.8vw; width: 100%; background: var(--yellow); transform-origin: left; pointer-events: none; }
 
-.hazard { position: absolute; left: 50%; top: 14%; transform: translateX(-50%); text-align: center; font-family: var(--display); pointer-events: none; z-index: 3; text-shadow: 0 2px 0 var(--dark), 0 0 10px rgba(0, 0, 0, 0.7); }
+.hazard { position: absolute; left: 50%; top: 14%; transform: translateX(-50%); text-align: center; font-family: var(--display); pointer-events: none; z-index: 5; text-shadow: 0 2px 0 var(--dark), 0 0 10px rgba(0, 0, 0, 0.7); }
 .hazard span { display: block; font-size: clamp(13px, 2.6vw, 24px); color: var(--yellow); letter-spacing: 0.05em; }
 .hazard b { display: block; font-weight: 400; font-size: clamp(40px, 12vw, 110px); line-height: 1; }
 .hazard b.pop { animation: pop 0.9s ease-out; }
 @keyframes pop { 0% { transform: scale(1.8); opacity: 0; } 20% { transform: scale(1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
-.message { position: absolute; left: 50%; bottom: 4%; transform: translateX(-50%); background: rgba(22, 18, 42, 0.94); border: 3px solid var(--yellow); border-radius: 14px; padding: 6px 16px; font-size: clamp(13px, 2.4vw, 20px); max-width: 92%; text-align: center; pointer-events: none; z-index: 3; }
+.message { position: fixed; left: 50%; bottom: max(4%, env(safe-area-inset-bottom)); transform: translateX(-50%); background: rgba(22, 18, 42, 0.94); border: 3px solid var(--yellow); border-radius: 14px; padding: 6px 16px; font-size: clamp(13px, 2.4vw, 20px); max-width: 92%; text-align: center; pointer-events: none; z-index: 8; }
 .overlay { position: absolute; inset: 12% 0 0 0; background: rgba(22, 18, 42, 0.93); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 12px; text-align: center; z-index: 4; }
+.barButtons { display: flex; gap: 6px; }
 .overlay h2 { font-family: var(--display); font-weight: 400; font-size: clamp(24px, 6vw, 52px); color: var(--yellow); }
 .overlay p { font-size: clamp(14px, 2.6vw, 20px); }
 .rotate { position: absolute; inset: 0; background: var(--night); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 18px; z-index: 6; font-family: var(--display); font-size: 20px; text-align: center; padding: 20px; }

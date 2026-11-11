@@ -138,6 +138,7 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     },
     matchEnd(e) {
       cameraGoal = { x: 640, y: 360, zoom: 1 };
+      fx.banners = []; // "FINAL KO!" makes room for the winner's line
       fx.banner(loop.winnerText || 'Match over', { size: 54, color: '#ffffff', y: 320, life: 170 });
       const result = e.result;
       const finished = state;

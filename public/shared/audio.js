@@ -87,12 +87,25 @@ export function createAudio({ music = 0.45, effects = 0.8 } = {}) {
     }
   }
 
+  // At most this many effect sounds at once: more would only be noise, and a flood of
+  // events must not be able to pile up thousands of them.
+  const MAX_VOICES = 24;
+  let voices = 0;
+  function voice(node, out) {
+    if (out !== sfxGain) return true; // the music keeps its own time
+    if (voices >= MAX_VOICES) return false;
+    voices += 1;
+    node.onended = () => { voices -= 1; };
+    return true;
+  }
+
   // A single note that slides from one pitch to another and fades out.
   function tone({ type = 'square', from, to = from, dur = 0.12, gain = 0.2, at = 0, out = sfxGain }) {
     if (!ctx) return;
     try {
       const t = ctx.currentTime + at;
       const osc = ctx.createOscillator();
+      if (!voice(osc, out)) return;
       const g = ctx.createGain();
       osc.type = type;
       osc.frequency.setValueAtTime(Math.max(20, from), t);
@@ -112,6 +125,7 @@ export function createAudio({ music = 0.45, effects = 0.8 } = {}) {
     try {
       const t = ctx.currentTime + at;
       const src = ctx.createBufferSource();
+      if (!voice(src, out)) return;
       const filter = ctx.createBiquadFilter();
       const g = ctx.createGain();
       src.buffer = noiseBuffer;

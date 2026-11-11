@@ -73,8 +73,9 @@ const link = createLink({
     if (lobby.room) link.send({ t: 'host_resume', code: lobby.room.code, hostKey: lobby.room.hostKey });
     else if (wantRoom) link.send({ t: 'host_create' });
   },
-  onState(connected) {
-    $('offline').hidden = connected || screen === 'title';
+  onState(connected, code) {
+    $('offline').textContent = code === 4002 ? 'This room was opened in another tab. This tab is no longer used.' : 'Connection lost, reconnecting…';
+    $('offline').hidden = connected || (screen === 'title' && code !== 4002);
   },
   onMessage(msg) {
     const handler = MESSAGES[msg.t];
@@ -207,6 +208,19 @@ function renderSlot(index) {
     if (!player.connected) info.append(el('div', 'state away', 'Reconnecting…'));
     else if (player.ready) info.append(el('div', 'state ready', 'Ready!'));
     else info.append(el('div', 'state', fighter ? 'Not ready yet' : 'Picking a fighter'));
+    // The host can take a player out of the room (somebody who should not be here).
+    const remove = el('button', 'remove', '×');
+    remove.title = `Remove ${player.gamertag} from the room`;
+    remove.setAttribute('aria-label', remove.title);
+    remove.addEventListener('click', () => {
+      if (remove.dataset.sure) link.send({ t: 'kick', slot: index });
+      else {
+        remove.dataset.sure = '1';
+        remove.textContent = 'Remove?';
+        setTimeout(() => renderLobby(), 3000);
+      }
+    });
+    card.append(remove);
     if (player.fresh) {
       card.classList.add('joined');
       player.fresh = false;
@@ -354,7 +368,8 @@ function matchPhase(paused = false) {
   phase({
     name: 'match', stage: stage.id, stageName: stage.name, paused, lives: match.settings.lives,
     slots: match.players.filter((p) => !Number.isInteger(p.keys)).map((p) => p.slot),
-    hazards: stage.hazards.map((id) => ({ id, name: HAZARDS[id].short })),
+    // With hazards switched off there is nothing to vote for.
+    hazards: match.settings.hazards ? stage.hazards.map((id) => ({ id, name: HAZARDS[id].short })) : [],
   });
 }
 
@@ -507,7 +522,9 @@ try {
 } catch { /* start fresh */ }
 show('title');
 
-// For the browser smoke test and for debugging in the console: a read-only look at the running match.
+// For the browser smoke test and for debugging in the console: a look at the running match.
+// It hands out the live objects, so it gives no more power than the host page already has
+// (the host page runs the match and is trusted with its result; see docs/WALKTHROUGH.md).
 window.novaBrawl = {
   get screen() { return screen; },
   get state() { return game.state; },

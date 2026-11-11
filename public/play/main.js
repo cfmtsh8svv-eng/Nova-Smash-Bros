@@ -111,13 +111,16 @@ const MESSAGES = {
   phase(msg) {
     me.phase = msg;
     if (msg.name === 'lobby') {
-      if (!$('results').hidden || !$('pad').hidden) me.ready = false; // a new round: ready up again
+      if (!$('results').hidden || !$('pad').hidden) {
+        me.ready = false; // a new round: ready up again ...
+        me.stageVote = null; // ... and vote again (the host counts from zero)
+      }
       $('stageVote').hidden = !msg.vote;
       if (msg.vote && Array.isArray(msg.stages)) buildStageVote(msg.stages);
       showSelect();
     } else if (msg.name === 'match') {
       if (Array.isArray(msg.slots) && msg.slots.includes(me.slot)) {
-        me.lives = Number(msg.lives) || 3;
+        me.lives = [1, 2, 3].includes(msg.lives) ? msg.lives : 3;
         buildHazardVote(Array.isArray(msg.hazards) ? msg.hazards : []);
         show('pad');
         updateOverlay(Boolean(msg.paused));
@@ -184,6 +187,7 @@ const MESSAGES = {
 
   left() {
     me.joined = false;
+    if (!me.token) return; // logged out: the login screen is already showing
     notice('You left the room.', 'Join again', () => { if (!tryJoin()) showAuth(); });
   },
 
@@ -199,8 +203,8 @@ const MESSAGES = {
       setError('form', msg.msg);
     } else if (['room_full', 'room_closed', 'unavailable'].includes(msg.code)) {
       notice(String(msg.msg), 'Try again', () => { notice('Joining…'); tryJoin(); });
-    } else if (msg.code !== 'bad_message' && msg.code !== 'busy' && msg.msg) {
-      showMessage(String(msg.msg));
+    } else if (msg.code !== 'bad_message' && msg.msg) {
+      showMessage(String(msg.msg)); // shown on whatever screen the player is on
     }
   },
 };
@@ -330,6 +334,8 @@ function buildCarousel() {
       if (best !== me.fighter && !me.ready) {
         me.fighter = best;
         markCurrent();
+        // Tell the host which fighter is picked, so the big screen shows it. Ready comes separately.
+        if (me.joined) link.send({ t: 'pick', fighter: FIGHTERS[me.fighter].id, ready: false });
       }
     }, 60);
   }, { passive: true });
@@ -409,7 +415,8 @@ function updateOverlay(paused) {
   let text = '';
   if (state === 'out') {
     title = "You're out!";
-    text = 'Vote for the next hazard:';
+    const canVote = $('hazardVote').children.length > 0;
+    text = `Grab a coffee and watch.${canVote ? ' Vote for the next hazard:' : ''}`;
   } else if (state === 'dead') {
     title = me.koTitle || 'KO!';
     text = me.koText || 'Back in a moment…';
@@ -420,7 +427,7 @@ function updateOverlay(paused) {
   $('overlay').hidden = !title;
   $('overlayTitle').textContent = title;
   $('overlayText').textContent = text;
-  $('hazardVote').hidden = state !== 'out';
+  $('hazardVote').hidden = state !== 'out' || $('hazardVote').children.length === 0;
   if (title) controls.releaseAll();
 }
 
@@ -505,6 +512,14 @@ $('tabLogin').addEventListener('click', () => showAuth('login'));
 $('ready').addEventListener('click', toggleReady);
 $('modeToggle').addEventListener('click', () => setMode(controls.mode === 'stick' ? 'dpad' : 'stick'));
 $('leave').addEventListener('click', () => { link.send({ t: 'leave' }); });
+// "Log out" also makes the stored login useless everywhere, for a phone that is passed on.
+$('logout').addEventListener('click', () => {
+  link.send({ t: 'logout' });
+  forgetLogin();
+  me.joined = false;
+  $('tagInput').value = '';
+  showAuth('login');
+});
 window.addEventListener('resize', () => { if (!$('select').hidden) scrollToFighter(); });
 
 const fromLink = new URLSearchParams(location.search).get('room');

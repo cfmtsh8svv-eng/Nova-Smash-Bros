@@ -7,6 +7,7 @@
 import { CONFIG, PLAYER_COLORS, SCREEN } from '/game/config.js';
 import { damageColor, hearts, poseOf } from '/game/view.js';
 import { hazardRect } from '/game/hazards.js';
+import { getFighter } from '/game/fighters.js';
 import { SPRITE } from '/shared/art/characters.js';
 import { getSprite, getStageImage, loadStage } from '/shared/art/sprites.js';
 
@@ -417,6 +418,8 @@ export function createRenderer(canvas) {
     }
     ctx.restore();
 
+    drawAttack(f);
+
     // What the fighter carries, and what is wrong with them.
     if (f.held) {
       ctx.save();
@@ -452,11 +455,73 @@ export function createRenderer(canvas) {
     }
   }
 
+  // The normal attack does the same for everyone; only its look differs:
+  // a swing (an arc), a poke (a stick with the item at its tip) or a short throw.
+  function drawAttack(f) {
+    const attack = f.attack;
+    if (!attack || attack.kind === 'book') return;
+    const A = CONFIG.attack;
+    const k = Math.min(1, attack.t / (A.startup + A.active)); // 0 at the start, 1 when the hit is over
+    const style = attack.kind === 'sardine' ? 'swing' : getFighter(f.fighterId).normalStyle;
+    ctx.save();
+    ctx.translate(f.x, f.y - 58);
+    if (attack.dir === 'up') ctx.rotate(-Math.PI / 2);
+    else ctx.scale(attack.facing, 1);
+    ctx.lineCap = 'round';
+    ctx.globalAlpha = attack.t > A.startup + A.active ? Math.max(0, 1 - (attack.t - A.startup - A.active) / 6) : 1;
+    if (style === 'swing') {
+      const sweep = -1.1 + 2.2 * k;
+      ctx.strokeStyle = attack.kind === 'sardine' ? '#8fb4d9' : 'rgba(255,255,255,.85)';
+      ctx.lineWidth = 9;
+      ctx.beginPath(); ctx.arc(10, 0, 62, sweep - 0.9, sweep); ctx.stroke();
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(10, 0, 67, sweep - 0.9, sweep); ctx.stroke();
+    } else if (style === 'poke') {
+      const reach = 26 + 60 * Math.sin(k * Math.PI);
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 7;
+      ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(18 + reach, 0); ctx.stroke();
+      ctx.strokeStyle = '#cfd6de';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.fillStyle = INK;
+      roundRect(ctx, 14 + reach, -11, 16, 22, 3); ctx.fill();
+      ctx.fillStyle = '#8fd3ff';
+      ctx.fillRect(17 + reach, -8, 10, 16);
+    } else {
+      // throw: the fighter's own thing flies out to the end of the reach and is gone
+      const x = 22 + 66 * k;
+      const y = -18 * Math.sin(k * Math.PI);
+      ctx.translate(x, y);
+      ctx.rotate(k * 7);
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 3;
+      if (f.fighterId === 'house_dj') {
+        ctx.fillStyle = INK;
+        ctx.beginPath(); ctx.arc(0, 0, 13, 0, 7); ctx.fill();
+        ctx.fillStyle = '#f6c343';
+        ctx.beginPath(); ctx.arc(0, 0, 5, 0, 7); ctx.fill();
+      } else if (f.fighterId === 'carcavelos_gang_member') {
+        ctx.fillStyle = '#f6c343';
+        ctx.beginPath(); ctx.moveTo(-13, -11); ctx.lineTo(15, 0); ctx.lineTo(-13, 11); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#e63946';
+        ctx.beginPath(); ctx.arc(-5, -3, 3, 0, 7); ctx.arc(2, 2, 3, 0, 7); ctx.fill();
+      } else {
+        ctx.fillStyle = '#f0a81e';
+        roundRect(ctx, -8, -11, 16, 22, 3); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#eef3f8';
+        ctx.fillRect(-9, -14, 18, 6);
+      }
+    }
+    ctx.restore();
+  }
+
   // Name, hearts and a thin damage bar above each fighter, in the player colour.
   function drawTag(f, lives) {
     if (f.state !== 'alive') return;
     const color = PLAYER_COLORS[f.slot];
-    const text = `${f.name}  ${hearts(f.lives, lives)}`;
+    const text = `P${f.slot + 1} · ${f.name}  ${hearts(f.lives, lives)}`;
     ctx.font = `800 15px ${BODY}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -519,6 +584,11 @@ export function createRenderer(canvas) {
         ctx.font = `800 ${size}px ${BODY}`;
       }
       ctx.fillText(f.name, x + 11, y + 20);
+      // The player label, small, in the corner of the card: colour is never the only cue.
+      ctx.font = `800 9px ${BODY}`;
+      ctx.textAlign = 'right';
+      ctx.fillText(`P${f.slot + 1}`, x + w - 8, y + 12);
+      ctx.textAlign = 'left';
       ctx.font = `800 14px ${BODY}`;
       ctx.fillText(hearts(f.lives, lives), x + 11, y + 38);
       ctx.textAlign = 'right';

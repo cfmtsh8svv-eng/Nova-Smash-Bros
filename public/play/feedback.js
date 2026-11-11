@@ -29,10 +29,23 @@ export function createFeedback(flashElement) {
     } catch { /* the flash is skipped */ }
   }
 
+  // Feedback is for single moments. If messages arrive faster than a person could
+  // take them in, the extra ones are dropped: at most about a dozen a second, and
+  // never more than three flashes a second (rapid flashing is unpleasant and can be harmful).
+  let lastFire = 0;
+  let lastFlash = 0;
+
   return {
     fire({ kind, vibrate: pattern, flash: color }) {
+      const now = performance.now();
+      const important = kind === 'ko' || kind === 'out' || kind === 'finalKo';
+      if (!important && now - lastFire < 80) return;
+      lastFire = now;
       vibrate(pattern);
-      flash(color);
+      if (now - lastFlash >= 350) {
+        lastFlash = now;
+        flash(color);
+      }
       audio.play(SOUND[kind] || 'hit');
     },
     sound(kind) { audio.play(SOUND[kind] || kind); },

@@ -54,13 +54,16 @@ export function createLink({ onOpen = () => {}, onMessage = () => {}, onState = 
         console.error(err);
       }
     };
-    mine.onclose = () => {
+    mine.onclose = (event) => {
       if (ws !== mine) return;
       clearInterval(pingTimer);
       const was = link.connected;
       link.connected = false;
       link.rttMs = null;
-      if (was) onState(false);
+      // 4002: this page was replaced by a newer one (the same room open in another tab).
+      // Reconnecting would only make the two tabs take the room from each other for ever.
+      if (event.code === 4002) closedByUs = true;
+      if (was || event.code === 4002) onState(false, event.code);
       if (!closedByUs) schedule();
     };
     mine.onerror = () => { /* onclose follows */ };

@@ -4,9 +4,8 @@ import assert from 'node:assert/strict';
 import { InputBuffer, encodeInput, decodeInput, isValidMask, neutralInput, BIT, MAX_MASK } from '../../src/game/input.js';
 import { createClock, advance, freeze } from '../../src/game/clock.js';
 import { CONFIG } from '../../src/game/config.js';
-import { step, buildResult } from '../../src/game/match.js';
+import { step } from '../../src/game/match.js';
 import { fight, place, run, of } from '../helpers/game.js';
-import { botInputs } from '../helpers/bot.js';
 
 test('input state survives the trip through the bit mask', () => {
   for (let mask = 0; mask <= MAX_MASK; mask++) assert.equal(encodeInput(decodeInput(mask)), mask);
@@ -127,54 +126,7 @@ test('a long stall does not make the game race to catch up', () => {
   assert.equal(advance(clock, -5), 0);
 });
 
-// ---- the final KO effect must not change the result ----
-
-// Play a whole match with scripted players. With effects on, the loop runs like the
-// host page: real time goes through the clock, hits freeze it and the final KO slows it.
-function playMatch({ effects, seed }) {
-  const state = fight({ fighters: ['finance_bro', 'surfer_girl', 'house_dj'], settings: { items: true, hazards: true, lives: 2 }, seed });
-  const clock = createClock();
-  let realMs = 0;
-  let slowMs = 0;
-  let guard = 0;
-  while (state.phase !== 'ended' && guard++ < 60 * 60 * 30) {
-    let steps = 1;
-    if (effects) {
-      clock.scale = state.phase === 'finalKo' ? CONFIG.match.finalKoTimeScale : 1;
-      const dt = 1000 / 60 + ((guard * 7) % 5) - 2; // an uneven frame rate
-      realMs += dt;
-      if (state.phase === 'finalKo') slowMs += dt;
-      steps = advance(clock, dt);
-    }
-    for (let i = 0; i < steps && state.phase !== 'ended'; i++) {
-      for (const e of step(state, botInputs(state))) if (effects && e.type === 'hit' && e.strong) freeze(clock, 80);
-    }
-  }
-  return { result: buildResult(state), phase: state.phase, frames: state.frame, slowMs };
-}
-
-test('a match ends with the same winner and the same numbers with and without slow motion and hit pause', () => {
-  let finished = 0;
-  for (const seed of [3, 8, 21, 34]) {
-    const plain = playMatch({ effects: false, seed });
-    const fancy = playMatch({ effects: true, seed });
-    assert.equal(plain.phase, 'ended', `seed ${seed} finished`);
-    assert.deepEqual(fancy.result, plain.result, `seed ${seed}`);
-    assert.equal(fancy.frames, plain.frames, 'the same number of simulated frames');
-    assert.ok(plain.result.winner !== null);
-    assert.ok(Math.abs(fancy.slowMs - CONFIG.match.finalKoRealSeconds * 1000) < 120, `slow motion lasted ${fancy.slowMs} ms`);
-    finished += 1;
-  }
-  assert.equal(finished, 4);
-});
-
-test('the same seed and inputs always give the same match; another seed gives another one', () => {
-  const a = playMatch({ effects: false, seed: 8 });
-  const b = playMatch({ effects: false, seed: 8 });
-  const c = playMatch({ effects: false, seed: 9 });
-  assert.deepEqual(a, b);
-  assert.notDeepEqual(a.result, c.result);
-});
+// (That slow motion and hit pause never change a result is tested in exact.test.js, on the real host loop.)
 
 test('the final KO slow motion is 2 s of real time at quarter speed', () => {
   const state = fight({ settings: { lives: 1 } });

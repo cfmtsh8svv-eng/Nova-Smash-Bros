@@ -7,6 +7,7 @@
 import { FPS } from './config.js';
 
 const STEP_MS = 1000 / FPS;
+const MAX_FREEZE_MS = 500;
 const MAX_STEPS = 5; // after a long stall (a hidden tab), catch up at most this much per call
 
 export function createClock() {
@@ -15,12 +16,17 @@ export function createClock() {
 
 // Stop the simulation for a moment (hit pause). The longest request wins.
 export function freeze(clock, ms) {
-  clock.freezeMs = Math.max(clock.freezeMs, ms);
+  if (!Number.isFinite(ms) || ms <= 0) return;
+  clock.freezeMs = Math.max(clock.freezeMs, Math.min(ms, MAX_FREEZE_MS));
 }
 
 // Returns the number of simulation steps to run for `realMs` of real time.
 export function advance(clock, realMs) {
-  let ms = Math.max(0, Math.min(realMs, 250));
+  // A missing or broken time value counts as "no time passed" instead of poisoning the clock.
+  let ms = Number.isFinite(realMs) ? Math.max(0, Math.min(realMs, 250)) : 0;
+  if (!Number.isFinite(clock.acc)) clock.acc = 0;
+  if (!Number.isFinite(clock.freezeMs)) clock.freezeMs = 0;
+  if (!Number.isFinite(clock.scale) || clock.scale < 0) clock.scale = 1;
   if (clock.freezeMs > 0) {
     const used = Math.min(clock.freezeMs, ms);
     clock.freezeMs -= used;

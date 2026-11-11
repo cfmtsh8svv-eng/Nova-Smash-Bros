@@ -5,7 +5,7 @@
 // reads the warning can always get out of the way.
 import { CONFIG, SCREEN, seconds } from './config.js';
 import { HAZARDS, tallyVote } from './stages.js';
-import { applyHit, canBeHit, feedback, hurtbox, rectsOverlap } from './combat.js';
+import { applyHit, canBeHit, feedback, HIT, hurtbox, rectsOverlap, stunFighter } from './combat.js';
 import { nextRandom, pick, randomBetween } from './rng.js';
 
 const H = CONFIG.hazards;
@@ -121,7 +121,7 @@ function sweep(state, cfg, text, flash) {
     if (hz.hit.includes(f.slot) || !canBeHit(f) || !rectsOverlap(rect, hurtbox(f))) continue;
     hz.hit.push(f.slot);
     const landed = applyHit(state, f, { by: null, kind: 'hazard', source: hz.id, damage: cfg.damage, baseKb: cfg.baseKb, kbGrowth: cfg.kbGrowth, angleDeg: cfg.angleDeg, dirX: hz.dir });
-    if (landed) feedback(state, f.slot, 'hazard', text, flash, { hazard: hz.id });
+    if (landed === HIT) feedback(state, f.slot, 'hazard', text, flash, { hazard: hz.id });
   }
   if ((hz.dir > 0 && hz.pos > SCREEN.w) || (hz.dir < 0 && hz.pos + rect.w < 0)) endHazard(state);
 }
@@ -151,10 +151,11 @@ const ACTIVE = {
       if (f.held) {
         const item = f.held.type;
         f.held = null;
+        if (f.attack && f.attack.kind === 'book') f.attack = null; // a book that is stolen mid-throw is not thrown
         state.events.push({ type: 'itemStolen', slot: f.slot, item, x: f.x, y: f.y });
         feedback(state, f.slot, 'hazard', `A seagull stole your ${item}!`, '#eef3f8', { hazard: 'gulls' });
-      } else if (applyHit(state, f, { by: null, kind: 'hazard', source: 'gulls', damage: G.peckDamage })) {
-        f.stun = Math.max(f.stun, G.peckStun);
+      } else if (applyHit(state, f, { by: null, kind: 'hazard', source: 'gulls', damage: G.peckDamage }) === HIT) {
+        stunFighter(f, G.peckStun);
         feedback(state, f.slot, 'hazard', 'Pecked by a seagull!', '#eef3f8', { hazard: 'gulls' });
       }
     }
@@ -179,7 +180,7 @@ const ACTIVE = {
       if (!canBeHit(f) || !onGroundLevel(f) || !rectsOverlap(rect, hurtbox(f))) continue;
       if (!hz.hit.includes(f.slot)) {
         hz.hit.push(f.slot);
-        if (applyHit(state, f, { by: null, kind: 'hazard', source: 'crowd', damage: C.damage })) {
+        if (applyHit(state, f, { by: null, kind: 'hazard', source: 'crowd', damage: C.damage }) === HIT) {
           feedback(state, f.slot, 'hazard', 'Swept away by the crowd!', '#f6c343', { hazard: 'crowd' });
         }
       }

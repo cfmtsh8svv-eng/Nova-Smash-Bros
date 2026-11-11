@@ -11,7 +11,7 @@ import { getStage } from './stages.js';
 import { neutralInput, withPresses } from './input.js';
 import { clearFighterEffects, feedback, knockOut } from './combat.js';
 import { controlFighter, moveFighter, pushApart } from './physics.js';
-import { startAttack, updateAttack, updateProjectiles } from './attacks.js';
+import { startAttack, updateAttacks, updateProjectiles } from './attacks.js';
 import { startSpecial, updateSpecial } from './specials.js';
 import { nextItemDelay, updateItems } from './items.js';
 import { newHazardState, updateHazards, wifiDelayFor } from './hazards.js';
@@ -34,7 +34,7 @@ function createFighter(player, spawn, lives, index, players) {
     altColor: players.slice(0, index).some((p) => p.fighterId === def.id),
     x: spawn.x, y: spawn.y, vx: 0, vy: 0,
     facing: spawn.x < 640 ? 1 : -1, aimUp: false,
-    onGround: true, groundId: 0, jumpsLeft: 1, coyote: 0, dropTimer: 0, gravityScale: 1, dragVx: 0,
+    onGround: true, groundId: 0, jumpsLeft: 1, coyote: 0, dropTimer: 0, dropFrom: -1, gravityScale: 1, dragVx: 0,
     jumpBuffer: 0, attackBuffer: 0, specialBuffer: 0,
     percent: 0, finalPercent: 0, lives, state: 'alive', respawnTimer: 0, invincible: 0,
     hitstun: 0, stun: 0, tipsy: 0, slip: 0, speedBoost: 0,
@@ -94,8 +94,12 @@ function respawn(state, f) {
 function throughLag(state, f, inp) {
   const delay = wifiDelayFor(state, f);
   if (delay <= 0) {
-    if (f.lagQueue.length) f.lagQueue = [];
-    return inp;
+    if (!f.lagQueue.length) return inp;
+    // Out of the zone: the queue is dropped, but a press that was still waiting in it is not lost.
+    const late = { ...inp };
+    for (const waiting of f.lagQueue) for (const key of ['attackP', 'jumpP', 'specialP']) late[key] = late[key] || waiting[key];
+    f.lagQueue = [];
+    return late;
   }
   f.lagQueue.push(inp);
   if (f.lagQueue.length > delay) return f.lagQueue.shift();
@@ -109,6 +113,7 @@ function swapSides(inp) {
 
 // Advance the match by exactly one frame. inputs[slot] is that player's input.
 export function step(state, inputs = {}) {
+  if (!inputs || typeof inputs !== 'object') inputs = {};
   state.events = [];
   if (state.phase === 'ended') return state.events;
   state.frame += 1;
@@ -144,8 +149,8 @@ export function step(state, inputs = {}) {
     let inp = withPresses(raw, f.prevRaw);
     f.prevRaw = heldOnly(raw);
     inp = throughLag(state, f, inp);
+    f.lastInput = inp; // remembered before the tipsy swap, so it is never swapped twice
     if (f.tipsy > 0) inp = swapSides(inp);
-    f.lastInput = inp;
 
     controlFighter(state, f, inp);
     const free = f.hitstun <= 0 && f.stun <= 0 && !f.pull && !f.attack && !f.special;
@@ -155,7 +160,7 @@ export function step(state, inputs = {}) {
     moveFighter(state, f, inp);
   }
 
-  for (const f of state.fighters) if (f.state === 'alive') updateAttack(state, f);
+  updateAttacks(state);
   updateProjectiles(state);
   pushApart(state);
 
@@ -213,7 +218,7 @@ export function buildResult(state) {
   return {
     stage: state.stage.id,
     lives: state.settings.lives,
-    durationS: Math.round(state.fightFrames / FPS),
+    durationS: Math.max(1, Math.round(state.fightFrames / FPS)),
     winner: state.winner,
     byTimeCap: state.byTimeCap,
     players: state.fighters.map((f) => ({
@@ -227,7 +232,8 @@ export function buildResult(state) {
       falls: f.stats.falls,
       specialKos: f.stats.specialKos,
       endLives: f.lives,
-      endPercent: Math.round(f.state === 'alive' ? f.percent : f.finalPercent),
+      // A winner who is waiting to respawn comes back at 0 %; a player who is out keeps the last value.
+      endPercent: Math.round(f.state === 'alive' ? f.percent : f.state === 'dead' ? 0 : f.finalPercent),
     })),
   };
 }

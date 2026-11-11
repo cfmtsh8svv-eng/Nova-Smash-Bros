@@ -132,11 +132,14 @@ export const DEFAULT_SETTINGS = {
 
 export function makeSettings(overrides = {}) {
   const s = { ...DEFAULT_SETTINGS, ...overrides };
-  s.lives = [1, 2, 3].includes(s.lives) ? s.lives : DEFAULT_SETTINGS.lives;
-  s.items = Boolean(s.items);
-  s.hazards = Boolean(s.hazards);
-  s.hazardMinS = Math.max(1, Number(s.hazardMinS) || DEFAULT_SETTINGS.hazardMinS);
-  s.hazardMaxS = Math.max(s.hazardMinS, Number(s.hazardMaxS) || DEFAULT_SETTINGS.hazardMaxS);
-  s.timeCapS = Math.max(0, Number(s.timeCapS) || 0);
+  // Values may come from a form as text ("2", "false"), so they are converted, not just checked.
+  const flag = (v) => !(v === false || v === 0 || v === '0' || v === 'false' || v === 'off' || v === null);
+  const seconds = (v, fallback) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Math.min(3600, Number(v)) : fallback);
+  s.lives = [1, 2, 3].includes(Number(s.lives)) && typeof s.lives !== 'boolean' ? Number(s.lives) : DEFAULT_SETTINGS.lives;
+  s.items = flag(s.items);
+  s.hazards = flag(s.hazards);
+  s.hazardMinS = seconds(s.hazardMinS, DEFAULT_SETTINGS.hazardMinS);
+  s.hazardMaxS = Math.max(s.hazardMinS, seconds(s.hazardMaxS, DEFAULT_SETTINGS.hazardMaxS));
+  s.timeCapS = seconds(s.timeCapS, 0);
   return s;
 }

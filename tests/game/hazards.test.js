@@ -135,7 +135,7 @@ test('Cascais Line Train: hits the terrace level, a fighter on the canopy is saf
   assert.equal(state.hazard.phase, 'idle');
 });
 
-test('Cascais Line Train: a jump at the right moment clears it... onto a platform', () => {
+test('Cascais Line Train: a fighter up on the main roof is safe too', () => {
   const { state, a } = trainMatch();
   place(a, 640, 336); // already up on the main roof
   for (let i = 0; i < 200 && state.hazard.phase === 'active'; i++) run(state, 1);

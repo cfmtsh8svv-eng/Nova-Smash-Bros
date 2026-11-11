@@ -2,7 +2,7 @@
 // and every opponent it hits gets a message on their own phone.
 import { CONFIG } from './config.js';
 import { getFighter } from './fighters.js';
-import { applyHit, canBeHit, centreOf, distance, feedback, hurtbox, opponentsOf, rectsOverlap } from './combat.js';
+import { applyHit, blockedByGround, canBeHit, centreOf, distance, feedback, HIT, hurtbox, insideGround, opponentsOf, rectsOverlap, stunFighter } from './combat.js';
 import { reachBox, spawnProjectile } from './attacks.js';
 
 export function startSpecial(state, f) {
@@ -33,7 +33,7 @@ const UPDATE = {
     if (sp.t === S.at) {
       state.events.push({ type: 'fx', fx: 'cash_rain', x: f.x, y: f.y - 48, radius: S.radius, slot: f.slot });
       for (const o of inRadius(state, f, S.radius)) {
-        if (!applyHit(state, o, { by: f.slot, kind: 'special', source: S.id, damage: S.damage })) continue;
+        if (applyHit(state, o, { by: f.slot, kind: 'special', source: S.id, damage: S.damage }) !== HIT) continue;
         o.slip = S.slipFrames;
         o.vx = (Math.sign(o.x - f.x) || f.facing) * S.push;
         tell(state, o, S);
@@ -63,7 +63,7 @@ const UPDATE = {
     if (sp.t === S.at) {
       state.events.push({ type: 'fx', fx: 'rounds_on_me', x: f.x, y: f.y - 48, radius: S.radius, slot: f.slot });
       for (const o of inRadius(state, f, S.radius)) {
-        if (!applyHit(state, o, { by: f.slot, kind: 'special', source: S.id, damage: S.damage })) continue;
+        if (applyHit(state, o, { by: f.slot, kind: 'special', source: S.id, damage: S.damage }) !== HIT) continue;
         o.tipsy = Math.max(o.tipsy, S.tipsyFrames);
         tell(state, o, S);
       }
@@ -88,14 +88,15 @@ const UPDATE = {
       for (const o of opponentsOf(state, f)) {
         if (!canBeHit(o) || !rectsOverlap(box, hurtbox(o))) continue;
         if (!sp.hit.includes(o.slot)) {
-          if (!applyHit(state, o, { by: f.slot, kind: 'special', source: S.id, damage: S.damage })) continue;
+          const result = applyHit(state, o, { by: f.slot, kind: 'special', source: S.id, damage: S.damage });
+          if (!result) continue;
           sp.hit.push(o.slot);
-          tell(state, o, S);
+          if (result === HIT) tell(state, o, S);
         }
         if (o.state !== 'alive') continue;
         o.vx = f.vx; // carried along with the wave
         o.vy = up ? f.vy : Math.min(o.vy, 0);
-        o.stun = Math.max(o.stun, S.endStun);
+        stunFighter(o, S.endStun);
         if (up) o.onGround = false;
       }
     }
@@ -113,10 +114,8 @@ const UPDATE = {
       state.events.push({ type: 'fx', fx: 'ring_light_flash', x: f.x, y: f.y - 70, radius: S.radius, slot: f.slot });
       const me = centreOf(f);
       const near = inRadius(state, f, S.radius).sort((a, b) => distance(me, centreOf(a)) - distance(me, centreOf(b)) || a.slot - b.slot)[0];
-      if (near && applyHit(state, near, { by: f.slot, kind: 'special', source: S.id, damage: S.damage })) {
-        near.stun = Math.max(near.stun, S.stunFrames);
-        near.attack = null;
-        near.special = null;
+      if (near && applyHit(state, near, { by: f.slot, kind: 'special', source: S.id, damage: S.damage }) === HIT) {
+        stunFighter(near, S.stunFrames);
         tell(state, near, S);
       }
     }
@@ -145,7 +144,7 @@ const UPDATE = {
           by: f.slot, kind: 'special', source: S.id, damage: S.damage, baseKb: S.baseKb, kbGrowth: S.kbGrowth,
           angleDeg: S.angleDeg, dirX: Math.sign(o.x - f.x) || sp.facing,
         });
-        if (hit) tell(state, o, S);
+        if (hit === HIT) tell(state, o, S);
       }
       sp.phase = 'recover';
       sp.endAt = sp.t + S.recovery;
@@ -181,15 +180,16 @@ const UPDATE = {
       const box = reachBox(f, sp.dir, sp.facing, S.range, S.thickness);
       const me = centreOf(f);
       const first = opponentsOf(state, f)
-        .filter((o) => canBeHit(o) && rectsOverlap(box, hurtbox(o)))
+        .filter((o) => canBeHit(o) && rectsOverlap(box, hurtbox(o)) && !blockedByGround(state, me, centreOf(o)))
         .sort((a, b) => distance(me, centreOf(a)) - distance(me, centreOf(b)) || a.slot - b.slot)[0];
       state.events.push({ type: 'fx', fx: 'spaghetti_lasso', x: f.x, y: f.y - 48, dir: sp.dir, facing: sp.facing, range: S.range, slot: f.slot, target: first ? first.slot : null });
-      if (first && applyHit(state, first, { by: f.slot, kind: 'special', source: S.id, damage: S.damage })) {
-        first.stun = Math.max(first.stun, S.stunFrames);
-        first.attack = null;
-        first.special = null;
+      if (first && applyHit(state, first, { by: f.slot, kind: 'special', source: S.id, damage: S.damage }) === HIT) {
+        stunFighter(first, S.stunFrames);
         const up = sp.dir === 'up';
-        first.pull = { tx: up ? f.x : f.x + sp.facing * S.pullGap, ty: up ? f.y - CONFIG.body.h - 4 : f.y, t: S.pullFrames };
+        const tx = up ? f.x : f.x + sp.facing * S.pullGap;
+        const ty = up ? f.y - CONFIG.body.h - 4 : f.y;
+        // Never reel somebody into the ground: then the lasso only hits and stuns.
+        if (!insideGround(state, tx, ty)) first.pull = { tx, ty, t: S.pullFrames };
         sp.target = first.slot;
         tell(state, first, S);
       }

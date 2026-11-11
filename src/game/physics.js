@@ -78,6 +78,7 @@ export function controlFighter(state, f, inp) {
   // Down: drop through a thin platform.
   if (inp.downP && f.onGround && f.groundId >= 0 && !state.stage.platforms[f.groundId].solid) {
     f.dropTimer = P.dropThroughFrames;
+    f.dropFrom = f.groundId; // only this platform is ignored, so holding Down cannot skip the next one
     f.onGround = false;
     f.y += 2;
   }
@@ -135,7 +136,7 @@ export function moveFighter(state, f, inp) {
         f.x = leftSide ? p.x - half : p.x + p.w + half;
         f.vx = f.hitstun > 0 ? -f.vx * 0.5 : 0;
       }
-    } else if (f.dropTimer <= 0 && f.vy >= 0 && prevY <= p.y + 0.01 && f.y >= p.y && f.x >= p.x - 6 && f.x <= p.x + p.w + 6) {
+    } else if (!(f.dropTimer > 0 && f.dropFrom === i) && f.vy >= 0 && prevY <= p.y + 0.01 && f.y >= p.y && f.x >= p.x - 6 && f.x <= p.x + p.w + 6) {
       land(f, i, p.y);
     }
   }

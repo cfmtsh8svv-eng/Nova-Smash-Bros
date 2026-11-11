@@ -2,7 +2,7 @@
 // the thrown book, the padel ball and the mini tram.
 import { CONFIG } from './config.js';
 import { getFighter } from './fighters.js';
-import { applyHit, canBeHit, centreOf, feedback, hurtbox, opponentsOf, rectsOverlap } from './combat.js';
+import { applyHit, canBeHit, centreOf, feedback, HIT, hurtbox, opponentsOf, rectsOverlap } from './combat.js';
 
 // The area an attack covers. Ranges are measured from the middle of the body:
 // sideways `range` px in the facing direction, or `range` px straight up.
@@ -30,29 +30,39 @@ export function startAttack(state, f) {
   state.events.push({ type: 'attack', slot: f.slot, kind: attack.kind, dir: attack.dir, facing: attack.facing, x: f.x, y: f.y });
 }
 
-export function updateAttack(state, f) {
-  const attack = f.attack;
-  if (!attack) return;
+// Advance every running attack by one frame.
+// The hits of all fighters are collected first and applied afterwards, so two
+// players who swing at each other in the same frame both land their hit (a trade)
+// instead of the one earlier in the list always winning.
+export function updateAttacks(state) {
   const A = CONFIG.attack;
-  attack.t += 1;
-  if (attack.kind === 'book') {
-    if (attack.t === A.startup) throwBook(state, f, attack);
-  } else if (attack.t >= A.startup && attack.t < A.startup + A.active) {
-    const box = reachBox(f, attack.dir, attack.facing, A.range, A.thickness);
-    const power = attack.kind === 'sardine' ? CONFIG.items.sardine : A;
-    for (const o of opponentsOf(state, f)) {
-      if (attack.hit.includes(o.slot) || !canBeHit(o) || !rectsOverlap(box, hurtbox(o))) continue;
-      attack.hit.push(o.slot);
-      const up = attack.dir === 'up';
-      const landed = applyHit(state, o, {
-        by: f.slot, kind: attack.kind === 'sardine' ? 'item' : 'normal', source: attack.kind,
-        damage: power.damage, baseKb: power.baseKb, kbGrowth: power.kbGrowth,
-        angleDeg: up ? CONFIG.match.upAngleDeg : A.angleDeg, dirX: up ? Math.sign(o.x - f.x) || attack.facing : attack.facing,
-      });
-      if (landed) feedback(state, o.slot, 'hit', '', '#ffffff');
+  const pending = [];
+  for (const f of state.fighters) {
+    const attack = f.attack;
+    if (f.state !== 'alive' || !attack) continue;
+    attack.t += 1;
+    if (attack.kind === 'book') {
+      if (attack.t === A.startup) throwBook(state, f, attack);
+    } else if (attack.t >= A.startup && attack.t < A.startup + A.active) {
+      const box = reachBox(f, attack.dir, attack.facing, A.range, A.thickness);
+      for (const o of opponentsOf(state, f)) {
+        if (attack.hit.includes(o.slot) || !canBeHit(o) || !rectsOverlap(box, hurtbox(o))) continue;
+        attack.hit.push(o.slot);
+        pending.push({ f, o, attack });
+      }
     }
+    if (attack.t >= A.total) f.attack = null;
   }
-  if (attack.t >= A.total) f.attack = null;
+  for (const { f, o, attack } of pending) {
+    const power = attack.kind === 'sardine' ? CONFIG.items.sardine : A;
+    const up = attack.dir === 'up';
+    const result = applyHit(state, o, {
+      by: f.slot, kind: attack.kind === 'sardine' ? 'item' : 'normal', source: attack.kind,
+      damage: power.damage, baseKb: power.baseKb, kbGrowth: power.kbGrowth,
+      angleDeg: up ? CONFIG.match.upAngleDeg : A.angleDeg, dirX: up ? Math.sign(o.x - f.x) || attack.facing : attack.facing,
+    });
+    if (result === HIT) feedback(state, o.slot, 'hit', '', '#ffffff');
+  }
 }
 
 function throwBook(state, f, attack) {
@@ -108,6 +118,8 @@ export function updateProjectiles(state) {
         }
       }
     }
+    // A ball or book that flies into the solid ground stops there: nothing reaches through the floor.
+    if (!p.rolls && state.stage.platforms.some((pl) => pl.solid && p.x > pl.x && p.x < pl.x + pl.w && p.y > pl.y && p.y < pl.y + pl.h)) p.life = 0;
     const box = { x: p.x - p.w / 2, y: p.y - p.h / 2, w: p.w, h: p.h };
     const info = projectileHit(state, p);
     for (const o of state.fighters) {
@@ -115,12 +127,12 @@ export function updateProjectiles(state) {
       if (o.slot === p.owner || p.hit.includes(o.slot) || !canBeHit(o) || !rectsOverlap(box, hurtbox(o))) continue;
       p.hit.push(o.slot);
       const dirX = Math.sign(p.vx) || Math.sign(o.x - p.x) || p.dirX;
-      const landed = applyHit(state, o, { by: p.owner, kind: info.kind, source: p.kind, damage: info.damage, baseKb: info.baseKb, kbGrowth: info.kbGrowth, angleDeg: info.angleDeg, dirX });
-      if (landed) {
+      const result = applyHit(state, o, { by: p.owner, kind: info.kind, source: p.kind, damage: info.damage, baseKb: info.baseKb, kbGrowth: info.kbGrowth, angleDeg: info.angleDeg, dirX });
+      if (result === HIT) {
         if (info.special) feedback(state, o.slot, 'special', info.special.phone, info.special.flash, { special: info.special.id });
         else feedback(state, o.slot, 'hit', '', '#ffffff');
-        if (info.once) p.life = 0;
       }
+      if (result && info.once) p.life = 0;
     }
     if (p.x < B.left || p.x > B.right || p.y < B.top || p.y > B.bottom) p.life = 0;
   }

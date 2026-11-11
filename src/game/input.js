@@ -49,7 +49,8 @@ export class InputBuffer {
   // A phone that reloaded starts counting from 0 again, which is accepted.
   receive(mask, seq) {
     if (!isValidMask(mask)) return false;
-    if (Number.isInteger(seq)) {
+    if (seq !== undefined) {
+      if (!Number.isInteger(seq) || seq < 0) return false;
       if (seq <= this.lastSeq && seq !== 0) return false;
       this.lastSeq = seq;
     }

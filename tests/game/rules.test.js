@@ -165,7 +165,9 @@ for (const lives of [1, 2, 3]) {
 test('an invalid lives setting falls back to 3', () => {
   assert.equal(makeSettings({ lives: 7 }).lives, 3);
   assert.equal(makeSettings({ lives: 0 }).lives, 3);
-  assert.equal(makeSettings({ lives: '2' }).lives, 3);
+  assert.equal(makeSettings({ lives: '2' }).lives, 2, 'a number that arrives as text is accepted');
+  assert.equal(makeSettings({ lives: true }).lives, 3);
+  assert.equal(makeSettings({ lives: 2.5 }).lives, 3);
 });
 
 test('the match ends only when one player is left', () => {

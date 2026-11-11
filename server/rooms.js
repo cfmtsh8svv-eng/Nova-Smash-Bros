@@ -285,6 +285,8 @@ export class Rooms {
       if (!slot) return;
       slot.ready = false;
       slot.status = null;
+      // The phone is told that it is no longer "ready", so its screen cannot disagree with the lobby.
+      if (slot.conn) this.send(slot.conn, { t: 'slot', fighter: slot.fighter, ready: false });
       if (slot.left) this.freeSlot(room, i);
       else if (!slot.connected) this.holdSlot(room, i);
     });
@@ -423,7 +425,9 @@ const NEW_HANDLERS = {
     let index = room.slots.findIndex((s) => s && s.lower === lower);
     if (index < 0) {
       if (room.closed) return this.fail(conn, 'room_closed');
-      index = room.slots.findIndex((s) => !s);
+      // During a match the slots of keyboard players are taken too (the host told us which).
+      const reserved = room.match ? room.match.guestSlots : [];
+      index = room.slots.findIndex((s, i) => !s && !reserved.includes(i));
       if (index < 0) return this.fail(conn, 'room_full');
     }
     // One phone per account: an older connection of this gamertag is signed out.
@@ -571,8 +575,12 @@ const HOST_HANDLERS = {
     const total = msg.slots.length + msg.guests;
     if (total < 2) return refuse('At least 2 players are needed.');
     if (total > LIMITS.playersPerRoom) return refuse('At most 4 players can fight.');
+    // Optional: which slots the keyboard players sit in, so no phone is given one of them mid-match.
+    const guestSlots = msg.guestSlots === undefined ? [] : msg.guestSlots;
+    if (!Array.isArray(guestSlots) || guestSlots.length > msg.guests || new Set(guestSlots).size !== guestSlots.length
+      || !guestSlots.every((s) => isInt(s, 0, 3) && !room.slots[s])) return this.strike(conn);
     room.lastResult = null;
-    room.match = { id: randomUUID(), stage: msg.stage, lives: msg.lives, slots: [...msg.slots], guests: msg.guests, startedAt: this.now(), players: new Map(msg.slots.map((i) => [i, room.slots[i].lower])) };
+    room.match = { id: randomUUID(), stage: msg.stage, lives: msg.lives, slots: [...msg.slots], guests: msg.guests, guestSlots: [...guestSlots], startedAt: this.now(), players: new Map(msg.slots.map((i) => [i, room.slots[i].lower])) };
     room.phase = 'match';
     room.lastActive = this.now();
     this.send(conn, { t: 'match_started', matchId: room.match.id });

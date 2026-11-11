@@ -433,3 +433,47 @@ test('too many connections from one address are refused, and a connection that n
   await sleep(100);
   assert.equal((await s.open()).ws.readyState, 1, 'there is room again');
 });
+
+// ---- from the client bug review ----
+
+test('when a match ends or is cancelled, each phone is told that it is no longer "ready"', async (t) => {
+  const s = await startServer(t);
+  const h = await s.host();
+  const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
+  await s.player(h, 'Max', { fighter: 'house_dj' });
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+  const { matchId } = await h.next('match_started');
+  h.send({ t: 'match_abort', matchId });
+  assert.deepEqual(await a.next('slot'), { t: 'slot', fighter: 'finance_bro', ready: false });
+});
+
+test('a phone that joins during a match is not given the slot of a keyboard player', async (t) => {
+  const s = await startServer(t);
+  const h = await s.host();
+  await s.player(h, 'Ana', { fighter: 'finance_bro' });
+  // Ana on slot 0, keyboard players on slots 1 and 2.
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0], guests: 2, guestSlots: [1, 2] });
+  const { matchId } = await h.next('match_started');
+  const late = await s.open();
+  late.send({ t: 'join', room: h.code, token: await s.register('Late') });
+  assert.equal((await late.next('joined')).slot, 3, 'the only slot nobody is playing in');
+  const later = await s.open();
+  later.send({ t: 'join', room: h.code, token: await s.register('Later') });
+  assert.equal((await later.next('error')).code, 'room_full');
+  // After the match the keyboard slots are free again.
+  h.send({ t: 'match_abort', matchId });
+  await h.next('roster', { match: (r) => r.phase === 'lobby' });
+  later.send({ t: 'join', room: h.code, token: await s.register('Third') });
+  assert.equal((await later.next('joined')).slot, 1);
+});
+
+test('the list of keyboard slots is checked: no duplicates, no taken slots, not more than there are keyboard players', async (t) => {
+  const s = await startServer(t);
+  const h = await s.host();
+  await s.player(h, 'Ana', { fighter: 'finance_bro' });
+  for (const guestSlots of [[0], [1, 1], [1, 2, 3], [9], 'x', [1.5]]) {
+    h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0], guests: 2, guestSlots });
+    assert.equal((await h.next('error')).code, 'bad_message', JSON.stringify(guestSlots));
+  }
+  assert.equal(s.app.rooms.rooms.get(h.code).phase, 'lobby');
+});

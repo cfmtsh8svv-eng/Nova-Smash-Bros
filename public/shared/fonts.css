@@ -1,0 +1,26 @@
+/* Bungee and Nunito, both under the SIL Open Font License (see fonts/OFL-*.txt). Served from our own server. */
+@font-face { font-family: "Bungee"; src: url("fonts/bungee-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Nunito"; src: url("fonts/nunito-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Nunito"; src: url("fonts/nunito-800.woff2") format("woff2"); font-weight: 800; font-display: swap; }
+
+:root {
+  color-scheme: dark;
+  --night: #1b1330;
+  --panel: #2b1e3f;
+  --line: #4a3a66;
+  --ink: #eef3f8;
+  --mute: #b6a9cf;
+  --orange: #ff7a3d;
+  --yellow: #f6c343;
+  --dark: #16122a;
+  --red: #e63946;
+  --green: #22a36b;
+  --purple: #8e5cc8;
+  --display: "Bungee", "Arial Black", sans-serif;
+  --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--night); color: var(--ink); font-family: var(--body); font-weight: 700; }
+button { font: inherit; color: inherit; cursor: pointer; }
+[hidden] { display: none !important; }

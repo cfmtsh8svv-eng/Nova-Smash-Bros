@@ -1,0 +1,27 @@
+# Render blueprint: one free web service. See docs/DEPLOY.md.
+services:
+  - type: web
+    name: nova-brawl
+    runtime: node
+    plan: free
+    # Close to the players: every button press travels phone -> server -> big screen.
+    # (Render cannot move an existing service; to change the region, delete and create it again.)
+    region: frankfurt
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Render's front door (Cloudflare) tells us the visitor's address in CF-Connecting-IP.
+      - key: TRUST_PROXY
+        value: cloudflare
+      # The four secrets are typed into the Render dashboard, never into this file.
+      - key: SHEETS_WEBAPP_URL
+        sync: false
+      - key: SHEETS_SHARED_SECRET
+        sync: false
+      - key: PIN_PEPPER
+        sync: false
+      - key: SESSION_SECRET
+        sync: false

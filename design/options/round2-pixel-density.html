@@ -1,0 +1,166 @@
+<title>NOVA Brawl Pixelfiguren</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;800&display=swap">
+<style>
+/* Layout: dark arcade wall, three large framed screens stacked two-up then one, verdict strip under each. Single committed dark look. */
+:root{
+  color-scheme:dark;
+  --night:#1b1330; --line:#4a3a66; --ink:#eef3f8; --mute:#b6a9cf; --orange:#ff7a3d; --yellow:#f6c343;
+  --display:"Bungee","Arial Black",sans-serif; --body:"Nunito","Segoe UI",system-ui,sans-serif;
+}
+body{background:var(--night);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(26px,4vw,40px);line-height:1.1;margin:0;text-wrap:balance}
+h1 span{color:var(--orange)}
+.lead{color:var(--mute);max-width:64ch;margin:8px 0 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:22px}
+.opt{min-width:0;display:flex;flex-direction:column;gap:12px}
+.screen{position:relative;border:3px solid var(--line);border-radius:10px;overflow:hidden;background:#000;aspect-ratio:16/9;max-width:100%}
+.screen svg{display:block;width:100%;height:100%}
+.screen canvas{position:absolute;image-rendering:pixelated;image-rendering:crisp-edges}
+.tag{font-family:var(--display);font-size:20px;display:flex;align-items:baseline;gap:10px}
+.tag b{color:var(--yellow);font-weight:400}
+.opt p{margin:0;color:var(--mute);font-size:15px}
+.opt p strong{color:var(--ink)}
+.note{border-top:1px solid var(--line);padding-top:16px;color:var(--mute);font-size:15px;max-width:72ch}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Runde 2: <span>Wie fein sind die Pixel?</span></h1>
+    <p class="lead">Pixelfiguren vor gemaltem Hintergrund. Jede Figur trägt die Farbe ihres Spielers, das Namensschild darüber hat dieselbe Farbe. Ana und Lea spielen beide Eddie, einmal rot und einmal grün.</p>
+  </header>
+  <div class="grid">
+    <section class="opt"><div class="screen" id="s1"></div><div class="tag"><b>A</b> 8-Bit grob</div>
+      <p><strong>Figur 26 Pixel hoch.</strong> Stärkster Retro-Charme, aber Gesicht und Brille verschwimmen.</p></section>
+    <section class="opt"><div class="screen" id="s2"></div><div class="tag"><b>B</b> 16-Bit klar</div>
+      <p><strong>Figur 44 Pixel hoch, dunkle Kontur.</strong> Gesichter und Requisiten bleiben lesbar. Mein Favorit für den Beamer.</p></section>
+    <section class="opt"><div class="screen" id="s3"></div><div class="tag"><b>C</b> HD-Pixel schattiert</div>
+      <p><strong>Figur 72 Pixel hoch, drei Helligkeitsstufen pro Farbe.</strong> Am edelsten und passt am besten zum gemalten Hintergrund. Wirkt weniger retro.</p></section>
+  </div>
+  <p class="note">Die Figuren entstehen aus einer gezeichneten Vorlage, die das Spiel auf wenige Pixel herunterrechnet, auf eine feste Farbpalette bringt und mit einer Kontur versieht. So lässt sich jede Figur in jeder Spielerfarbe und jeder Pose erzeugen. Im Build werden die Posen noch von Hand nachgeschärft.</p>
+</div>
+
+<script>
+const INK='#16122a';
+const hex=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16));
+const toHex=a=>'#'+a.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+const shade=(c,t)=>toHex(hex(c).map(v=>t>0?v+(255-v)*t:v*(1+t)));
+
+function fighterSVG(kind,col,soft){
+  const C={skin:'#f7c9a3',hair:'#4a2a18',blond:'#f6c343',main:col,grey:'#cfd6de',board:'#ff7a3d'};
+  const f=n=>soft?`url(#g${n})`:C[n];
+  const defs=soft?'<defs>'+Object.keys(C).map(n=>`<linearGradient id="g${n}" x1="0" y1="0" x2="1" y2="1"><stop offset=".15" stop-color="${shade(C[n],.4)}"/><stop offset=".5" stop-color="${C[n]}"/><stop offset=".9" stop-color="${shade(C[n],-.45)}"/></linearGradient>`).join('')+'</defs>':'';
+  const face=`stroke="${INK}" stroke-width="4" stroke-linecap="round" fill="none"`;
+  const eddie=`
+    <rect x="-17" y="-36" width="13" height="32" rx="4" fill="${f('main')}"/><rect x="4" y="-36" width="13" height="32" rx="4" fill="${f('main')}"/>
+    <ellipse cx="-12" cy="-3" rx="12" ry="6" fill="${INK}"/><ellipse cx="13" cy="-3" rx="12" ry="6" fill="${INK}"/>
+    <rect x="-36" y="-96" width="13" height="32" rx="6" transform="rotate(-42 -24 -66)" fill="${f('main')}"/>
+    <circle cx="-46" cy="-88" r="8" fill="${f('skin')}"/>
+    <rect x="-25" y="-74" width="50" height="46" rx="13" fill="${f('main')}"/>
+    <polygon points="-10,-73 10,-73 0,-48" fill="#eef3f8"/><polygon points="-3,-71 3,-71 4,-56 0,-49 -4,-56" fill="${INK}"/>
+    <rect x="8" y="-54" width="34" height="23" rx="3" fill="${f('grey')}"/><circle cx="25" cy="-42" r="4" fill="#ff7a3d"/>
+    <rect x="15" y="-70" width="13" height="30" rx="6" fill="${f('main')}"/><circle cx="22" cy="-38" r="7" fill="${f('skin')}"/>
+    <circle cx="0" cy="-106" r="34" fill="${f('skin')}"/>
+    <path d="M-34,-108 a34,34 0 0 1 68,0 q-8,-16 -30,-13 q-22,-8 -38,13z" fill="${f('hair')}"/>
+    <rect x="-24" y="-112" width="20" height="14" rx="4" fill="#eef3f8" stroke="${INK}" stroke-width="3.5"/><rect x="4" y="-112" width="20" height="14" rx="4" fill="#eef3f8" stroke="${INK}" stroke-width="3.5"/><path d="M-4,-106 h8" ${face}/>
+    <circle cx="-13" cy="-105" r="3.5" fill="${INK}"/><circle cx="15" cy="-105" r="3.5" fill="${INK}"/>
+    <path d="M-7,-88 q9,8 19,-3" ${face}/>`;
+  const sofia=`
+    <g transform="rotate(10 30 -66)"><ellipse cx="30" cy="-68" rx="15" ry="64" fill="${f('board')}"/><path d="M30,-126 v116" stroke="#eef3f8" stroke-width="5" fill="none"/></g>
+    <rect x="-16" y="-34" width="12" height="28" rx="5" fill="${f('main')}"/><rect x="4" y="-34" width="12" height="28" rx="5" fill="${f('main')}"/>
+    <ellipse cx="-11" cy="-3" rx="10" ry="5" fill="${f('skin')}"/><ellipse cx="11" cy="-3" rx="10" ry="5" fill="${f('skin')}"/>
+    <rect x="-21" y="-70" width="42" height="42" rx="14" fill="${f('main')}"/>
+    <path d="M-11,-66 q-6,19 0,36" stroke="#eef3f8" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <rect x="-32" y="-68" width="12" height="28" rx="6" transform="rotate(18 -26 -66)" fill="${f('main')}"/><circle cx="-33" cy="-40" r="6.5" fill="${f('skin')}"/>
+    <rect x="16" y="-68" width="12" height="26" rx="6" transform="rotate(-25 22 -66)" fill="${f('main')}"/><circle cx="33" cy="-46" r="6.5" fill="${f('skin')}"/>
+    <path d="M-24,-116 q-34,4 -34,38 q14,-6 18,-22 q10,-4 16,-16z" fill="${f('blond')}"/>
+    <circle cx="0" cy="-100" r="32" fill="${f('skin')}"/>
+    <path d="M-32,-100 a32,32 0 0 1 64,0 q-14,-20 -34,-14 q-18,-2 -30,14z" fill="${f('blond')}"/>
+    <circle cx="-11" cy="-98" r="4" fill="${INK}"/><circle cx="13" cy="-98" r="4" fill="${INK}"/>
+    <path d="M-8,-85 q9,9 18,0" ${face}/>`;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-70 -150 140 160" width="560" height="640">${defs}${kind==='eddie'?eddie:sofia}</svg>`;
+  const pal=Object.values(C).concat(['#eef3f8',INK]);
+  const full=soft?pal.flatMap(c=>c===INK?[c]:[shade(c,.3),c,shade(c,-.3)]):pal;
+  return {svg,pal:full.map(hex)};
+}
+
+function sprite(host,kind,col,h,o){
+  const {svg,pal}=fighterSVG(kind,col,o.soft);
+  const w=Math.round(h*140/160), cv=document.createElement('canvas');
+  cv.width=w+2; cv.height=h+2;
+  const S=.66, sw=140*S, sh=160*S, px=sh/h;      // scene units per sprite pixel
+  cv.style.left=((o.x-sw/2-px)/640*100)+'%'; cv.style.top=((o.y-150*S-px)/360*100)+'%';
+  cv.style.width=((sw+2*px)/640*100)+'%';
+  if(o.flip)cv.style.transform='scaleX(-1)';
+  host.appendChild(cv);
+  const img=new Image();
+  img.onload=()=>{
+    const x=cv.getContext('2d'); x.drawImage(img,1,1,w,h);
+    try{
+      const d=x.getImageData(0,0,cv.width,cv.height), p=d.data, W=cv.width, H=cv.height;
+      for(let i=0;i<p.length;i+=4){
+        if(p[i+3]<120){p[i+3]=0;continue}
+        let best=0,bd=1e9;
+        for(let k=0;k<pal.length;k++){const q=pal[k],e=(p[i]-q[0])**2+(p[i+1]-q[1])**2+(p[i+2]-q[2])**2;if(e<bd){bd=e;best=k}}
+        p[i]=pal[best][0];p[i+1]=pal[best][1];p[i+2]=pal[best][2];p[i+3]=255;
+      }
+      if(o.outline){
+        const solid=new Uint8Array(W*H); for(let i=0;i<W*H;i++)solid[i]=p[i*4+3]?1:0;
+        const k=hex(INK);
+        for(let y=0;y<H;y++)for(let xx=0;xx<W;xx++){const i=y*W+xx; if(solid[i])continue;
+          if((xx>0&&solid[i-1])||(xx<W-1&&solid[i+1])||(y>0&&solid[i-W])||(y<H-1&&solid[i+W])){p[i*4]=k[0];p[i*4+1]=k[1];p[i*4+2]=k[2];p[i*4+3]=255}}
+      }
+      x.putImageData(d,0,0);
+    }catch(e){}
+  };
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+}
+
+function tag(x,y,txt,col){const w=txt.length*6.6+16;return `<g transform="translate(${x} ${y})"><path d="M-5,9 h10 l-5,7z" fill="${col}"/><rect x="${-w/2}" y="-9" width="${w}" height="19" rx="9.5" fill="${col}" stroke="#16122a" stroke-width="2"/><text y="5" text-anchor="middle" font-family="Nunito,sans-serif" font-weight="800" font-size="11" fill="#fff">${txt}</text></g>`}
+function hud(x,name,fig,pct,col){return `<g transform="translate(${x} 12)"><rect width="124" height="42" rx="9" fill="#16122a" opacity=".85"/><rect width="124" height="42" rx="9" fill="none" stroke="${col}" stroke-width="2.5"/>
+<text x="10" y="16" font-family="Nunito,sans-serif" font-weight="800" font-size="11" fill="${col}">${name}</text><text x="114" y="16" text-anchor="end" font-family="Nunito,sans-serif" font-size="9" fill="#b6a9cf">${fig}</text>
+<text x="10" y="36" font-family="Bungee,sans-serif" font-size="18" fill="#fff">${pct}%</text><text x="114" y="35" text-anchor="end" font-size="11" fill="${col}">♥♥♥</text></g>`}
+
+const BG=`<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#27204f"/><stop offset=".35" stop-color="#7a4a8f"/><stop offset=".62" stop-color="#e8707a"/><stop offset=".82" stop-color="#ff9a52"/><stop offset="1" stop-color="#ffd27a"/></linearGradient>
+<radialGradient id="sun"><stop offset="0" stop-color="#fffbe0"/><stop offset=".25" stop-color="#ffe08a"/><stop offset="1" stop-color="#ffb35c" stop-opacity="0"/></radialGradient>
+<linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f08f62"/><stop offset=".22" stop-color="#7d5a9c"/><stop offset=".6" stop-color="#1f4f86"/><stop offset="1" stop-color="#0b2545"/></linearGradient>
+<linearGradient id="stone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff1dc"/><stop offset=".25" stop-color="#e9c9a8"/><stop offset="1" stop-color="#6d5a8c"/></linearGradient>
+<linearGradient id="bld" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6d9c4"/><stop offset="1" stop-color="#8a6a9c"/></linearGradient>
+<linearGradient id="hill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6a4a86"/><stop offset="1" stop-color="#3a2a5c"/></linearGradient>
+<filter id="blur2"><feGaussianBlur stdDeviation="2"/></filter><filter id="blur6"><feGaussianBlur stdDeviation="6"/></filter>
+<filter id="drop" x="-20%" y="-50%" width="140%" height="250%"><feDropShadow dx="0" dy="7" stdDeviation="6" flood-color="#160c2c" flood-opacity=".6"/></filter>
+</defs>
+<rect width="640" height="360" fill="url(#sky)"/>
+<g fill="#fff" opacity=".7"><circle cx="60" cy="30" r="1"/><circle cx="130" cy="58" r=".8"/><circle cx="250" cy="24" r="1.1"/><circle cx="330" cy="50" r=".7"/><circle cx="590" cy="36" r="1"/><circle cx="520" cy="70" r=".8"/></g>
+<circle cx="450" cy="214" r="130" fill="url(#sun)"/><circle cx="450" cy="214" r="30" fill="#fff6d2"/>
+<g filter="url(#blur2)" opacity=".85"><ellipse cx="150" cy="110" rx="90" ry="12" fill="#f3a0a0"/><ellipse cx="200" cy="100" rx="50" ry="9" fill="#ffc2a8"/><ellipse cx="560" cy="140" rx="80" ry="10" fill="#f59a8c"/><ellipse cx="330" cy="160" rx="60" ry="7" fill="#ffc9a0"/></g>
+<path d="M0,228 L0,196 Q70,168 150,190 Q220,206 300,228z" fill="url(#hill)"/>
+<path d="M640,228 L640,204 Q590,188 540,206 Q510,216 480,228z" fill="url(#hill)" opacity=".8"/>
+<rect y="228" width="640" height="132" fill="url(#sea)"/>
+<g fill="#ffe7b8"><rect x="392" y="234" width="116" height="2.5" rx="1.2" opacity=".8"/><rect x="408" y="243" width="84" height="2.5" rx="1.2" opacity=".65"/><rect x="424" y="253" width="52" height="2.5" rx="1.2" opacity=".5"/><rect x="436" y="264" width="28" height="2.5" rx="1.2" opacity=".4"/></g>
+<g stroke="#cfe0ff" stroke-width="1.5" stroke-linecap="round" opacity=".35"><path d="M30,250 h46"/><path d="M560,258 h40"/><path d="M250,240 h30"/><path d="M40,330 h60"/><path d="M560,338 h50"/></g>
+<g filter="url(#drop)">
+  <rect x="24" y="132" width="150" height="100" rx="3" fill="url(#bld)"/><rect x="60" y="104" width="78" height="30" rx="3" fill="url(#bld)"/><rect x="178" y="170" width="78" height="62" rx="3" fill="url(#bld)"/>
+  <rect x="24" y="132" width="150" height="6" fill="#fff" opacity=".5"/><rect x="178" y="170" width="78" height="5" fill="#fff" opacity=".5"/>
+</g>
+<g fill="#ffdf8a">${[0,1,2,3,4].map(i=>`<rect x="${36+i*27}" y="150" width="16" height="12" rx="1.5" opacity="${i%2?.95:.55}"/><rect x="${36+i*27}" y="176" width="16" height="12" rx="1.5" opacity="${i%2?.5:.9}"/><rect x="${36+i*27}" y="202" width="16" height="12" rx="1.5" opacity=".7"/>`).join('')}<rect x="190" y="186" width="14" height="11" rx="1.5"/><rect x="212" y="186" width="14" height="11" rx="1.5" opacity=".6"/><rect x="234" y="186" width="14" height="11" rx="1.5"/></g>
+<text x="99" y="124" text-anchor="middle" font-family="Bungee,sans-serif" font-size="11" fill="#27204f" opacity=".8">CAMPUS</text>
+<g fill="#2a1b45"><rect x="596" y="150" width="5" height="80" rx="2"/><path d="M598,152 q-30,-14 -40,8 q22,-10 40,-4 q-12,-26 -34,-22 q26,-2 36,20 q4,-28 28,-28 q-18,8 -22,28 q18,-14 34,-2 q-20,-4 -36,6z"/></g>
+<ellipse cx="320" cy="336" rx="250" ry="14" fill="#0a1430" opacity=".5" filter="url(#blur6)"/>
+<g filter="url(#drop)"><rect x="90" y="278" width="460" height="50" rx="8" fill="url(#stone)"/></g>
+<rect x="90" y="278" width="460" height="5" rx="2.5" fill="#fff" opacity=".7"/>
+${[...Array(13)].map((_,i)=>`<rect x="${100+i*34}" y="290" width="30" height="11" rx="2" fill="${i%2?'#2f7fc4':'#f4f7fb'}"/><circle cx="${115+i*34}" cy="295.5" r="2.6" fill="${i%2?'#f4f7fb':'#2f7fc4'}"/>`).join('')}
+<g filter="url(#drop)"><rect x="126" y="190" width="124" height="16" rx="6" fill="url(#stone)"/><rect x="396" y="170" width="124" height="16" rx="6" fill="url(#stone)"/></g>
+<rect x="126" y="190" width="124" height="3.5" rx="1.7" fill="#fff" opacity=".7"/><rect x="396" y="170" width="124" height="3.5" rx="1.7" fill="#fff" opacity=".7"/>
+<ellipse cx="225" cy="280" rx="26" ry="4" fill="#160c2c" opacity=".45"/><ellipse cx="405" cy="280" rx="26" ry="4" fill="#160c2c" opacity=".45"/><ellipse cx="458" cy="172" rx="24" ry="3.5" fill="#160c2c" opacity=".45"/>`;
+
+const P=[{n:'P1 · ANA',c:'#e63946',k:'eddie',x:225,y:278,fig:'Eddie',pct:42},{n:'P2 · MAX',c:'#2f7fe0',k:'sofia',x:458,y:170,flip:1,fig:'Sofia',pct:87},{n:'P3 · LEA',c:'#22a36b',k:'eddie',x:405,y:278,flip:1,fig:'Eddie',pct:13}];
+[['s1',26,{}],['s2',44,{outline:1}],['s3',72,{outline:1,soft:1}]].forEach(([id,h,o])=>{
+  const host=document.getElementById(id);
+  host.innerHTML=`<svg viewBox="0 0 640 360" role="img" aria-label="Campus bei Sonnenuntergang mit drei Pixelfiguren">${BG}${P.map(p=>tag(p.x,p.y-116,p.n,p.c)).join('')}${P.map((p,i)=>hud(12+i*132,p.n,p.fig,p.pct,p.c)).join('')}</svg>`;
+  P.forEach(p=>sprite(host,p.k,p.c,h,{...o,x:p.x,y:p.y,flip:p.flip}));
+});
+</script>

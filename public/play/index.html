@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#1b1330">
+  <title>NOVA Brawl Controller</title>
+  <link rel="icon" href="/shared/icon.svg">
+  <link rel="stylesheet" href="/shared/fonts.css">
+  <link rel="stylesheet" href="/play/play.css">
+</head>
+<body>
+  <!-- Register / log in -->
+  <section id="auth" class="screen scroll" hidden>
+    <h1 class="logo">NOVA <span>BRAWL</span></h1>
+    <div class="tabs" role="tablist">
+      <button id="tabRegister" role="tab" aria-selected="true">New player</button>
+      <button id="tabLogin" role="tab" aria-selected="false">I have an account</button>
+    </div>
+    <form id="authForm" novalidate>
+      <label for="roomInput" id="roomLabel">Room code (on the big screen)</label>
+      <input id="roomInput" name="room" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD">
+      <p class="error" id="roomError" role="alert"></p>
+
+      <label for="tagInput">Gamertag</label>
+      <input id="tagInput" name="gamertag" maxlength="12" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="3 to 12 letters, numbers or _">
+      <p class="error" id="tagError" role="alert"></p>
+
+      <label for="pinInput">4-digit PIN</label>
+      <input id="pinInput" name="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="••••">
+      <p class="error" id="pinError" role="alert"></p>
+
+      <div id="pin2Row">
+        <label for="pin2Input">PIN again</label>
+        <input id="pin2Input" name="pin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="••••">
+        <p class="error" id="pin2Error" role="alert"></p>
+      </div>
+
+      <p class="error" id="formError" role="alert"></p>
+      <button id="authSubmit" class="big" type="submit">Create player</button>
+    </form>
+  </section>
+
+  <!-- Messages: connecting, signed out, room closed -->
+  <section id="notice" class="screen" hidden>
+    <h1 class="logo small">NOVA <span>BRAWL</span></h1>
+    <p id="noticeText" class="lead"></p>
+    <button id="noticeButton" class="big" hidden></button>
+  </section>
+
+  <!-- Fighter select -->
+  <section id="select" class="screen" hidden>
+    <header class="bar">
+      <span id="selectTag" class="pill"></span>
+      <span class="barButtons"><button id="leave" class="ghost">Leave</button><button id="logout" class="ghost">Log out</button></span>
+    </header>
+    <div id="carousel" class="carousel" aria-label="Fighters: swipe to choose"></div>
+    <div id="dots" class="dots" aria-hidden="true"></div>
+    <div id="stageVote" class="vote" hidden>
+      <span>Vote for the stage</span>
+      <div id="stageVoteButtons" class="voteButtons"></div>
+    </div>
+    <button id="ready" class="big">Ready!</button>
+    <p id="selectHint" class="hint">Swipe to choose your fighter</p>
+  </section>
+
+  <!-- Gamepad -->
+  <section id="pad" class="screen pad" hidden>
+    <header class="bar">
+      <span id="padTag" class="pill"></span>
+      <span id="padPct" class="pct">0%</span>
+      <span id="padHearts" class="hearts"></span>
+      <span id="padItem" class="item"></span>
+      <span id="signal" class="signal" title="Connection"></span>
+      <button id="modeToggle" class="ghost">JOYSTICK ⇄</button>
+    </header>
+    <div id="controls" class="controls">
+      <div id="dpad" class="dpad">
+        <div class="key" data-b="up">▲</div>
+        <div class="key" data-b="left">◀</div>
+        <div class="key" data-b="right">▶</div>
+        <div class="key" data-b="down">▼</div>
+        <div class="label">MOVE</div>
+      </div>
+      <div id="stickZone" class="stickZone" hidden>
+        <div id="stickRing" class="ring" hidden></div>
+        <div id="stickKnob" class="knob" hidden></div>
+        <div class="label">PUT YOUR THUMB ANYWHERE HERE AND DRAG</div>
+      </div>
+      <div class="key action special" data-b="special"><span id="cooldown" class="cooldown"></span><div><b>S</b><small>SPECIAL</small></div></div>
+      <div class="key action attack" data-b="attack"><div><b>A</b><small>ATTACK</small></div></div>
+      <div class="key action jump" data-b="jump"><div><b>J</b><small>JUMP</small></div></div>
+    </div>
+    <div id="hazard" class="hazard" hidden><span id="hazardName"></span><b id="hazardCount"></b></div>
+    <div id="overlay" class="overlay" hidden>
+      <h2 id="overlayTitle"></h2>
+      <p id="overlayText"></p>
+      <div id="hazardVote" class="voteButtons" hidden></div>
+    </div>
+    <div id="rotate" class="rotate"><div class="phoneIcon"></div><p>Turn your phone sideways</p><p class="hint">Nothing happens? Switch off the rotation lock, or</p><button id="rotateSkip" class="ghost">play upright</button></div>
+  </section>
+
+  <!-- Results -->
+  <section id="results" class="screen scroll" hidden>
+    <h1 id="resultPlace" class="place"></h1>
+    <p id="resultWinner" class="lead"></p>
+    <dl id="resultStats" class="stats"></dl>
+    <p id="resultPoints" class="points"></p>
+    <ul id="resultAchievements" class="achievements"></ul>
+    <p id="resultNote" class="hint">Waiting for the host…</p>
+  </section>
+
+  <div id="message" class="message" role="status" hidden></div>
+  <div id="flash" class="flash"></div>
+  <div id="offline" class="offline" hidden>Connection lost, reconnecting…</div>
+  <script type="module" src="/play/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<title>NOVA Brawl Art Reference</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;800&display=swap">
+<style>
+/* Layout: reference sheet. Stages full width one after another, then the roster as a grid of cards. Single committed dark look. */
+:root{
+  color-scheme:dark;
+  --night:#1b1330; --line:#4a3a66; --ink:#eef3f8; --mute:#b6a9cf; --orange:#ff7a3d; --yellow:#f6c343;
+  --display:"Bungee","Arial Black",sans-serif; --body:"Nunito","Segoe UI",system-ui,sans-serif;
+}
+body{background:var(--night);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(26px,4vw,40px);line-height:1.1;margin:0}
+h1 span{color:var(--orange)}
+.lead{color:var(--mute);max-width:66ch;margin:8px 0 0}
+h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0;border-top:1px solid var(--line);padding-top:20px}
+.stage{display:flex;flex-direction:column;gap:8px}
+.stage h3{font-family:var(--display);font-weight:400;font-size:18px;margin:0}
+.stage p{margin:0;color:var(--mute);font-size:14.5px}
+.screen{container-type:inline-size;position:relative;border:3px solid var(--line);border-radius:10px;overflow:hidden;background:#000;aspect-ratio:16/9;max-width:100%}
+.screen svg{display:block;width:100%;height:100%}
+.screen canvas{position:absolute;image-rendering:pixelated;image-rendering:crisp-edges}
+.oh{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:.25cqw;white-space:nowrap}
+.pill{font-weight:800;font-size:1.15cqw;color:#fff;padding:.1em .7em;border-radius:99px;border:.18cqw solid #16122a;display:flex;gap:.5em;align-items:center}
+.pill i{font-style:normal;letter-spacing:.08em}.pill s,.cardx s{text-decoration:none;opacity:.28}
+.bar{width:6cqw;height:.55cqw;background:#16122a;border-radius:99px;overflow:hidden;border:.12cqw solid #16122a}
+.bar u{display:block;height:100%;border-radius:99px}
+.cards{position:absolute;left:1.4%;top:1.6%;display:flex;gap:.9cqw}
+.cardx{background:rgba(22,18,42,.88);border:.22cqw solid;border-radius:.9cqw;padding:.3cqw .8cqw;display:flex;align-items:center;gap:.8cqw;min-width:11.5cqw}
+.cardx .n{font-weight:800;font-size:1.05cqw;line-height:1.1}.cardx .h{font-size:1.05cqw;letter-spacing:.1em;line-height:1}
+.cardx .p{font-family:var(--display);font-size:2.3cqw;line-height:1;margin-left:auto}
+.cardx.out{filter:grayscale(1);opacity:.6}.cardx.out .p{font-size:1.7cqw}
+.screen .warn{position:absolute;right:2.5%;top:2%;text-align:right;font-family:var(--display);color:#fff;text-shadow:0 .06em 0 #16122a,0 0 .5em rgba(0,0,0,.6);line-height:1}
+.screen .warn span{display:block;font-size:clamp(10px,2vw,24px);letter-spacing:.06em;color:#f6c343}
+.screen .warn b{display:block;font-weight:400;font-size:clamp(26px,6.5vw,80px);animation:pop 1s ease-out infinite;transform-origin:right top}
+@keyframes pop{0%{transform:scale(1.7);opacity:0}18%{transform:scale(1);opacity:1}80%{transform:scale(1);opacity:1}100%{transform:scale(.8);opacity:0}}
+@media(prefers-reduced-motion:reduce){.screen .warn b{animation:none}}
+.roster{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.card{background:radial-gradient(ellipse at 50% 30%,#4a3672 0,#2b1e3f 55%,#1f1535 100%);border:2px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.card canvas{width:150px;max-width:100%;height:auto;align-self:center;image-rendering:pixelated;image-rendering:crisp-edges}
+.card h3{font-family:var(--display);font-weight:400;font-size:16px;margin:0;line-height:1.15}
+.card dl{margin:0;font-size:13.5px;display:grid;grid-template-columns:auto 1fr;gap:2px 8px}
+.card dt{color:var(--yellow);font-weight:800}.card dd{margin:0;color:var(--ink)}
+.card p{margin:0;font-size:13px;color:var(--mute)}
+</style>
+<div class="wrap">
+  <header>
+    <h1>NOVA Brawl: <span>finale Grafik</span></h1>
+    <p class="lead">Die drei Stages und acht Figuren, wie sie ins Spiel kommen. Jede Fläche mit gestreifter Kante ist bespielbar, auch die Dächer. Oben links die Leiste mit einer Karte pro Spieler, über jeder Figur Name, Herzen und Schadensbalken in Spielerfarbe, oben rechts der Countdown. Jede Gefahr wird mit Countdown angekündigt.</p>
+  </header>
+  <h2>Stages</h2>
+  <div id="stages" style="display:flex;flex-direction:column;gap:26px"></div>
+  <h2>Figuren</h2>
+  <div class="roster" id="roster"></div>
+</div>
+<script src="characters.js"></script>
+<script src="stages.js"></script>
+<script>
+const names=['ANA','MAX','LEA','TOM'], pcts=[42,118,13,176], lives=[3,2,3,1];
+// damage colour: white at 0 %, yellow at 100 %, then orange, red, dark red at 200 %
+const STOPS=[[0,'#ffffff'],[100,'#f6c343'],[135,'#ff8a2a'],[170,'#e02b2b'],[200,'#b0151c']];
+function pcol(p){p=Math.max(0,Math.min(200,p));for(let i=1;i<STOPS.length;i++){const [a,ca]=STOPS[i-1],[b,cb]=STOPS[i];if(p<=b){const t=(p-a)/(b-a);return toHex(hex(ca).map((v,k)=>v+(hex(cb)[k]-v)*t))}}}
+const hearts=l=>'♥'.repeat(l)+'<s>'+'♥'.repeat(3-l)+'</s>';
+window.NB_STAGES.forEach((st,si)=>{
+  const el=document.createElement('section'); el.className='stage';
+  el.innerHTML=`<h3>${st.name}</h3><div class="screen">${st.draw()}</div><p>Gefahren: ${st.hazards.join(' · ')}</p>`;
+  document.getElementById('stages').appendChild(el);
+  const host=el.querySelector('.screen');
+  const wn=document.createElement('div'); wn.className='warn'; wn.innerHTML='<span>'+['TRAIN','BIG WAVE','DRUNK CROWD'][si]+'</span><b>3</b>'; let n=3; setInterval(()=>{n=n>1?n-1:3; wn.lastChild.textContent=n},1000); host.appendChild(wn);
+  // place four fighters on four different platforms to show scale and name tags
+  st.platforms.slice(0,4).forEach((p,i)=>{
+    const f=FIGHTERS[(si*3+i)%FIGHTERS.length], cv=document.createElement('canvas');
+    const h=122, w=h*74/83, x=p.x+p.w*(i===0?.5:.5), y=p.y;
+    cv.style.left=((x-w/2)/1280*100)+'%'; cv.style.top=((y-h*168/180)/720*100)+'%'; cv.style.width=(w/1280*100)+'%';
+    if(i%2)cv.style.transform='scaleX(-1)';
+    host.appendChild(cv); sprite(cv,f.cfg,f.color);
+    const t=document.createElement('div'); t.className='oh';
+    t.innerHTML=`<div class="pill" style="background:${PLAYER_COLORS[i]};color:${i===3?'#16122a':'#fff'}">${names[i]}<i>${hearts(lives[i])}</i></div><div class="bar"><u style="width:${pcts[i]/2}%;background:${pcol(pcts[i])}"></u></div>`;
+    t.style.left=(x/1280*100)+'%'; t.style.top=((y-h*168/180-3)/720*100)+'%'; host.appendChild(t);
+  });
+  const cards=document.createElement('div'); cards.className='cards';
+  cards.innerHTML=names.map((n,i)=>si===2&&i===2?`<div class="cardx out" style="border-color:${PLAYER_COLORS[i]}"><div><div class="n">${n}</div><div class="h"><s>♥♥♥</s></div></div><div class="p">OUT</div></div>`
+    :`<div class="cardx" style="border-color:${PLAYER_COLORS[i]}"><div><div class="n" style="color:${PLAYER_COLORS[i]}">${n}</div><div class="h" style="color:${PLAYER_COLORS[i]}">${hearts(lives[i])}</div></div><div class="p" style="color:${pcol(pcts[i])}">${pcts[i]}%</div></div>`).join('');
+  host.appendChild(cards);
+});
+FIGHTERS.forEach(f=>{
+  const c=document.createElement('article'); c.className='card';
+  c.innerHTML=`<canvas aria-label="${f.name}"></canvas><h3>${f.name}</h3><dl><dt>Normal</dt><dd>${f.normal}</dd><dt>Spezial</dt><dd>${f.special}</dd></dl><p>${f.specialText}</p><p>Handy: „${f.phone}"</p>`;
+  document.getElementById('roster').appendChild(c); sprite(c.querySelector('canvas'),f.cfg,f.color);
+});
+</script>

@@ -1,0 +1,93 @@
+<title>NOVA Brawl Spielanzeige</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;800&display=swap">
+<style>
+/* Layout: three full-width game screens stacked, each a different HUD arrangement over the same campus scene. Single committed dark look. */
+:root{
+  color-scheme:dark;
+  --night:#1b1330; --line:#4a3a66; --ink:#eef3f8; --mute:#b6a9cf; --orange:#ff7a3d; --yellow:#f6c343; --dark:#16122a;
+  --display:"Bungee","Arial Black",sans-serif; --body:"Nunito","Segoe UI",system-ui,sans-serif;
+}
+body{background:var(--night);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:30px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(26px,4vw,40px);line-height:1.1;margin:0}
+h1 span{color:var(--orange)}
+.lead{color:var(--mute);max-width:66ch;margin:8px 0 0}
+.opt{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:20px}
+.opt h2{font-family:var(--display);font-weight:400;font-size:21px;margin:0}
+.opt h2 b{color:var(--yellow);font-weight:400;margin-right:10px}
+.opt p{margin:0;color:var(--mute);font-size:15px;max-width:74ch}
+.screen{position:relative;border:3px solid var(--line);border-radius:10px;overflow:hidden;background:#000;aspect-ratio:16/9;max-width:100%;container-type:inline-size}
+.screen svg{display:block;width:100%;height:100%}
+.screen canvas{position:absolute;image-rendering:pixelated;image-rendering:crisp-edges}
+/* countdown: top right, over open sky on all three stages */
+.cd{position:absolute;right:2.5%;top:2%;text-align:right;font-family:var(--display);line-height:1;color:#fff;text-shadow:0 .06em 0 var(--dark),0 0 .4em rgba(0,0,0,.6)}
+.cd span{display:block;font-size:1.7cqw;color:var(--yellow)}
+.cd b{display:block;font-weight:400;font-size:7cqw;animation:pop 1s ease-out infinite;transform-origin:right top}
+@keyframes pop{0%{transform:scale(1.6);opacity:0}18%{transform:scale(1);opacity:1}80%{opacity:1}100%{transform:scale(.85);opacity:0}}
+@media(prefers-reduced-motion:reduce){.cd b{animation:none}}
+/* over-head label */
+.oh{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:.25cqw;white-space:nowrap}
+.pill{font-weight:800;font-size:1.15cqw;color:#fff;padding:.1em .7em;border-radius:99px;border:.18cqw solid var(--dark);display:flex;gap:.5em;align-items:center}
+.pill i{font-style:normal;letter-spacing:.08em}
+.pill i s{text-decoration:none;opacity:.3}
+.pct{font-family:var(--display);font-size:2.3cqw;line-height:1;text-shadow:0 .08em 0 var(--dark),.06em 0 0 var(--dark),-.06em 0 0 var(--dark),0 -.06em 0 var(--dark)}
+.bar{width:6cqw;height:.55cqw;background:var(--dark);border-radius:99px;overflow:hidden;border:.12cqw solid var(--dark)}
+.bar u{display:block;height:100%;border-radius:99px}
+/* cards */
+.cards{position:absolute;left:0;right:0;bottom:1.2%;display:flex;justify-content:center;gap:1.4cqw}
+.cards.top{bottom:auto;top:1.6%;justify-content:flex-start;padding-left:1.6%}
+.cardx{background:rgba(22,18,42,.88);border:.22cqw solid;border-radius:.9cqw;padding:.35cqw .9cqw;display:flex;align-items:center;gap:.9cqw;min-width:13cqw}
+.cardx .n{font-weight:800;font-size:1.05cqw;line-height:1.1}
+.cardx .h{font-size:1.1cqw;letter-spacing:.1em;line-height:1}
+.cardx .h s{text-decoration:none;opacity:.25}
+.cardx .p{font-family:var(--display);font-size:2.5cqw;line-height:1;margin-left:auto}
+.cardx.big{min-width:17cqw;padding:.5cqw 1cqw}
+.cardx.big .p{font-size:3.1cqw}
+.cardx canvas{position:static;width:2.8cqw;height:auto}
+</style>
+<div class="wrap">
+  <header>
+    <h1>Runde 7: <span>Was steht im Spiel auf dem Bildschirm?</span></h1>
+    <p class="lead">Dreimal dieselbe Szene: Ana 42 % mit 3 Leben, Max 87 % mit 2, Lea 13 % mit 3, Tom 156 % mit 1. Der Countdown sitzt in allen Varianten oben rechts im freien Himmel.</p>
+  </header>
+  <section class="opt"><h2><b>A</b>Alles an der Figur</h2><div class="screen" id="A"></div>
+    <p>Über jeder Figur: Prozent groß, darunter Name und Herzen in Spielerfarbe. Sonst ist der Bildschirm leer. Man schaut nur auf seine Figur. Bei vier Figuren auf engem Raum überlappen die Anzeigen.</p></section>
+  <section class="opt"><h2><b>B</b>Figur plus Leiste unten</h2><div class="screen" id="B"></div>
+    <p>Über der Figur: Name, Herzen und ein dünner Schadensbalken. Unten eine Leiste mit einer Karte pro Spieler und der großen Prozentzahl. Das Wichtigste ist an zwei Stellen lesbar. Meine Empfehlung.</p></section>
+  <section class="opt"><h2><b>C</b>Nur Name an der Figur</h2><div class="screen" id="C"></div>
+    <p>Über der Figur nur der Name. Prozent, Herzen und Figurenbild stehen in großen Karten unten. Die Map bleibt am freisten, aber man muss zum Ablesen nach unten schauen.</p></section>
+</div>
+<script src="characters.js"></script>
+<script src="stages.js"></script>
+<script>
+const ST=window.NB_STAGES[0];
+const PL=[{n:'ANA',pct:42,lives:3,f:0,plat:0,dx:-150},{n:'MAX',pct:87,lives:2,f:3,plat:3,dx:-200},{n:'LEA',pct:13,lives:3,f:5,plat:1,dx:0},{n:'TOM',pct:156,lives:1,f:2,plat:0,dx:190}];
+const pcol=p=>p<60?'#ffffff':p<120?'#f6c343':'#ff5a4a';
+const hearts=l=>'♥'.repeat(l)+'<s>'+'♥'.repeat(3-l)+'</s>';
+function scene(id,over,cards){
+  const host=document.getElementById(id); host.innerHTML=ST.draw()+'<div class="cd"><span>TRAIN</span><b>3</b></div>';
+  let n=3; setInterval(()=>{n=n>1?n-1:3; host.querySelector('.cd b').textContent=n},1000);
+  PL.forEach((p,i)=>{
+    const f=FIGHTERS[p.f], pf=ST.platforms[p.plat], cv=document.createElement('canvas');
+    const h=122, w=h*74/83, x=pf.x+pf.w/2+p.dx, y=pf.y, col=PLAYER_COLORS[i], tx=i===3?'#16122a':'#fff';
+    cv.style.left=((x-w/2)/1280*100)+'%'; cv.style.top=((y-h*168/180)/720*100)+'%'; cv.style.width=(w/1280*100)+'%';
+    if(i%2)cv.style.transform='scaleX(-1)';
+    host.appendChild(cv); sprite(cv,f.cfg,f.color);
+    const o=document.createElement('div'); o.className='oh'; o.style.left=(x/1280*100)+'%'; o.style.top=((y-h*168/180-3)/720*100)+'%';
+    o.innerHTML=over(p,col,tx); host.appendChild(o);
+  });
+  if(cards){
+    const c=document.createElement('div'); c.className='cards';
+    c.innerHTML=PL.map((p,i)=>cards(p,PLAYER_COLORS[i],i)).join(''); host.appendChild(c);
+    c.querySelectorAll('canvas').forEach((cv,i)=>sprite(cv,FIGHTERS[PL[i].f].cfg,FIGHTERS[PL[i].f].color));
+  }
+}
+const pill=(p,col,tx,withHearts)=>`<div class="pill" style="background:${col};color:${tx}">${p.n}${withHearts?`<i>${hearts(p.lives)}</i>`:''}</div>`;
+scene('A',(p,col,tx)=>`<div class="pct" style="color:${pcol(p.pct)}">${p.pct}%</div>${pill(p,col,tx,true)}`);
+scene('B',(p,col,tx)=>`${pill(p,col,tx,true)}<div class="bar"><u style="width:${p.pct/2}%;background:${pcol(p.pct)}"></u></div>`,
+  (p,col)=>`<div class="cardx" style="border-color:${col}"><div><div class="n" style="color:${col}">${p.n}</div><div class="h" style="color:${col}">${hearts(p.lives)}</div></div><div class="p" style="color:${pcol(p.pct)}">${p.pct}%</div></div>`);
+scene('C',(p,col,tx)=>pill(p,col,tx,false),
+  (p,col)=>`<div class="cardx big" style="border-color:${col}"><canvas></canvas><div><div class="n" style="color:${col}">${p.n}</div><div class="h" style="color:${col}">${hearts(p.lives)}</div></div><div class="p" style="color:${pcol(p.pct)}">${p.pct}%</div></div>`);
+</script>

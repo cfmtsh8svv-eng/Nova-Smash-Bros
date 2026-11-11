@@ -1,0 +1,163 @@
+<title>NOVA Brawl Stiloptionen</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;800&display=swap">
+<style>
+/* Layout: one dark arcade wall, three framed "screens" side by side, each with a verdict strip below. Single committed dark look. */
+:root{
+  color-scheme:dark;
+  --night:#1b1330; --panel:#2b1e3f; --line:#4a3a66;
+  --ink:#eef3f8; --mute:#b6a9cf; --orange:#ff7a3d; --yellow:#f6c343; --blue:#1f6fb2;
+  --display:"Bungee","Arial Black",sans-serif; --body:"Nunito","Segoe UI",system-ui,sans-serif;
+}
+body{background:var(--night);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(26px,4vw,40px);line-height:1.1;margin:0;text-wrap:balance}
+h1 span{color:var(--orange)}
+.lead{color:var(--mute);max-width:62ch;margin:8px 0 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.opt{min-width:0;display:flex;flex-direction:column;gap:12px}
+.screen{border:3px solid var(--line);border-radius:10px;overflow:hidden;background:#000;aspect-ratio:16/9;max-width:100%}
+.screen svg,.screen canvas{display:block;width:100%;height:100%}
+.screen canvas{image-rendering:pixelated}
+.tag{font-family:var(--display);font-size:20px;display:flex;align-items:baseline;gap:10px}
+.tag b{color:var(--yellow);font-weight:400}
+.opt p{margin:0;color:var(--mute);font-size:15px}
+.opt p strong{color:var(--ink)}
+.note{border-top:1px solid var(--line);padding-top:16px;color:var(--mute);font-size:15px;max-width:70ch}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Runde 1: <span>Welcher Look?</span></h1>
+    <p class="lead">Dieselbe Szene dreimal: Excel Eddie und Sofia Swell auf dem Campus. Wählt A, B oder C. Danach kommen pro Figur und Stage wieder drei Varianten im gewählten Stil.</p>
+  </header>
+
+  <div class="grid">
+    <section class="opt">
+      <div class="screen" id="a"></div>
+      <div class="tag"><b>A</b> Bold Cartoon</div>
+      <p><strong>Flache Farben, dicke Kontur, großer Kopf.</strong> Vom Beamer aus am besten lesbar. Entspricht der bisherigen Entscheidung D-011.</p>
+    </section>
+    <section class="opt">
+      <div class="screen"><canvas id="b" width="160" height="90"></canvas></div>
+      <div class="tag"><b>B</b> Pixel Retro</div>
+      <p><strong>Grobe Pixel, Arcade-Gefühl.</strong> Wirkt sofort wie ein Spiel, Animationen sind einfach. Gesichter und Witze im Detail gehen verloren.</p>
+    </section>
+    <section class="opt">
+      <div class="screen" id="c"></div>
+      <div class="tag"><b>C</b> Soft Toon</div>
+      <p><strong>Verläufe, Licht und Schatten, keine Kontur.</strong> Sieht am hochwertigsten aus. Mehr Aufwand pro Figur, auf hellem Beamer etwas weniger Kontrast.</p>
+    </section>
+  </div>
+
+  <p class="note">Alle Grafiken werden als Code gezeichnet (SVG und Canvas), nicht als Bilddateien aus einem Bildgenerator. Das hält sie scharf auf jeder Auflösung und lässt sich im Build in einem Zug erzeugen. Die Figuren hier sind Skizzen für die Stilwahl, noch nicht die finalen Designs.</p>
+</div>
+
+<script>
+const INK='#16122a';
+function defs(){return `<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b1e3f"/><stop offset=".55" stop-color="#c8527a"/><stop offset=".8" stop-color="#ff7a3d"/><stop offset="1" stop-color="#f6c343"/></linearGradient>
+<radialGradient id="sun"><stop offset="0" stop-color="#fff6d0"/><stop offset=".4" stop-color="#ffd76a"/><stop offset="1" stop-color="#ffd76a" stop-opacity="0"/></radialGradient>
+<linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9865a"/><stop offset=".3" stop-color="#1f6fb2"/><stop offset="1" stop-color="#0b3c5d"/></linearGradient>
+<linearGradient id="stone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbeedd"/><stop offset="1" stop-color="#9a86b8"/></linearGradient>
+<linearGradient id="g-skin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd9b8"/><stop offset="1" stop-color="#d98f6c"/></linearGradient>
+<linearGradient id="g-navy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2d5f8a"/><stop offset="1" stop-color="#0b2740"/></linearGradient>
+<linearGradient id="g-hair" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7a4a2c"/><stop offset="1" stop-color="#3a2014"/></linearGradient>
+<linearGradient id="g-blond" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe9a0"/><stop offset="1" stop-color="#e09a2a"/></linearGradient>
+<linearGradient id="g-suit" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f6f78"/><stop offset="1" stop-color="#0c2429"/></linearGradient>
+<linearGradient id="g-board" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffb07a"/><stop offset="1" stop-color="#e2531d"/></linearGradient>
+<linearGradient id="g-grey" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1f4f8"/><stop offset="1" stop-color="#8f9bb0"/></linearGradient>
+<filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#1b0f2e" flood-opacity=".55"/></filter>
+</defs>`}
+const FLAT={skin:'#f7c9a3',navy:'#0b3c5d',hair:'#4a2a18',blond:'#f6c343',suit:'#12343b',board:'#ff7a3d',grey:'#cfd6de'};
+function mk(soft){
+  const f=n=>soft?`url(#g-${n})`:FLAT[n];
+  const o=soft?'':`stroke="${INK}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"`;
+  const face=`stroke="${INK}" stroke-width="3" stroke-linecap="round" fill="none"`;
+  const hi=soft?`<ellipse cx="-10" cy="-118" rx="16" ry="9" fill="#fff" opacity=".22"/>`:'';
+  const wrap=(x,y,s,flip,inner)=>`<g transform="translate(${x} ${y}) scale(${flip?-s:s} ${s})"><ellipse cx="0" cy="3" rx="36" ry="6" fill="#000" opacity="${soft?.35:.2}"/><g ${soft?'filter="url(#soft)"':''}>${inner}</g></g>`;
+  const eddie=(x,y,s,flip)=>wrap(x,y,s,flip,`
+    <rect x="-17" y="-36" width="13" height="32" rx="4" fill="${f('navy')}" ${o}/><rect x="4" y="-36" width="13" height="32" rx="4" fill="${f('navy')}" ${o}/>
+    <ellipse cx="-12" cy="-3" rx="12" ry="6" fill="${INK}"/><ellipse cx="13" cy="-3" rx="12" ry="6" fill="${INK}"/>
+    <rect x="-36" y="-96" width="13" height="32" rx="6" transform="rotate(-42 -24 -66)" fill="${f('navy')}" ${o}/>
+    <circle cx="-46" cy="-88" r="8" fill="${f('skin')}" ${o}/>
+    <rect x="-25" y="-74" width="50" height="46" rx="13" fill="${f('navy')}" ${o}/>
+    <polygon points="-9,-73 9,-73 0,-50" fill="#eef3f8"/><polygon points="-3,-71 3,-71 4,-56 0,-49 -4,-56" fill="#ff7a3d"/>
+    <rect x="8" y="-54" width="34" height="23" rx="3" fill="${f('grey')}" ${o}/><circle cx="25" cy="-42" r="3.5" fill="#ff7a3d"/>
+    <rect x="15" y="-70" width="13" height="30" rx="6" fill="${f('navy')}" ${o}/><circle cx="22" cy="-38" r="7" fill="${f('skin')}" ${o}/>
+    <circle cx="0" cy="-106" r="34" fill="${f('skin')}" ${o}/>
+    <path d="M-34,-108 a34,34 0 0 1 68,0 q-8,-16 -30,-13 q-22,-8 -38,13z" fill="${f('hair')}" ${o}/>
+    ${hi}
+    <rect x="-24" y="-112" width="20" height="14" rx="4" fill="#fff" fill-opacity=".85" stroke="${INK}" stroke-width="3"/><rect x="4" y="-112" width="20" height="14" rx="4" fill="#fff" fill-opacity=".85" stroke="${INK}" stroke-width="3"/><path d="M-4,-106 h8" ${face}/>
+    <circle cx="-13" cy="-105" r="3" fill="${INK}"/><circle cx="15" cy="-105" r="3" fill="${INK}"/>
+    <path d="M-7,-88 q9,8 19,-3" ${face}/>`);
+  const sofia=(x,y,s,flip)=>wrap(x,y,s,flip,`
+    <g transform="rotate(10 30 -66)"><ellipse cx="30" cy="-68" rx="15" ry="64" fill="${f('board')}" ${o}/><path d="M30,-126 v116" stroke="#eef3f8" stroke-width="4" fill="none"/></g>
+    <rect x="-16" y="-34" width="12" height="28" rx="5" fill="${f('suit')}" ${o}/><rect x="4" y="-34" width="12" height="28" rx="5" fill="${f('suit')}" ${o}/>
+    <ellipse cx="-11" cy="-3" rx="10" ry="5" fill="${f('skin')}" ${o}/><ellipse cx="11" cy="-3" rx="10" ry="5" fill="${f('skin')}" ${o}/>
+    <rect x="-21" y="-70" width="42" height="42" rx="14" fill="${f('suit')}" ${o}/>
+    <path d="M-12,-68 q-6,20 0,38" stroke="#2a9d8f" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <rect x="-32" y="-68" width="12" height="28" rx="6" transform="rotate(18 -26 -66)" fill="${f('suit')}" ${o}/><circle cx="-33" cy="-40" r="6.5" fill="${f('skin')}" ${o}/>
+    <rect x="16" y="-68" width="12" height="26" rx="6" transform="rotate(-25 22 -66)" fill="${f('suit')}" ${o}/><circle cx="33" cy="-46" r="6.5" fill="${f('skin')}" ${o}/>
+    <path d="M-24,-116 q-34,4 -34,38 q14,-6 18,-22 q10,-4 16,-16z" fill="${f('blond')}" ${o}/>
+    <circle cx="0" cy="-100" r="32" fill="${f('skin')}" ${o}/>
+    <path d="M-32,-100 a32,32 0 0 1 64,0 q-14,-20 -34,-14 q-18,-2 -30,14z" fill="${f('blond')}" ${o}/>
+    ${hi}
+    <circle cx="-11" cy="-98" r="3.5" fill="${INK}"/><circle cx="13" cy="-98" r="3.5" fill="${INK}"/>
+    <circle cx="-17" cy="-90" r="4" fill="#ff7a3d" opacity=".45"/><circle cx="19" cy="-90" r="4" fill="#ff7a3d" opacity=".45"/>
+    <path d="M-8,-85 q9,9 18,0" ${face}/>`);
+  return {eddie,sofia,o};
+}
+function hud(x,name,pct,col){return `<g transform="translate(${x} 14)"><rect width="118" height="40" rx="8" fill="#16122a" opacity=".82"/><rect width="8" height="40" rx="3" fill="${col}"/>
+<text x="18" y="16" font-family="Nunito,sans-serif" font-weight="800" font-size="11" fill="#eef3f8">${name}</text>
+<text x="18" y="35" font-family="Bungee,sans-serif" font-size="18" fill="#fff">${pct}%</text>
+<text x="84" y="34" font-size="12" fill="${col}">●●●</text></g>`}
+function scene(soft){
+  const {eddie,sofia,o}=mk(soft);
+  const tiles=[...Array(13)].map((_,i)=>`<rect x="${100+i*34}" y="284" width="30" height="10" rx="2" fill="${i%2?'#1f6fb2':'#eef3f8'}" opacity="${soft?.75:1}"/>`).join('');
+  const bg=soft?`
+    <rect width="640" height="360" fill="url(#sky)"/><circle cx="470" cy="210" r="110" fill="url(#sun)"/><circle cx="470" cy="210" r="30" fill="#fff3c4"/>
+    <rect y="228" width="640" height="132" fill="url(#sea)"/>
+    <g fill="#ffe2b0" opacity=".5"><rect x="430" y="240" width="80" height="3" rx="1.5"/><rect x="446" y="252" width="48" height="3" rx="1.5"/><rect x="458" y="264" width="24" height="3" rx="1.5"/></g>
+    <g fill="#3a2550" opacity=".7"><rect x="20" y="150" width="120" height="80"/><rect x="60" y="120" width="60" height="30"/><rect x="150" y="180" width="70" height="50"/></g>
+    <g fill="#ffd76a" opacity=".8"><rect x="34" y="166" width="12" height="10"/><rect x="58" y="166" width="12" height="10"/><rect x="82" y="190" width="12" height="10"/><rect x="164" y="194" width="12" height="10"/></g>`:`
+    <rect width="640" height="360" fill="#8fd3ff"/><circle cx="470" cy="90" r="36" fill="#f6c343" ${o}/>
+    <g fill="#fff" ${o}><ellipse cx="150" cy="70" rx="46" ry="16"/><ellipse cx="560" cy="150" rx="36" ry="12"/></g>
+    <rect y="228" width="640" height="132" fill="#1f6fb2"/><path d="M0,228 h640" stroke="${INK}" stroke-width="4"/>
+    <g stroke="#eef3f8" stroke-width="4" stroke-linecap="round"><path d="M40,250 h40"/><path d="M520,262 h50"/><path d="M300,244 h30"/></g>
+    <g fill="#eef3f8" ${o}><rect x="20" y="150" width="120" height="80"/><rect x="60" y="120" width="60" height="30"/><rect x="150" y="180" width="70" height="50"/></g>
+    <g fill="#1f6fb2"><rect x="34" y="166" width="12" height="10"/><rect x="58" y="166" width="12" height="10"/><rect x="82" y="190" width="12" height="10"/><rect x="164" y="194" width="12" height="10"/></g>`;
+  const pf=(x,y,w,h)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${soft?'url(#stone)':'#f2d49b'}" ${o} ${soft?'filter="url(#soft)"':''}/>`;
+  return `<svg viewBox="0 0 640 360" role="img" aria-label="Szene im Stil ${soft?'Soft Toon':'Bold Cartoon'}">${defs()}${bg}
+    ${pf(90,278,460,46)}${tiles}${pf(130,190,120,16)}${pf(400,170,120,16)}
+    ${eddie(250,278,.72,false)}${sofia(455,170,.66,true)}
+    ${hud(14,'P1 · EDDIE',42,'#e63946')}${hud(140,'P2 · SOFIA',87,'#1f6fb2')}</svg>`;
+}
+document.getElementById('a').innerHTML=scene(false);
+document.getElementById('c').innerHTML=scene(true);
+
+// Pixel version
+(function(){
+  const c=document.getElementById('b'),x=c.getContext('2d');
+  const R=(col,a,b,w,h)=>{x.fillStyle=col;x.fillRect(a,b,w,h)};
+  ['#5fb4f0','#7cc4f5','#9bd4fa','#bfe5ff'].forEach((col,i)=>R(col,0,i*15,160,15));
+  R('#f6c343',112,14,12,12);R('#ffe08a',114,16,8,8);
+  R('#fff',30,14,18,4);R('#fff',34,11,10,3);R('#fff',136,34,14,3);
+  R('#1f6fb2',0,58,160,32);R('#0b3c5d',0,74,160,16);
+  for(let i=0;i<8;i++)R('#eef3f8',8+i*21,62+(i%3)*4,6,1);
+  R('#eef3f8',6,38,30,20);R('#eef3f8',16,30,14,8);R('#eef3f8',38,46,16,12);
+  [[9,42],[15,42],[21,48],[42,50]].forEach(p=>R('#1f6fb2',p[0],p[1],3,3));
+  R('#f2d49b',22,70,116,10);R('#c9a56a',22,78,116,2);
+  for(let i=0;i<14;i++)R(i%2?'#1f6fb2':'#eef3f8',24+i*8,72,7,3);
+  R('#f2d49b',32,48,30,4);R('#c9a56a',32,51,30,1);R('#f2d49b',100,43,30,4);R('#c9a56a',100,46,30,1);
+  const P={h:'#4a2a18',s:'#f7c9a3',n:'#0b3c5d',w:'#eef3f8',o:'#ff7a3d',g:'#cfd6de',k:'#16122a',y:'#f6c343',t:'#12343b',e:'#2a9d8f'};
+  const draw=(rows,ox,oy,flip)=>rows.forEach((r,j)=>[...r].forEach((ch,i)=>{if(P[ch])R(P[ch],ox+(flip?r.length-1-i:i),oy+j,1,1)}));
+  const eddie=['....hhhhhhhh....','...hhhhhhhhhh...','...hhsssssshh...','...hssssssssh...','...skkskkskks...','...ssssssssss...','...sssskkksss...','....ssssssss....','.....nnwonn.....','...nnnnwonnnn...','..nnnnnwonnnnn..','..nnsnnwonngggg.','..nnsnnnnnngogg.','..ss.nnnnnngggg.','.....nnnnnn.....','.....nn..nn.....','.....nn..nn.....','.....nn..nn.....','....kkk..kkk....'];
+  const sofia=['.....yyyyyy.....','....yyyyyyyy.yy.','....yssssssy.yy.','....sksssks..yy.','....sssssss..y..','....ssskkss.....','.....sssss......','.o....ttt.......','.oo..tetttt.....','.wo.ttetttttt...','.oo.stettt..s...','.wo.stetttt.....','.oo..ttttt......','.wo..ttttt......','.oo..tt.tt......','.oo..tt.tt......','.o...ss.ss......','.....ss.ss......'];
+  R('rgba(0,0,0,.25)',56,70,14,1);draw(eddie,55,51,false);
+  R('rgba(0,0,0,.25)',108,43,12,1);draw(sofia,106,25,true);
+  const card=(a,col,p)=>{R('#16122a',a,3,30,10);R(col,a,3,2,10);x.fillStyle='#fff';x.font='7px monospace';x.fillText(p+'%',a+5,11)};
+  card(3,'#e63946',42);card(36,'#1f6fb2',87);
+})();
+</script>

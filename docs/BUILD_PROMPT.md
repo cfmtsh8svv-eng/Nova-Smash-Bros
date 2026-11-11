@@ -1,6 +1,6 @@
 # NOVA Brawl: Build Prompt
 
-Paste everything below the line into a fresh Claude Code session started in the root of this repository, on the branch `build-prep` (or a branch made from it).
+Paste everything below the line into a fresh Claude Code session started in the root of this repository, on the branch `build-prep`.
 
 ---
 
@@ -87,8 +87,8 @@ When everything is built, write `docs/CRITERIA_CHECK.md`. For each of the six cr
 - Never commit a secret. Create `.gitignore` with `.env` and `node_modules` before anything else, and commit `.env.example` with names only.
 - Original work only: no Nintendo names, characters, sounds or look. The Nova SBE logo on the campus roof is already redrawn in `design/final/stages.js`; keep it, and credit it in `CREDITS.md` (source: Wikimedia Commons `Nova_logo.png`, author Nova SBE, CC BY-SA 4.0, trademark of the school).
 - All game and repository text is in English, with no Portuguese slang. Place names stay as they are.
-- Commit in small, readable steps on the current branch with clear messages. Do not push, do not merge into `main`, and do not deploy: those need accounts and a decision from me.
+- Work on a new branch named `build` made from the current one, and commit in small, readable steps with clear messages. When everything is built, reviewed and the checks pass, push that branch and open a pull request into `main` with `gh pr create`. The description summarises what was built, the test and audit results as actually run, and what is still open. **Do not merge it**, do not push to `main` directly, and do not deploy: merging decides what gets graded and deploying needs my accounts. Before pushing, check the diff once more for secrets and for anything from `.local/`.
 
 ## When you are done
 
-Give me a short report: what was built, the test and audit results as actually run, anything that is not finished or not at the top level of a criterion, and the manual steps left for me in order (create the sheet, set the secrets, deploy on Render, set up the Mac mini backup, put the URL in the README, test with real phones in the demo room, merge to `main`).
+Give me a short report: what was built, the test and audit results as actually run, anything that is not finished or not at the top level of a criterion, the pull request link, and the manual steps left for me in order (create the sheet, set the secrets, deploy on Render, set up the Mac mini backup, put the URL in the README, test with real phones in the demo room, merge to `main`).

@@ -42,9 +42,9 @@ Everything in `docs/GAME_SPEC.md`. **Do not build demo mode**: it comes later an
 - `AGENTS.md` with the run and test commands, the branch rule, the secrets rule and "never edit tests to make them pass"; `CLAUDE.md` that points to it.
 - Rewrite `docs/SPECS.md` and `docs/CONCEPT.md` so they match what was built, or mark them as historical at the top. Remove the Python instructions everywhere.
 
-## How to work: Fable only, with independent reviewers
+## How to work: Fable first, with independent reviewers
 
-Use Claude Fable for everything. Every subagent you start must run on the Fable model; do not use a smaller model for any step.
+You, the main session, run on Claude Fable throughout. Start subagents on Fable too. If Fable usage runs high (you hit or approach a usage limit, or the session is burning through budget faster than the work justifies), move subagents down instead of stopping: **Opus** for reviewers and anything that needs judgement, **Sonnet** for routine, well-specified work such as running test suites, taking screenshots or mechanical checks. Never go below Sonnet, and keep the final whole-repository review on the strongest model still available. Say in your final report which model each kind of subagent ran on.
 
 Build in three packages, in this order: game logic, then server, then client. After each package is written and its tests pass, start **independent reviewer agents** that did not write the code and give them the code and the spec, not your own summary of it:
 

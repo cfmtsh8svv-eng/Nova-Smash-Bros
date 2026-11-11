@@ -111,7 +111,7 @@ Decided by the team in the grilling session before the build. Full detail: [`GAM
 | D-091 | Phone controls | Two modes ship, **D-pad** and **joystick**, switchable on the phone; the team picks the default after playtesting. Three rectangular buttons: **Attack, Jump (with double jump), Special**; nearly the whole screen is touch surface. | Three round buttons (D-047); no jump button (tried and reverted the same day) | Team picked from visual options | Team | Decided |
 | D-092 | Fighter select | Swipe through fighters with the neighbours peeking in | Grid of eight | | Team | Decided |
 | D-093 | Fourth place | Lies flat on the ground beside the podium | Standing, or hidden | | Team | Decided |
-| D-094 | Build process | Built with Claude Fable only, with independent reviewer agents after each package | | Team request | Team | Decided |
+| D-094 | Build process | Built with Claude Fable, with independent reviewer agents after each package. If Fable usage runs too high, subagents move to Opus or Sonnet. | | Team request | Team | Decided |
 | D-095 | Aiming | Attack and Special go **where the fighter looks**: left, right, or up while up is held | Left and right only | Hit someone jumping over you | Team | Decided |
 | D-096 | Demo mode | **Built later.** Everything agreed is kept in `DEMO.md`; the first build is the full game without it. | Build it now (D-046) | Team decision | Team | Decided |
 | D-097 | Code priorities | **Quality and function before simplicity.** The code may be complex; the walkthrough document explains it. | Beginner-readable code first | Team decision | Team | Decided |

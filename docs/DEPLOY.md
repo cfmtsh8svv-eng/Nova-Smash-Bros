@@ -15,14 +15,15 @@ The repository contains [`render.yaml`](../render.yaml), a description of the se
 
 1. Sign in at [render.com](https://render.com) with the GitHub account that can see this repository.
 2. Click **New → Blueprint**.
-3. Choose the repository `Nova-Smash-Bros` and the **branch that holds the code**. Before the pull request is merged that is `build` (the `main` branch has no code yet, so Render would find nothing there). Render finds `render.yaml` and shows one service called **nova-brawl** on the **Free** plan.
+3. Choose the repository `Nova-Smash-Bros` and the branch `main`. Render finds `render.yaml` and shows one service called **nova-brawl** on the **Free** plan.
 4. Render asks for the four secret values (they are marked "sync: false" in the file, which means "typed in here, never stored in the repository"):
    `SHEETS_WEBAPP_URL`, `SHEETS_SHARED_SECRET`, `PIN_PEPPER`, `SESSION_SECRET`.
 5. Click **Apply**. The first build takes two to three minutes.
 6. Open the service page. At the top is the URL, something like `https://nova-brawl.onrender.com`.
 7. Check `https://<url>/healthz`. It must show `"ok":true`, `"store":"sheets"` and `"storeReachable":true`. If `storeReachable` is `false`, the server cannot talk to the sheet: check the two `SHEETS_` values and the script's deployment ([`SETUP_SHEETS.md`](SETUP_SHEETS.md), step 8). The server's log says the same in words at start.
-8. Put the URL into [`README.md`](../README.md) under "Deployed app" and commit that to the `build` branch (it becomes part of the pull request).
-9. **After the pull request is merged:** in the Render dashboard open the service → **Settings → Branch** and change it to `main`. From then on the public URL shows what is on `main`, which is what gets graded.
+8. Put the URL into [`README.md`](../README.md) under "Deployed app" (on a branch, through a pull request).
+
+The public URL shows what is on `main`, which is what gets graded.
 
 What `render.yaml` sets, in words: the region Frankfurt (every button press travels from the phone to the server and on to the big screen, so the server must be close to the players; from Lisbon a server in the default region, Oregon, added about 180 ms to every press), install with `npm ci --omit=dev` (only the two runtime dependencies), start with `npm start`, Node 22, health check at `/healthz`, and `TRUST_PROXY=cloudflare`. That last one tells the server that it sits behind Render's front door, so it takes the visitor's address (for rate limits) from the header that front door sets, and tells browsers to use https only.
 
@@ -59,7 +60,7 @@ Tailscale Funnel gives a computer at home a public `https://` address without op
 
 ```bash
 cd Nova-Smash-Bros
-git pull && npm ci --omit=dev     # get the latest version (use `git checkout build` first until the pull request is merged)
+git pull && npm ci --omit=dev     # get the latest version
 npm start                         # leave this terminal open
 ```
 

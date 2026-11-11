@@ -1,6 +1,6 @@
 # Grading criteria check
 
-Written at the end of the build, on the branch `build`. For each of the six criteria: what in the repository answers it, the evidence, and what is still missing. Nothing is claimed here that was not run.
+Written at the end of the build and updated after the merge into `main`. For each of the six criteria: what in the repository answers it, the evidence, and what is still missing. Nothing is claimed here that was not run.
 
 ## What was run, and what was not
 
@@ -12,22 +12,24 @@ Run on the build machine (macOS, Node 26.13.0; the unit and server tests also un
 | `npm run test:browser` | 3 tests, 3 pass, 0 fail (Chromium through Playwright, about 30 seconds) |
 | `npm audit --audit-level=high` | `found 0 vulnerabilities` |
 | GitHub Actions on the pushed branch (commit `1c6eac0`, Ubuntu, Node 22), for the push and for the pull request | Both runs succeeded: `npm test` 410 of 410, `npm audit --audit-level=high` 0 vulnerabilities, `npm run test:browser` 3 of 3 |
-| The deployed app at <https://nova-brawl.onrender.com> (Render, Frankfurt, branch `build`, with the real Google Sheet): opened a room, registered two test players from an emulated iPhone and an emulated Android phone, started a match, landed a hit, reloaded a phone. Run twice | `/healthz` shows `"store":"sheets"` and `"storeReachable":true`; the QR image loads; both phones join; the hit shows as 8 % on the victim's phone only; the reloaded phone gets its pad back; 60 pictures a second. From a button press on the phone to the fighter moving on the big screen: median 52 and 55 ms (measured from Lisbon). The first run logged two failed WebSocket handshakes on the host page right after the service had started; the page reconnected by itself, and 27 further connections and the second run had none |
+| GitHub Actions on `main` after the merge (commit `0d7bcaa`) | Succeeded: `npm test` 410 of 410, `npm audit --audit-level=high` 0 vulnerabilities, `npm run test:browser` 3 of 3 |
+| The deployed app after the merge: Render follows `main`, commit `0d7bcaa` is live | `/healthz` shows `"store":"sheets"` and `"storeReachable":true`; 8 of 8 WebSocket connections answered |
+| The deployed app at <https://nova-brawl.onrender.com> before the merge (Render, Frankfurt, then on the branch `build`, with the real Google Sheet): opened a room, registered two test players from an emulated iPhone and an emulated Android phone, started a match, landed a hit, reloaded a phone. Run twice | `/healthz` shows `"store":"sheets"` and `"storeReachable":true`; the QR image loads; both phones join; the hit shows as 8 % on the victim's phone only; the reloaded phone gets its pad back; 60 pictures a second. From a button press on the phone to the fighter moving on the big screen: median 52 and 55 ms (measured from Lisbon). The first run logged two failed WebSocket handshakes on the host page right after the service had started; the page reconnected by itself, and 27 further connections and the second run had none |
 | The real Google Sheet, with the server running locally: two test players registered, wrong and right PIN, one match result sent, server restarted, login again | Registration takes 3 to 5 seconds (the sheet is slow); the result was stored after 2.5 seconds with the right points and achievements; after the restart the login was answered from the sheet; the sheet holds a salt and a hash, no PIN. The match came from a script acting as host and phones over WebSocket, not from a played match |
 | `PORT=3987 node server/index.js`, then played with two emulated phones | A match from the title screen to the results, 60 pictures a second, no console errors |
 
-**Not run by anyone yet.** These are the honest gaps, and they matter for criterion 1:
+**What the build did not run itself.** These are the honest gaps, and they matter for criterion 1:
 
-- **A whole match on the deployed app.** The deployed app was played for a few seconds with emulated phones (see the table). A complete match played to the end on the public URL, with its result arriving in the sheet, has not been done by the build. (A result was stored in the real sheet, but through the locally running server.)
+- **A whole match on the deployed app.** The build played the deployed app only for a few seconds with emulated phones (see the table). After the deployment a team member played on it: the sheet now holds one stored match between two players they registered, so a complete match with a saved result has happened on the real system. The build did not watch that match.
 - **The automated tests do not use the real sheet.** They use the in-memory store and a stand-in that speaks the same protocol (`tests/server/outage.test.js`). The checks with the real sheet in the table were done once by hand.
-- **Real phones.** Everything was checked in Chromium with emulated iPhone and Android screens and touch events. Safari on a real iPhone, a real Android phone, the demo room's Wi-Fi and a projector were not tested.
-- **`main`.** The work is on `build` with an open pull request. The tests pass on `build`; they pass on `main` only after the team merges.
+- **Real phones.** A team member reported after the deployment that the game works with phones. Which phones and browsers, and whether in the demo room, is not written down. Everything the build checked itself was in Chromium with emulated iPhone and Android screens and touch events. Safari on a real iPhone, the demo room's Wi-Fi and a projector still need a test that is written down.
+- **`main`.** Merged. The tests pass on `main` (see the table).
 
 ## 1. It works (20 %)
 
 > "The deployed app runs all workflows without errors, including invalid input."
 
-**Deployed at <https://nova-brawl.onrender.com> and checked there with emulated phones (see the table at the top). Not at the top level until it has been played on real phones.** The list below is the evidence from the automated tests.
+**Deployed from `main` at <https://nova-brawl.onrender.com>, checked there with emulated phones (see the table at the top), and played by a team member on phones.** What is missing for a firm claim at the top level is a written record of that test: which phones, which browsers, and the workflows tried, including invalid input. The list below is the evidence from the automated tests.
 
 - **Every workflow, in a real browser.** `tests/browser/flow.test.js`, "a whole match from the stage vote to the results, a second match, removing a player, logging out", plays the complete loop twice with the real pages and the real server and fails on any console error or broken file.
 - **What a player would notice.** `tests/browser/smoke.test.js` uses an emulated iPhone and an emulated Android phone: the fighter follows the phone and stops when the thumb lifts, a real hit shows as damage on the victim's phone only, the stage and the sprites are really drawn (pixels are read back from the canvas), every pad button can be reached by a finger, a held button stays held, pause really freezes the match, and a phone that reloads or loses its connection gets its pad back.
@@ -36,7 +38,7 @@ Run on the build machine (macOS, Node 26.13.0; the unit and server tests also un
 - **Four players end to end.** `tests/server/e2e.test.js`: "four phones register, join, pick, play a full match to a winner; the result reaches the store and the leaderboard".
 - **A robustness pass with a simulated bad network** (delay, jitter, stalls, a host or phone cut off for 5 to 40 seconds) and nine matches in a row found no lost or doubled button presses, no memory growth, and a result saved exactly once in every case. The problems it did find were fixed (D-129 to D-131 in [`DECISIONS.md`](DECISIONS.md)).
 
-Missing for the top level: play complete matches on real phones in the demo room ([`TEAM_TASKS.md`](TEAM_TASKS.md)), and merge so that the deployed app shows `main`.
+Missing for the top level: play complete matches on real phones in the demo room and write down the result ([`TEAM_TASKS.md`](TEAM_TASKS.md)).
 
 ## 2. User interface and experience (20 %)
 
@@ -66,14 +68,14 @@ Left out on purpose: demo mode ([`DEMO.md`](DEMO.md) describes what is prepared 
 
 > "Tests cover accepted and rejected actions and edge cases, and all pass on `main`."
 
-- **413 automated tests**: 410 with `node:test` for the rules and the server, 3 browser tests. All pass on `build` (see the table at the top).
+- **413 automated tests**: 410 with `node:test` for the rules and the server, 3 browser tests. All pass on `main` (see the table at the top).
 - **Accepted actions**: each rule (`tests/game/rules.test.js`, `movement.test.js`), each of the eight specials inside its range (`specials.test.js`), each item (`items.test.js`), each hazard with its safe platform (`hazards.test.js`), registration, login, rooms, a full match (`tests/server/`).
 - **Rejected actions**: specials and items out of range, votes from the wrong player or for the wrong stage, wrong PINs and the lockout, tampered and expired tokens, a player trying host actions, a host touching another host's room, forged and implausible results, oversized and malformed messages (`tests/server/rooms.test.js`, `strict.test.js`, `results.test.js`, `accounts.test.js`).
 - **Edge cases**: a tap shorter than one frame, presses bunched by a network hiccup, simultaneous hits, the last player standing, a KO in the same step as a burnout, exact boundaries of every limit (`tests/game/exact.test.js`, `input.test.js`, `tests/server/strict.test.js`), and a regression test for every defect the reviews found (`tests/*/regressions.test.js`).
 - **Were the tests themselves checked?** Yes. For each package a reviewer agent changed the code on purpose in many small ways and looked at which changes the tests missed; tests were added for those. For the client the last count before the final additions was 57 of 80 breakages caught; the smoke test was then rewritten to catch the remaining kinds that matter to a player (a dead button, an empty canvas, a pause that does not freeze).
-- **CI**: `.github/workflows/ci.yml` runs `npm ci`, `npm test`, `npm audit --audit-level=high` and the browser tests on every push and pull request. It passed on the pushed branch (see the table at the top); later commits show their own result on the pull request.
+- **CI**: `.github/workflows/ci.yml` runs `npm ci`, `npm test`, `npm audit --audit-level=high` and the browser tests on every push and pull request. It passed on the pushed branch and on `main` after the merge (see the table at the top).
 
-Not at the top level until: the pull request is merged, so that the tests pass on `main`. Known gaps in the tests: the Apps Script file, Safari, and parts of the client that only a person can judge (how the game looks and sounds).
+The pull request is merged and the tests pass on `main`. Known gaps in the tests: the Apps Script file, Safari, and parts of the client that only a person can judge (how the game looks and sounds).
 
 ## 5. Security (10 %)
 

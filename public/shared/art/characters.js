@@ -165,6 +165,16 @@ export function buildSvg(c, M, pose = POSES.idle) {
   return { svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEW.x} ${VIEW.y} ${VIEW.w} ${VIEW.h}" width="${VIEW.w * 4}" height="${VIEW.h * 4}">${defs}${body}</svg>`, pal };
 }
 
+// The colour for the top of a later player who picked the same fighter. Normally the
+// player colour. If that is (nearly) the fighter's own colour, for example Finance Bro
+// in blue for the blue P2, nobody could tell the two apart, so white is used instead.
+export function duplicateColour(fighterId, playerColour) {
+  const own = hex(LOOKS[fighterId].color);
+  const wanted = hex(playerColour);
+  const distance = Math.hypot(own[0] - wanted[0], own[1] - wanted[1], own[2] - wanted[2]);
+  return distance < 70 ? WHITE : playerColour;
+}
+
 const DARK = '#2b2740';
 const JEANS = '#3b6ea8';
 const CHINO = '#d9c39a';

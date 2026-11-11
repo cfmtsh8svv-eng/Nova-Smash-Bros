@@ -8,7 +8,7 @@ import { CONFIG, PLAYER_COLORS, SCREEN } from '/game/config.js';
 import { damageColor, hearts, poseOf } from '/game/view.js';
 import { hazardRect } from '/game/hazards.js';
 import { getFighter } from '/game/fighters.js';
-import { SPRITE } from '/shared/art/characters.js';
+import { duplicateColour, SPRITE } from '/shared/art/characters.js';
 import { getSprite, getStageImage, loadStage } from '/shared/art/sprites.js';
 
 const DISPLAY = '"Bungee", "Arial Black", sans-serif';
@@ -376,7 +376,7 @@ export function createRenderer(canvas) {
     let pose = poseOf(f);
     if (pose === 'attack' && f.attack.dir === 'up') pose = 'attackUp';
     if (pose === 'special' && f.special.dir === 'up') pose = 'specialUp';
-    const main = f.altColor ? PLAYER_COLORS[f.slot] : null;
+    const main = f.altColor ? duplicateColour(f.fighterId, PLAYER_COLORS[f.slot]) : null;
     const sprite = getSprite(f.fighterId, main, pose) || getSprite(f.fighterId, main, 'idle');
 
     if (f.onGround) {

@@ -72,6 +72,7 @@ button.plain { background: transparent; box-shadow: none; color: var(--mute); }
 .board li:nth-child(odd) { background: rgba(255, 255, 255, 0.06); }
 .board li b { color: var(--yellow); font-weight: 800; }
 .board li.none { display: block; color: var(--mute); background: none; }
+.board.stale::after { content: "May be out of date: the player list cannot be reached right now."; display: block; grid-column: 1 / -1; color: var(--yellow); font-size: 0.95cqw; padding: 0.2cqw 0.5cqw; }
 .board.wide { grid-template-columns: repeat(2, 1fr); column-gap: 1.5cqw; width: 44cqw; }
 
 /* results */

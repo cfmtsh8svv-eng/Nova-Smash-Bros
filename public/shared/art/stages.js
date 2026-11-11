@@ -216,7 +216,7 @@ ${grain(40, 228, 380, 372, 0.5)}
 ${R(30, 214, 400, 16, '#b8564a')}${R(30, 230, 400, 8, '#0c0a1c', 'opacity=".4" filter="url(#b3)"')}${T(P['roof-left'])}
 ${seq(8, i => `<path d="M${116 + i * 36},486 q0,22 14,26" stroke="#1a1630" stroke-width="3" fill="none"/>`)}
 ${R(100, 470, 280, 14, '#d9d3c4')}${R(100, 484, 280, 6, '#0c0a1c', 'opacity=".4" filter="url(#b3)"')}${T(P['balcony-left'])}
-<!-- centre tasca: roof terrace is a platform -->
+<!-- centre bar: roof terrace is a platform -->
 ${R(480, 350, 320, 250, '#c9a24a')}${R(480, 500, 320, 100, 'url(#az)')}${R(480, 500, 320, 100, '#231a4a', 'opacity=".4"')}
 ${win(520, 392, true, '#7a2f3a')}${win(622, 392, true, '#7a2f3a')}${win(724, 392, false, '#7a2f3a')}
 <path d="M500,500 h280 l14,34 h-308z" fill="#e63946"/>${seq(7, i => `<path d="M${500 + i * 40 + 20},500 h20 l1,34 h-22z" fill="#f7f3ea" transform="skewX(${(i - 3) * 1.2})"/>`)}

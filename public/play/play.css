@@ -30,10 +30,11 @@ input.bad { border-color: var(--red); }
 
 /* fighter select */
 .bar { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; flex: none; }
-.pill { --p: #5b5670; background: var(--p); color: #fff; font-weight: 800; font-size: 15px; padding: 2px 14px; border-radius: 99px; white-space: nowrap; }
+.pill { --p: #5b5670; background: var(--p); color: #fff; font-weight: 800; font-size: 15px; padding: 2px 14px; border-radius: 99px; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .pill.p4 { color: var(--dark); }
 #select { gap: 8px; }
 #select .bar { justify-content: space-between; }
+#select .bar .barButtons { flex: none; }
 .carousel { display: flex; gap: 12px; width: 100vw; flex: 1; min-height: 0; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 16vw; scrollbar-width: none; -webkit-overflow-scrolling: touch; touch-action: pan-x; }
 .carousel::-webkit-scrollbar { display: none; }
 .card { flex: 0 0 68vw; max-width: 340px; scroll-snap-align: center; scroll-snap-stop: always; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 14px;
@@ -59,7 +60,8 @@ input.bad { border-color: var(--red); }
 
 /* gamepad */
 .pad { padding: 0; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; }
-.pad .bar { position: absolute; left: 0; right: 0; top: 0; height: 12%; min-height: 34px; background: rgba(22, 18, 42, 0.95); border-bottom: 3px solid var(--p, #5b5670); gap: 3vw; padding: 0 max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left)); z-index: 2; }
+.pad .bar { position: absolute; left: 0; right: 0; top: 0; height: 12%; min-height: 34px; background: rgba(22, 18, 42, 0.95); border-bottom: 3px solid var(--p, #5b5670); gap: 2vw; padding: 0 calc(max(10px, env(safe-area-inset-right)) + 112px) 0 max(10px, env(safe-area-inset-left)); z-index: 2; }
+.pad .bar .pct, .pad .bar .hearts, .pad .bar .item, .pad .bar .signal { flex: none; }
 .pct { font-family: var(--display); font-size: clamp(18px, 3.6vw, 34px); line-height: 1; }
 .hearts { color: var(--p, #fff); font-size: clamp(14px, 2.6vw, 24px); letter-spacing: 0.12em; }
 .item { font-size: 12px; color: var(--yellow); min-width: 4ch; }

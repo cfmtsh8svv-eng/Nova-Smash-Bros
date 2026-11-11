@@ -7,6 +7,7 @@ import { HAZARDS, STAGES, STAGE_IDS, tallyVote } from '/game/stages.js';
 import { createAudio } from '/shared/audio.js';
 import { createLink, storage } from '/shared/net.js';
 import { paintSprite } from '/shared/art/sprites.js';
+import { duplicateColour } from '/shared/art/characters.js';
 import { KEYMAPS } from './keyboard.js';
 import { createGame } from './game.js';
 
@@ -231,7 +232,7 @@ function renderSlot(index) {
     info.append(el('span', 'tag', `P${index + 1} · ${player.gamertag}`));
     const fighter = player.fighter ? getFighter(player.fighter) : null;
     // Until a fighter is picked, only a grey silhouette is shown.
-    paintSprite(picture, player.fighter || FIGHTERS[index % FIGHTERS.length].id, { silhouette: !fighter, mainColour: fighter && isDuplicate(player) ? PLAYER_COLORS[index] : null }).catch(() => {});
+    paintSprite(picture, player.fighter || FIGHTERS[index % FIGHTERS.length].id, { silhouette: !fighter, mainColour: fighter && isDuplicate(player) ? duplicateColour(fighter.id, PLAYER_COLORS[index]) : null }).catch(() => {});
     info.append(el('div', 'fighter', fighter ? fighter.name : 'Choosing…'));
     if (!player.connected) info.append(el('div', 'state away', 'Reconnecting…'));
     else if (player.ready) info.append(el('div', 'state ready', 'Ready!'));
@@ -256,7 +257,7 @@ function renderSlot(index) {
   } else if (guest) {
     const fighter = FIGHTERS[guest.fighter];
     info.append(el('span', 'tag', `P${index + 1} · ${KEYMAPS[guest.keys].name}`));
-    paintSprite(picture, fighter.id, { mainColour: guestIsDuplicate(index, fighter.id) ? PLAYER_COLORS[index] : null }).catch(() => {});
+    paintSprite(picture, fighter.id, { mainColour: guestIsDuplicate(index, fighter.id) ? duplicateColour(fighter.id, PLAYER_COLORS[index]) : null }).catch(() => {});
     info.append(el('div', 'fighter', fighter.name));
     const pickers = el('div', 'pickers');
     for (const [label, step] of [['◀', -1], ['▶', 1]]) {
@@ -360,11 +361,16 @@ function buildLobbyControls() {
 async function refreshBoard() {
   try {
     const res = await fetch('/api/leaderboard');
-    if (res.ok) fillBoard($('board'), (await res.json()).players.slice(0, 8));
+    if (res.ok) {
+      const board = await res.json();
+      fillBoard($('board'), board.players.slice(0, 8), board.stale);
+    }
   } catch { /* the lobby works without it */ }
 }
 
-function fillBoard(list, players) {
+function fillBoard(list, players, stale = false) {
+  // When the sheet could not be read, the list is what the server remembers: say so.
+  list.classList.toggle('stale', Boolean(stale));
   if (!players || !players.length) {
     list.replaceChildren(el('li', 'none', 'No matches yet. Be the first!'));
     return;
@@ -468,7 +474,7 @@ function showResults(result) {
     box.dataset.slot = String(p.slot);
     const duplicate = result.players.some((o) => o.slot < p.slot && o.fighterId === p.fighterId);
     const picture = el('canvas');
-    paintSprite(picture, p.fighterId, { mainColour: duplicate ? PLAYER_COLORS[p.slot] : null, pose: p.place === 4 ? 'ko' : p.place === 1 ? 'jump' : 'idle' }).catch(() => {});
+    paintSprite(picture, p.fighterId, { mainColour: duplicate ? duplicateColour(p.fighterId, PLAYER_COLORS[p.slot]) : null, pose: p.place === 4 ? 'ko' : p.place === 1 ? 'jump' : 'idle' }).catch(() => {});
     box.append(el('span', 'tag', `P${p.slot + 1} · ${p.name}`), picture);
     const step = el('div', 'step');
     step.append(el('div', 'n', ordinal(p.place)));
@@ -523,8 +529,8 @@ function renderResultExtras(saved) {
     box.querySelector('.pts').textContent = line.guest ? 'Keyboard player: no points' : `+${line.points} points`;
     box.querySelector('.ach').textContent = line.achievements.length ? `New: ${line.achievements.map((a) => a.name).join(', ')}` : '';
   }
-  fillBoard($('resultBoard'), saved.leaderboard);
-  fillBoard($('board'), (saved.leaderboard || []).slice(0, 8));
+  fillBoard($('resultBoard'), saved.leaderboard, saved.stale);
+  fillBoard($('board'), (saved.leaderboard || []).slice(0, 8), saved.stale);
   if (match && match.result) sendResultPhases(match.result, saved);
 }
 

@@ -7,6 +7,7 @@ import { InputBuffer } from '/game/input.js';
 import { voteHazard } from '/game/hazards.js';
 import { damageColor } from '/game/view.js';
 import { loadAllPoses, loadStage } from '/shared/art/sprites.js';
+import { duplicateColour } from '/shared/art/characters.js';
 import { createRenderer } from './render.js';
 import { createFx } from './fx.js';
 import { createKeyboard } from './keyboard.js';
@@ -198,7 +199,7 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     // Draw every pose of every fighter before the first frame, so nothing pops in mid-fight.
     await Promise.all([
       loadStage(stageId).catch(() => {}),
-      ...next.fighters.map((f) => loadAllPoses(f.fighterId, f.altColor ? PLAYER_COLORS[f.slot] : null).catch(() => {})),
+      ...next.fighters.map((f) => loadAllPoses(f.fighterId, f.altColor ? duplicateColour(f.fighterId, PLAYER_COLORS[f.slot]) : null).catch(() => {})),
     ]);
     phones = new Map();
     guests = new Map();

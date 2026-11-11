@@ -184,6 +184,20 @@ test('host page, an iPhone and an Android phone: register, pick, ready, start, p
   await press(iphone, 'left', 400);
   assert.ok((await fighter(host, 0)).x < beforeRejoin - 30, 'Ana is back in control after the reload');
 
+  // --- two fingers at once: hold a direction with one thumb, tap Jump with the other
+  const rightKey = await iphone.locator('.key[data-b="right"]').boundingBox();
+  const jumpKey = await iphone.locator('.key[data-b="jump"]').boundingBox();
+  const thumb = { pointerId: 21, pointerType: 'touch', isPrimary: true, bubbles: true, clientX: rightKey.x + rightKey.width / 2, clientY: rightKey.y + rightKey.height / 2 };
+  const other = { pointerId: 22, pointerType: 'touch', isPrimary: false, bubbles: true, clientX: jumpKey.x + jumpKey.width / 2, clientY: jumpKey.y + jumpKey.height / 2 };
+  await host.waitForFunction(() => window.novaBrawl.state.fighters[0].onGround);
+  const twoFingers = await fighter(host, 0);
+  await iphone.dispatchEvent('.key[data-b="right"]', 'pointerdown', thumb);
+  await iphone.dispatchEvent('.key[data-b="jump"]', 'pointerdown', other);
+  await iphone.dispatchEvent('.key[data-b="jump"]', 'pointerup', other);
+  await host.waitForFunction((y) => window.novaBrawl.state.fighters[0].y < y - 40, twoFingers.y, { timeout: 3000 }); // it jumped ...
+  await host.waitForFunction((x) => window.novaBrawl.state.fighters[0].x > x + 60, twoFingers.x, { timeout: 3000 }); // ... while still running right
+  await iphone.dispatchEvent('.key[data-b="right"]', 'pointerup', thumb);
+
   // --- a thumb that stays on a direction through a KO keeps working after the respawn
   const right = await iphone.locator('.key[data-b="right"]').boundingBox();
   const held = { pointerId: 11, pointerType: 'touch', isPrimary: true, bubbles: true, clientX: right.x + right.width / 2, clientY: right.y + right.height / 2 };

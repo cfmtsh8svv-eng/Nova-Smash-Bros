@@ -1,0 +1,23 @@
+# Render blueprint: one free web service. See docs/DEPLOY.md.
+services:
+  - type: web
+    name: nova-brawl
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: TRUST_PROXY
+        value: "1"
+      # The four secrets are typed into the Render dashboard, never into this file.
+      - key: SHEETS_WEBAPP_URL
+        sync: false
+      - key: SHEETS_SHARED_SECRET
+        sync: false
+      - key: PIN_PEPPER
+        sync: false
+      - key: SESSION_SECRET
+        sync: false

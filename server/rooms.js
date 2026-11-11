@@ -31,6 +31,7 @@ function plainData(value, depth = 0) {
   if (typeof value === 'number') return Number.isFinite(value);
   if (typeof value === 'string') return value.length <= 300;
   if (depth >= 3 || typeof value !== 'object') return false;
+  if (!Array.isArray(value) && Object.keys(value).some((k) => ['__proto__', 'constructor', 'prototype'].includes(k))) return false;
   const items = Array.isArray(value) ? value : Object.values(value);
   return items.length <= 24 && items.every((v) => plainData(v, depth + 1));
 }
@@ -38,17 +39,44 @@ const optional = (value, check) => value === undefined || value === null || chec
 const shortText = (max) => (v) => typeof v === 'string' && v.length <= max;
 const colour = (v) => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v);
 
+const onlyKeys = (object, allowed) => Object.keys(object).every((k) => allowed.includes(k));
+const bool = (v) => typeof v === 'boolean';
+const listOf = (max, check) => (v) => Array.isArray(v) && v.length <= max && v.every(check);
+const named = (ids) => (v) => isPlainObject(v) && onlyKeys(v, ['id', 'name']) && ids.includes(v.id) && shortText(24)(v.name);
+const count = (v) => isInt(v, 0, 100000);
+
+// What each screen message may contain. Anything else is refused: a phone must never
+// get a value it would choke on (a "lives: 400000000" would make it draw that many hearts).
+const PHASE_FIELDS = {
+  lobby: (m) => onlyKeys(m, ['t', 'name', 'vote', 'stages']) && optional(m.vote, bool) && optional(m.stages, listOf(4, named(STAGE_IDS))),
+  match: (m) => onlyKeys(m, ['t', 'name', 'stage', 'stageName', 'paused', 'lives', 'slots', 'hazards'])
+    && optional(m.stage, (v) => STAGE_IDS.includes(v)) && optional(m.stageName, shortText(40)) && optional(m.paused, bool)
+    && optional(m.lives, (v) => isInt(v, 1, 3)) && optional(m.slots, listOf(4, (v) => isInt(v, 0, 3))) && optional(m.hazards, listOf(6, named(HAZARD_IDS))),
+  results: (m) => onlyKeys(m, ['t', 'name', 'place', 'of', 'won', 'winner', 'stats', 'points', 'total', 'achievements', 'note'])
+    && optional(m.place, (v) => isInt(v, 1, 4)) && optional(m.of, (v) => isInt(v, 2, 4)) && optional(m.won, bool) && optional(m.winner, shortText(40))
+    && optional(m.stats, (v) => isPlainObject(v) && onlyKeys(v, ['dealt', 'taken', 'kos', 'falls']) && Object.values(v).every(count))
+    && optional(m.points, count) && optional(m.total, (v) => isInt(v, 0, 1e9))
+    && optional(m.achievements, listOf(8, (v) => isPlainObject(v) && onlyKeys(v, ['name', 'text']) && shortText(40)(v.name) && optional(v.text, shortText(80))))
+    && optional(m.note, shortText(160)),
+};
+const FEEDBACK_KINDS = ['hit', 'special', 'hazard', 'ko', 'out', 'good', 'finalKo', 'hazardWarn', 'hazardCount', 'hazardStart', 'hazardCancel', 'hazardEnd'];
+// A vibration pattern like the game's own: a few short pulses, two seconds at most.
+const vibration = (v) => Array.isArray(v) && v.length <= 6 && v.every((x) => isInt(x, 0, 1000)) && v.reduce((a, b) => a + b, 0) <= 2000;
+
 // The three kinds of message a host may send to phones, each with its own fields.
+// Returns true if the message must not be passed on.
 export function relayProblem(m) {
   if (!isPlainObject(m) || !RELAY_TYPES.includes(m.t) || !plainData(m)) return true;
-  if (m.t === 'phase') return !PHASE_NAMES.includes(m.name);
+  if (JSON.stringify(m).length > LIMITS.relayBytes[m.t]) return true;
+  if (m.t === 'phase') return !(PHASE_NAMES.includes(m.name) && PHASE_FIELDS[m.name](m));
   if (m.t === 'status') {
-    return !(isInt(m.pct, 0, 999) && isInt(m.lives, 0, 3) && FIGHTER_STATES.includes(m.state) && isInt(m.cd, 0, 3600) && isInt(m.cdMax, 1, 3600)
-      && optional(m.held, shortText(12)) && optional(m.tipsy, (v) => typeof v === 'boolean'));
+    return !(onlyKeys(m, ['t', 'pct', 'lives', 'state', 'cd', 'cdMax', 'held', 'tipsy'])
+      && isInt(m.pct, 0, 999) && isInt(m.lives, 0, 3) && FIGHTER_STATES.includes(m.state) && isInt(m.cd, 0, 3600) && isInt(m.cdMax, 1, 3600)
+      && optional(m.held, shortText(12)) && optional(m.tipsy, bool));
   }
-  return !(shortText(24)(m.kind) && optional(m.text, shortText(160)) && optional(m.title, shortText(60)) && optional(m.name, shortText(60))
-    && optional(m.flash, colour) && optional(m.n, (v) => isInt(v, 0, 9))
-    && optional(m.vibrate, (v) => Array.isArray(v) && v.length <= 12 && v.every((x) => isInt(x, 0, 2000))));
+  return !(onlyKeys(m, ['t', 'kind', 'text', 'title', 'name', 'flash', 'n', 'vibrate'])
+    && FEEDBACK_KINDS.includes(m.kind) && optional(m.text, shortText(160)) && optional(m.title, shortText(60)) && optional(m.name, shortText(60))
+    && optional(m.flash, colour) && optional(m.n, (v) => isInt(v, 0, 9)) && optional(m.vibrate, vibration));
 }
 
 export const ERRORS = {
@@ -84,13 +112,19 @@ export class Rooms {
   // ---- connections ----
 
   connect(ws, address) {
-    const conn = { ws, address, role: null, room: null, slot: -1, lower: null, sid: null, bucket: new Bucket(LIMITS.phoneMessagesPerSecond, this.now()), strikes: 0, joining: false, alive: true };
+    const conn = { ws, address, role: null, room: null, slot: -1, lower: null, sid: null, bucket: new Bucket(LIMITS.phoneMessagesPerSecond, this.now()), strikes: 0, joining: false, alive: true, failedJoins: 0, openedAt: this.now() };
     this.connections.add(conn);
     return conn;
   }
 
   send(conn, message) {
     if (!conn || conn.ws.readyState !== 1) return false;
+    // A receiver that has stopped reading would make the server pile messages up in
+    // memory without end. Such a connection is cut; a real phone simply reconnects.
+    if (conn.ws.bufferedAmount > LIMITS.sendBufferBytes) {
+      conn.ws.terminate();
+      return false;
+    }
     try {
       conn.ws.send(JSON.stringify(message));
       return true;
@@ -191,12 +225,12 @@ export class Rooms {
       if (slot.conn) {
         this.send(slot.conn, { t: 'closed', msg });
         if (this.byGamertag.get(slot.lower) === slot.conn) this.byGamertag.delete(slot.lower);
-        Object.assign(slot.conn, { role: null, room: null, slot: -1 });
+        Object.assign(slot.conn, { role: null, room: null, slot: -1, openedAt: this.now() });
       }
     }
     if (room.host) {
       this.send(room.host, { t: 'error', code: 'room_gone', msg: ERRORS.room_gone });
-      Object.assign(room.host, { role: null, room: null });
+      Object.assign(room.host, { role: null, room: null, openedAt: this.now() });
     }
     room.slots = [null, null, null, null];
   }
@@ -205,8 +239,9 @@ export class Rooms {
   holdSlot(room, index) {
     const slot = room.slots[index];
     if (!slot || slot.connected) return;
-    clearTimeout(slot.timer);
+    if (slot.timer) clearTimeout(slot.timer);
     slot.timer = setTimeout(() => {
+      slot.timer = null;
       if (room.slots[index] === slot && !slot.connected && room.phase === 'lobby') {
         room.slots[index] = null;
         this.sendRoster(room);
@@ -221,7 +256,7 @@ export class Rooms {
     clearTimeout(slot.timer);
     if (slot.conn) {
       if (this.byGamertag.get(slot.lower) === slot.conn) this.byGamertag.delete(slot.lower);
-      Object.assign(slot.conn, { role: null, room: null, slot: -1 });
+      Object.assign(slot.conn, { role: null, room: null, slot: -1, openedAt: this.now() });
     }
     room.slots[index] = null;
   }
@@ -275,7 +310,7 @@ export class Rooms {
       }
     }
     if (this.byGamertag.get(conn.lower) === conn) this.byGamertag.delete(conn.lower);
-    Object.assign(conn, { role: null, room: null, slot: -1 });
+    Object.assign(conn, { role: null, room: null, slot: -1, openedAt: this.now() });
     setTimeout(() => {
       if (conn.role !== null) return; // it joined again in the meantime: leave it alone
       try {
@@ -289,6 +324,14 @@ export class Rooms {
     for (const room of [...this.rooms.values()]) {
       if (now - room.lastActive > LIMITS.roomIdleMs) this.destroyRoom(room, 'The room was closed because nothing happened for a long time.');
     }
+    // A connection that never opened or joined a room has no reason to stay.
+    for (const conn of this.connections) {
+      if (conn.role === null && now - conn.openedAt > LIMITS.idleSocketMs) {
+        try {
+          conn.ws.close(1008, 'nothing to do');
+        } catch { /* already closed */ }
+      }
+    }
   }
 
   closeAll() {
@@ -301,11 +344,14 @@ const NEW_HANDLERS = {
   host_create(conn) {
     if (!this.limiter.allow(`room:${conn.address}`, LIMITS.roomsPerMinutePerAddress, this.now())) return this.fail(conn, 'busy');
     if (this.rooms.size >= LIMITS.maxRooms) return this.fail(conn, 'busy', { msg: 'The server is full. Try again later.' });
+    let mine = 0;
+    for (const other of this.rooms.values()) if (other.address === conn.address) mine += 1;
+    if (mine >= LIMITS.roomsPerAddress) return this.fail(conn, 'busy', { msg: 'Too many rooms are open from this network. Close one first.' });
     const code = this.newCode();
     if (!code) return this.fail(conn, 'busy');
     const room = {
       code, hostKey: randomBytes(24).toString('base64url'), host: conn, hostTimer: null, closed: false, phase: 'lobby',
-      slots: [null, null, null, null], match: null, phaseAll: null, lastResult: null, lastActive: this.now(),
+      slots: [null, null, null, null], match: null, phaseAll: null, lastResult: null, lastActive: this.now(), address: conn.address, banned: new Set(),
     };
     this.rooms.set(code, room);
     Object.assign(conn, { role: 'host', room, bucket: new Bucket(LIMITS.hostMessagesPerSecond, this.now()) });
@@ -339,11 +385,25 @@ const NEW_HANDLERS = {
 
   async join(conn, msg) {
     if (conn.joining) return;
-    const room = isRoomCode(msg.room) ? this.rooms.get(msg.room) : null;
-    if (!room) return this.fail(conn, 'room_not_found');
+    // Guessing room codes is slowed down twice: per address, and a socket that keeps
+    // failing is closed. The token is checked first, so only a logged-in player ever
+    // learns whether a room exists.
+    const failed = (code) => {
+      conn.failedJoins += 1;
+      this.fail(conn, code);
+      if (conn.failedJoins >= LIMITS.failedJoinsPerSocket) {
+        try {
+          conn.ws.close(1008, 'too many failed joins');
+        } catch { /* already closed */ }
+      }
+    };
+    if (!this.limiter.allow(`join:${conn.address}`, LIMITS.joinsPerMinutePerAddress, this.now())) return this.fail(conn, 'busy');
     const session = verifyToken(msg.token, this.config.sessionSecret, this.now());
-    if (!session) return this.fail(conn, 'bad_token');
+    if (!session) return failed('bad_token');
+    const room = isRoomCode(msg.room) ? this.rooms.get(msg.room) : null;
+    if (!room) return failed('room_not_found');
     const lower = session.gamertag.toLowerCase();
+    if (room.banned.has(lower)) return this.fail(conn, 'room_closed', { msg: 'The host removed you from this room.' });
     if (!this.sessions.accept(lower, session.sid, session.issuedAt)) return this.fail(conn, 'signed_out');
     conn.joining = true;
     let player;
@@ -408,10 +468,12 @@ const PHONE_HANDLERS = {
     if (fighter === undefined || typeof msg.ready !== 'boolean') return this.strike(conn);
     if (room.phase !== 'lobby') return this.fail(conn, 'bad_message', { msg: 'You can change your fighter after this match.' });
     const slot = room.slots[conn.slot];
+    const ready = Boolean(fighter) && msg.ready;
+    if (slot.fighter === fighter && slot.ready === ready) return undefined; // nothing new: nothing to tell the host
+    if (!this.limiter.allow(`pick:${room.code}:${conn.slot}`, 120, this.now())) return this.fail(conn, 'busy');
     slot.fighter = fighter;
-    slot.ready = Boolean(fighter) && msg.ready;
-    room.lastActive = this.now();
-    this.sendRoster(room);
+    slot.ready = ready;
+    return this.sendRoster(room);
   },
 
   vote(conn, msg) {
@@ -433,9 +495,15 @@ const PHONE_HANDLERS = {
     } else if (slot) {
       Object.assign(slot, { conn: null, connected: false, left: true });
     }
-    Object.assign(conn, { role: null, room: null, slot: -1 });
+    Object.assign(conn, { role: null, room: null, slot: -1, openedAt: this.now() });
     this.send(conn, { t: 'left' });
     this.sendRoster(room);
+  },
+
+  // "Log out": leave the room and make every copy of this player's login token invalid.
+  logout(conn) {
+    this.sessions.start(conn.lower, this.now());
+    PHONE_HANDLERS.leave.call(this, conn);
   },
 
   // A phone is in one room at a time: it has to leave before it joins another.
@@ -467,6 +535,26 @@ const HOST_HANDLERS = {
     if (typeof msg.closed !== 'boolean') return this.strike(conn);
     conn.room.closed = msg.closed;
     this.sendRoster(conn.room);
+  },
+
+  // Remove a player from the room. They cannot come back into this room.
+  kick(conn, msg) {
+    const room = conn.room;
+    if (!isInt(msg.slot, 0, 3)) return this.strike(conn);
+    const slot = room.slots[msg.slot];
+    if (!slot) return undefined;
+    room.banned.add(slot.lower);
+    const phone = slot.conn;
+    if (room.phase === 'lobby') {
+      this.freeSlot(room, msg.slot);
+    } else {
+      // Mid-match the fighter stays (idle) until the match is over, then the slot is freed.
+      if (phone && this.byGamertag.get(slot.lower) === phone) this.byGamertag.delete(slot.lower);
+      if (phone) Object.assign(phone, { role: null, room: null, slot: -1, openedAt: this.now() });
+      Object.assign(slot, { conn: null, connected: false, left: true });
+    }
+    if (phone) this.send(phone, { t: 'closed', msg: 'The host removed you from this room.' });
+    return this.sendRoster(room);
   },
 
   match_start(conn, msg) {
@@ -509,7 +597,14 @@ const HOST_HANDLERS = {
     const scored = scoreResult(match, checked, roster, this.now());
     let stored = false;
     let note = '';
-    if (roster.size >= 2) {
+    // Limits that keep the leaderboard and the sheet from being flooded with results.
+    const hour = Math.floor(this.now() / 3_600_000);
+    const busyPlayer = [...roster.values()].some((row) => !this.limiter.peek(`results:${hour}:${row.gamertag_lower}`, LIMITS.resultsPerHourPerPlayer));
+    if (roster.size >= 2 && (busyPlayer || this.data.pending >= LIMITS.maxQueuedResults)) {
+      note = busyPlayer ? 'A player has reached the limit of matches per hour, so this one does not count.' : 'Too many results are waiting to be saved. This match does not count.';
+      for (const line of scored.lines) Object.assign(line, { totalPoints: (line.totalPoints || 0) - line.points, points: 0, achievements: [] });
+    } else if (roster.size >= 2) {
+      for (const row of roster.values()) this.limiter.count(`results:${hour}:${row.gamertag_lower}`, this.now());
       this.data.recordMatch(scored.matchRow, scored.updates);
       stored = true;
       await Promise.race([this.data.flush().catch(() => {}), new Promise((r) => setTimeout(r, 1500))]);

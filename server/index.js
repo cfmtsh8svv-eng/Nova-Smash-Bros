@@ -19,7 +19,7 @@ for (const warning of config.warnings) console.warn(`Note: ${warning}`);
 
 const store = config.useSheets ? new SheetsStore({ url: config.sheetsUrl, secret: config.sheetsSecret }) : new MemoryStore();
 const app = createApp({ config, store, log: (line) => console.error(line) });
-const port = await app.listen(config.port);
+const port = await app.listen(config.port, config.host);
 console.log(`NOVA Brawl is running: http://localhost:${port}  (store: ${store.kind})`);
 
 for (const signal of ['SIGINT', 'SIGTERM']) {

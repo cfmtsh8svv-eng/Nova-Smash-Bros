@@ -397,8 +397,11 @@ test('fighter picks and votes are validated', async (t) => {
     a.send({ t: 'pick', ...bad });
     assert.equal((await a.next('error')).code, 'bad_message');
   }
-  a.send({ t: 'pick', fighter: null, ready: true });
-  assert.equal((await h.next('roster')).players[0].ready, false, 'cannot be ready without a fighter');
+  a.send({ t: 'pick', fighter: null, ready: true }); // "ready" without a fighter changes nothing
+  await a.settle();
+  await h.settle();
+  assert.equal(h.inbox.filter((m) => m.t === 'roster').length, 0);
+  assert.equal(s.app.rooms.rooms.get(h.code).slots[0].ready, false, 'cannot be ready without a fighter');
   a.send({ t: 'pick', fighter: 'lisboa_og', ready: true });
   assert.deepEqual((await h.next('roster')).players[0], { slot: 0, gamertag: 'Ana', connected: true, fighter: 'lisboa_og', ready: true });
 
@@ -439,7 +442,7 @@ test('unknown message types are dropped', async (t) => {
   }
 });
 
-test('oversized messages are dropped: 512 bytes for phones, 16 KB for the host', async (t) => {
+test('oversized messages are dropped: 512 bytes for phones, 4 KB for the host', async (t) => {
   const s = await startServer(t);
   const { h, a } = await startedMatch(s);
   a.send(JSON.stringify({ t: 'input', m: 1, q: 1, pad: 'x'.repeat(600) }));
@@ -447,10 +450,12 @@ test('oversized messages are dropped: 512 bytes for phones, 16 KB for the host',
   await h.settle();
   assert.equal(h.inbox.filter((m) => m.t === 'input').length, 0);
   // The host may send more than a phone ...
-  h.send({ t: 'to', slot: 0, msg: { t: 'phase', name: 'results', pad: Array(20).fill('x'.repeat(200)) } });
+  const bigButFine = { t: 'phase', name: 'results', place: 1, note: 'n'.repeat(150), achievements: [...Array(8)].map(() => ({ name: 'a'.repeat(40), text: 'b'.repeat(80) })) };
+  assert.ok(JSON.stringify(bigButFine).length > 1000);
+  h.send({ t: 'to', slot: 0, msg: bigButFine });
   assert.equal((await a.next('phase')).name, 'results');
   // ... but anything over the hard limit closes the socket (the ws library refuses it).
-  h.send(JSON.stringify({ t: 'to', slot: 0, msg: { t: 'phase', pad: 'x'.repeat(40_000) } }));
+  h.send(JSON.stringify({ t: 'to', slot: 0, msg: { t: 'phase', name: 'lobby', pad: 'x'.repeat(40_000) } }));
   assert.equal(await h.closed, 1009);
   assert.equal(s.app.server.listening, true, 'the server is still up');
 });

@@ -42,7 +42,11 @@ export class SheetsStore {
 
   async getPlayer(lower) {
     const row = await this.call('getPlayer', { gamertag_lower: lower });
-    return row ? normalise(row) : null;
+    if (!row) return null;
+    const player = normalise(row);
+    // A cell may have been edited by hand: a row that is not this player is not used.
+    if (!/^[A-Za-z0-9_]{3,12}$/.test(player.gamertag) || player.gamertag.toLowerCase() !== lower || player.gamertag_lower !== lower) return null;
+    return player;
   }
 
   async createPlayer(player) {

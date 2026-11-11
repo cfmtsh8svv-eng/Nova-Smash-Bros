@@ -20,11 +20,13 @@ test('every kind of answer carries the security headers', async (t) => {
     const res = await fetch(s.base + route);
     const csp = res.headers.get('content-security-policy');
     assert.ok(csp, `CSP on ${route}`);
-    assert.match(csp, /default-src 'self'/);
+    assert.match(csp, /default-src 'none'/, 'nothing is allowed unless a later rule allows it');
     assert.match(csp, /script-src 'self'(;|$)/, 'scripts only from our own files: no inline scripts');
     assert.equal(/unsafe-inline|unsafe-eval/.test(csp), false);
     assert.match(csp, /frame-ancestors 'none'/);
-    assert.equal(csp, "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:; media-src 'self' data: blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
+    const host = `127.0.0.1:${s.port}`;
+    assert.equal(csp, `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' ws://${host} wss://${host}; media-src 'none'; manifest-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'`, 'WebSockets only to this server');
+    assert.equal(res.headers.get('strict-transport-security'), null, 'no https-only promise on a plain http server');
     assert.equal(res.headers.get('x-frame-options'), 'DENY');
     assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
     assert.equal(res.headers.get('referrer-policy'), 'no-referrer');
@@ -157,15 +159,19 @@ test('the QR link is https for a public host name and http only for local addres
   assert.equal(await withHint('localhost:3000', 1), 'https://localhost:3000/play?room=ABCD');
 });
 
-test('behind a proxy the forwarded address is used for limits', async () => {
-  const req = (xff) => ({ headers: xff === undefined ? {} : { 'x-forwarded-for': xff }, socket: { remoteAddress: '10.0.0.1' } });
-  assert.equal(clientAddress(req('99.61.165.29, 104.22.17.40'), true), '99.61.165.29', 'the visitor, not the proxy in front of us');
-  assert.equal(clientAddress(req('1.1.1.1, 2.2.2.2'), false), '10.0.0.1', 'without a proxy the header is ignored');
-  assert.equal(clientAddress(req(undefined), true), '10.0.0.1');
-  assert.equal(clientAddress(req('<script>, 2.2.2.2'), true), '10.0.0.1', 'a header that is not an address is ignored');
-  const viaCloudflare = { headers: { 'cf-connecting-ip': '99.61.165.29', 'x-forwarded-for': '8.8.8.8, 104.22.17.40' }, socket: { remoteAddress: '10.0.0.1' } };
-  assert.equal(clientAddress(viaCloudflare, true), '99.61.165.29');
-  assert.equal(clientAddress(viaCloudflare, false), '10.0.0.1');
+test('the visitor address: taken from Render\'s own header only when told to, never from a header a visitor can choose', async (t) => {
+  const req = (headers) => ({ headers, socket: { remoteAddress: '10.0.0.1' } });
+  const viaRender = req({ 'cf-connecting-ip': '99.61.165.29', 'x-forwarded-for': '8.8.8.8, 104.22.17.40' });
+  assert.equal(clientAddress(viaRender, true), '99.61.165.29');
+  assert.equal(clientAddress(viaRender, false), '10.0.0.1', 'without TRUST_PROXY every forwarding header is ignored');
+  assert.equal(clientAddress(req({ 'x-forwarded-for': '1.1.1.1, 2.2.2.2' }), true), '10.0.0.1', 'X-Forwarded-For can be set by anyone and is never used');
+  assert.equal(clientAddress(req({ 'cf-connecting-ip': '<script>' }), true), '10.0.0.1', 'a value that is not an address is ignored');
+  assert.equal(clientAddress(req({}), true), '10.0.0.1');
+  // Behind the trusted proxy the pages also promise https-only.
+  const s = await startServer(t, { config: { trustProxy: true } });
+  const res = await fetch(`${s.base}/`);
+  assert.equal(res.headers.get('strict-transport-security'), 'max-age=31536000');
+  await res.arrayBuffer();
 });
 
 test('unknown API routes answer 404 as JSON and the achievements list is public', async (t) => {

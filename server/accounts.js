@@ -59,7 +59,7 @@ export function verifyToken(token, secret, now = Date.now()) {
 // ---- wrong-PIN lockout: five wrong PINs within 10 minutes lock the gamertag for 10 minutes ----
 export class LoginGuard {
   constructor() {
-    this.entries = new Map(); // gamertag_lower -> { fails: [timestamps], lockedUntil }
+    this.entries = new Map(); // gamertag_lower -> { fails: [timestamps], day: [timestamps], lockedUntil }
   }
 
   // Seconds until the gamertag may try again (0 = not locked).
@@ -71,10 +71,17 @@ export class LoginGuard {
 
   // Record a wrong PIN. Returns how many tries are left (0 = now locked).
   fail(lower, now) {
-    const e = this.entries.get(lower) || { fails: [], lockedUntil: 0 };
+    const e = this.entries.get(lower) || { fails: [], day: [], lockedUntil: 0 };
     e.fails = e.fails.filter((t) => now - t < LIMITS.loginWindowMs);
+    e.day = e.day.filter((t) => now - t < LIMITS.loginDayMs);
     e.fails.push(now);
-    if (e.fails.length >= LIMITS.loginMaxFails) {
+    e.day.push(now);
+    if (e.day.length >= LIMITS.loginMaxFailsPerDay) {
+      // Twenty misses in a day: locked until the oldest of them is a day old. This is
+      // what makes trying all 10,000 PINs take more than a year instead of two weeks.
+      e.lockedUntil = e.day[0] + LIMITS.loginDayMs;
+      e.fails = [];
+    } else if (e.fails.length >= LIMITS.loginMaxFails) {
       e.lockedUntil = now + LIMITS.loginLockMs;
       e.fails = [];
     }
@@ -82,14 +89,17 @@ export class LoginGuard {
     return e.lockedUntil > now ? 0 : LIMITS.loginMaxFails - e.fails.length;
   }
 
+  // A correct PIN clears the short count. The day's count stays, so a guesser who
+  // also knows a way to reset the short count gains nothing.
   success(lower) {
-    this.entries.delete(lower);
+    const e = this.entries.get(lower);
+    if (e) e.fails = [];
   }
 
   // Forget old entries so the map cannot grow without limit.
   sweep(now) {
     for (const [key, e] of this.entries) {
-      if (e.lockedUntil <= now && e.fails.every((t) => now - t >= LIMITS.loginWindowMs)) this.entries.delete(key);
+      if (e.lockedUntil <= now && e.day.every((t) => now - t >= LIMITS.loginDayMs)) this.entries.delete(key);
     }
   }
 }

@@ -1,31 +1,38 @@
 // HTTP security headers and a small rate limiter.
 
 // The Content-Security-Policy allows only our own files: no inline scripts,
-// nothing from other sites. Sprites are drawn through data: images, sounds are
-// synthesised, so nothing external is ever needed.
-const CSP = [
-  "default-src 'self'",
-  "script-src 'self'",
-  "style-src 'self'",
-  "img-src 'self' data: blob:",
-  "font-src 'self' data:",
-  "connect-src 'self' ws: wss:",
-  "media-src 'self' data: blob:",
-  "object-src 'none'",
-  "base-uri 'none'",
-  "frame-ancestors 'none'",
-  "form-action 'self'",
-].join('; ');
+// nothing from other sites, and WebSockets only to this server.
+function csp(host) {
+  const sockets = /^[A-Za-z0-9.:[\]-]{1,255}$/.test(host || '') ? ` ws://${host} wss://${host}` : '';
+  return [
+    "default-src 'none'",
+    "script-src 'self'",
+    "style-src 'self'",
+    "img-src 'self' data:", // the sprites and stages are drawn through data: images
+    "font-src 'self'",
+    `connect-src 'self'${sockets}`,
+    "media-src 'none'",
+    "manifest-src 'self'",
+    "object-src 'none'",
+    "base-uri 'none'",
+    "frame-ancestors 'none'",
+    "form-action 'none'",
+  ].join('; ');
+}
 
-export function securityHeaders() {
-  return {
-    'Content-Security-Policy': CSP,
+// host: the Host header of the request. secure: the request came over https.
+export function securityHeaders(host = '', secure = false) {
+  const headers = {
+    'Content-Security-Policy': csp(host),
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'no-referrer',
     'X-Frame-Options': 'DENY',
     'Cross-Origin-Opener-Policy': 'same-origin',
     'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
   };
+  // Tell browsers to use https only from now on (only sent where https is certain).
+  if (secure) headers['Strict-Transport-Security'] = 'max-age=31536000';
+  return headers;
 }
 
 // Counts events per key (an address, a socket) in one-minute windows.
@@ -47,7 +54,20 @@ export class RateLimiter {
   }
 
   sweep(now = Date.now()) {
-    for (const [key, entry] of this.hits) if (now - entry.start >= this.windowMs) this.hits.delete(key);
+    for (const [key, entry] of this.hits) if (now - entry.start >= (entry.keepMs || this.windowMs)) this.hits.delete(key);
+  }
+
+  // A plain counter under a key that already contains its own time slot (for example
+  // "results:<hour>:<gamertag>"). peek() asks whether there is room, count() adds one.
+  peek(key, limit) {
+    const entry = this.hits.get(key);
+    return !entry || entry.count < limit;
+  }
+
+  count(key, now = Date.now(), keepMs = 2 * 3_600_000) {
+    const entry = this.hits.get(key) || { start: now, count: 0, keepMs };
+    entry.count += 1;
+    this.hits.set(key, entry);
   }
 }
 
@@ -68,18 +88,14 @@ export class Bucket {
   }
 }
 
-// The address a request came from. Without a proxy the forwarding headers are never
-// trusted. Behind Render (TRUST_PROXY=1) the visitor's address is in CF-Connecting-IP,
-// which Render's front door sets itself, or else the first entry of X-Forwarded-For.
+// The address a request came from. Forwarding headers are only trusted when the
+// server is told that it sits behind Render (TRUST_PROXY=cloudflare): Render's front
+// door is Cloudflare, which sets CF-Connecting-IP itself and overwrites whatever a
+// visitor sends. Headers a visitor can choose (X-Forwarded-For) are never used.
 export function clientAddress(req, trustProxy) {
   if (trustProxy) {
     const direct = req.headers['cf-connecting-ip'];
     if (typeof direct === 'string' && /^[0-9a-fA-F.:]{3,45}$/.test(direct)) return direct;
-    const header = req.headers['x-forwarded-for'];
-    if (typeof header === 'string' && header.length < 500) {
-      const first = header.split(',')[0].trim();
-      if (/^[0-9a-fA-F.:]{3,45}$/.test(first)) return first;
-    }
   }
   return req.socket.remoteAddress || 'unknown';
 }

@@ -25,7 +25,10 @@ export const achievementName = (id) => BY_ID.get(id)?.name || id;
 // Hidden notes kept next to the achievements: which stages a player has won on.
 const wonMarker = (stage) => `won_${stage}`;
 
-const MAX_DURATION_S = 6 * 60 * 60; // there is no time limit; this only stops absurd numbers
+const MAX_DURATION_S = 6 * 60 * 60;
+const COUNTDOWN_S = 3;
+const RESPAWN_S = 2;
+const MAX_DAMAGE_PER_SECOND = 80; // far above what one fighter can deal, even hitting three opponents // there is no time limit; this only stops absurd numbers
 
 // Check a result the host sent against what the server knows about the match.
 // match: { id, stage, lives, slots: [..], guests, startedAt }
@@ -37,8 +40,12 @@ export function checkResult(match, result, now) {
   if (result.lives !== match.lives) return bad('The lives do not match the match that was started.');
   if (result.byTimeCap) return bad('This build has no time limit.');
   if (!isInt(result.durationS, 1, MAX_DURATION_S)) return bad('The duration is not plausible.');
+  // Time: the countdown alone takes 3 s, so a match cannot have lasted longer than the
+  // time since it started minus that; and a player who lost several lives needed
+  // 2 s to come back each time.
   const elapsedS = (now - match.startedAt) / 1000;
-  if (result.durationS > elapsedS + 2) return bad('The match cannot have lasted longer than the time since it started.');
+  if (result.durationS > elapsedS - COUNTDOWN_S + 1.5) return bad('The match cannot have lasted longer than the time since it started.');
+  if (result.durationS < RESPAWN_S * (match.lives - 1)) return bad('The match is too short for the lives that were lost.');
 
   const n = match.slots.length + match.guests;
   if (!Array.isArray(result.players) || result.players.length !== n) return bad('The player list does not match the players who started.');
@@ -69,6 +76,9 @@ export function checkResult(match, result, now) {
   if (sum('damageDealt') > sum('damageTaken') + n) return bad('More damage dealt than taken.');
   for (const p of players) {
     if (p.damageDealt > sum('damageTaken') - p.damageTaken + n) return bad('A player dealt more damage than the others took.');
+    if (p.kos > sum('falls') - p.falls) return bad('A player has more KOs than the others have falls.');
+    if (p.endPercent > p.damageTaken + 1) return bad('A player ends with more damage than they took.');
+    if (p.damageDealt > 100 + result.durationS * MAX_DAMAGE_PER_SECOND) return bad('Too much damage by one player for such a short match.');
   }
   if (sum('damageTaken') > 60 + result.durationS * 60 * n) return bad('Too much damage for such a short match.');
   return { ok: true, players, durationS: result.durationS };

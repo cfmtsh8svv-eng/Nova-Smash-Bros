@@ -107,8 +107,9 @@ test('after an outage the server retries by itself: after 2 s, then 4 s, with a 
 async function playOne(s, h, a, b, stage = 'campus') {
   for (const p of [a, b]) {
     p.send({ t: 'pick', fighter: 'finance_bro', ready: true });
-    await h.next('roster', { match: (r) => r.players[p.slot].ready });
+    await p.settle();
   }
+  await h.settle();
   h.drain();
   h.send({ t: 'match_start', stage, lives: 3, slots: [a.slot, b.slot], guests: 0 });
   const { matchId } = await h.next('match_started');
@@ -428,15 +429,28 @@ test('GET-only API routes refuse POST, and the other way round', async (t) => {
   assert.equal((await fetch(`${s.base}/api/login`)).status, 405);
 });
 
-test('the server holds at most 200 rooms', async (t) => {
-  const s = await startServer(t);
-  for (let round = 0; round < LIMITS.maxRooms / LIMITS.roomsPerMinutePerAddress; round++) {
-    await Promise.all([...Array(LIMITS.roomsPerMinutePerAddress)].map(() => s.host()));
-    s.clock.now += 61_000;
+test('rooms are limited: 12 open at once per address, 200 on the whole server', async (t) => {
+  const s = await startServer(t, { config: { trustProxy: true } });
+  const hostFrom = async (address) => {
+    const h = await s.open({ 'CF-Connecting-IP': address });
+    h.send({ t: 'host_create' });
+    return h;
+  };
+  // One address: ten in the first minute, two more in the next, then no more.
+  for (let i = 0; i < 10; i++) await (await hostFrom('99.0.0.1')).next('room');
+  s.clock.now += 61_000;
+  for (let i = 0; i < 2; i++) await (await hostFrom('99.0.0.1')).next('room');
+  const thirteenth = await hostFrom('99.0.0.1');
+  assert.match((await thirteenth.next('error')).msg, /Too many rooms are open from this network/);
+  // Many addresses: the server as a whole stops at 200.
+  let n = 12;
+  for (let a = 2; n < 200; a++) {
+    const batch = Math.min(10, 200 - n);
+    await Promise.all([...Array(batch)].map(async () => (await hostFrom(`99.0.0.${a}`)).next('room')));
+    n += batch;
   }
   assert.equal(s.app.rooms.rooms.size, 200);
-  const extra = await s.open();
-  extra.send({ t: 'host_create' });
+  const extra = await hostFrom('99.0.1.1');
   const err = await extra.next('error');
   assert.equal(err.code, 'busy');
   assert.match(err.msg, /server is full/);
@@ -469,7 +483,7 @@ test('honest results that look unusual are accepted: hazards and self-destructs'
   // Nobody hit anybody: the loser walked off the stage three times.
   assert.equal(reasonOf((r) => {
     Object.assign(r.players[0], { damageDealt: 0, damageTaken: 0, kos: 0, falls: 0, endPercent: 0 });
-    Object.assign(r.players[1], { damageDealt: 0, damageTaken: 0, kos: 0, falls: 3 });
+    Object.assign(r.players[1], { damageDealt: 0, damageTaken: 0, kos: 0, falls: 3, endPercent: 0 });
   }), 'accepted');
   // A special KO and a comeback win on the last life.
   assert.equal(reasonOf((r) => {

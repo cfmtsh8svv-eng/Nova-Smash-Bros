@@ -21,18 +21,20 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
   const guard = new LoginGuard();
   const limiter = new RateLimiter();
   const rooms = new Rooms({ data, sessions, config, limiter, now, log });
-  const baseHeaders = securityHeaders();
+  const plainHeaders = securityHeaders();
+  // Every response carries the security headers that were worked out for its own request.
+  const headersOf = (res) => res.securityHeaders || plainHeaders;
 
   function json(res, status, body, extra = {}) {
     const text = JSON.stringify(body);
-    res.writeHead(status, { ...baseHeaders, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Content-Length': Buffer.byteLength(text), ...extra });
+    res.writeHead(status, { ...headersOf(res), 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Content-Length': Buffer.byteLength(text), ...extra });
     res.end(text);
   }
 
   // Read a small JSON body. Anything too big or not JSON is refused.
   function readBody(req) {
     return new Promise((resolve) => {
-      if (!String(req.headers['content-type'] || '').startsWith('application/json')) return resolve({ error: 415 });
+      if (!/^application\/json\s*(;|$)/i.test(String(req.headers['content-type'] || ''))) return resolve({ error: 415 });
       let size = 0;
       const chunks = [];
       let tooBig = false;
@@ -110,7 +112,8 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
 
   async function checkLogin(res, body, lower) {
     const locked = guard.lockedFor(lower, now());
-    const lockedReply = (seconds) => json(res, 429, { error: `Too many wrong PINs. Try again in ${Math.ceil(seconds / 60)} min.`, field: 'pin', retryAfterS: seconds }, { 'Retry-After': String(seconds) });
+    const wait = (seconds) => (seconds > 5400 ? `${Math.ceil(seconds / 3600)} h` : `${Math.ceil(seconds / 60)} min`);
+    const lockedReply = (seconds) => json(res, 429, { error: `Too many wrong PINs. Try again in ${wait(seconds)}.`, field: 'pin', retryAfterS: seconds }, { 'Retry-After': String(seconds) });
     if (locked) return lockedReply(locked);
     let row;
     try {
@@ -144,7 +147,7 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
     const proto = hint === '1' ? 'https' : hint === '0' ? 'http' : req.socket.encrypted || !local ? 'https' : 'http';
     const link = `${proto}://${host}/play?room=${room}`;
     const svg = await QRCode.toString(link, { type: 'svg', margin: 1, errorCorrectionLevel: 'M', color: { dark: '#16122a', light: '#ffffff' } });
-    res.writeHead(200, { ...baseHeaders, 'Content-Type': 'image/svg+xml', 'Cache-Control': 'no-store', 'X-Join-Link': link });
+    res.writeHead(200, { ...headersOf(res), 'Content-Type': 'image/svg+xml', 'Cache-Control': 'no-store', 'X-Join-Link': link });
     res.end(svg);
   }
 
@@ -158,6 +161,7 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
   }
 
   async function handle(req, res) {
+    res.securityHeaders = securityHeaders(String(req.headers.host || ''), Boolean(req.socket.encrypted) || config.trustProxy);
     const url = parseUrl(req);
     if (!url) return json(res, 400, { error: 'Bad request.' });
     const route = url.pathname;
@@ -170,6 +174,7 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
       if (route === '/api/register' || route === '/api/login') {
         if (req.method !== 'POST') return json(res, 405, { error: 'Use POST.' }, { Allow: 'POST' });
         if (!limiter.allow(`auth:${address}`, LIMITS.authPerMinutePerAddress, now())) return json(res, 429, { error: 'Too many attempts. Wait a minute.' }, { 'Retry-After': '60' });
+        if (route === '/api/register' && !limiter.allow(`register:${address}`, LIMITS.registrationsPerMinutePerAddress, now())) return json(res, 429, { error: 'Too many new players from this network. Wait a minute.' }, { 'Retry-After': '60' });
         return route === '/api/register' ? register(req, res) : login(req, res);
       }
       if (req.method !== 'GET') return json(res, 405, { error: 'Use GET.' }, { Allow: 'GET' });
@@ -180,8 +185,8 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
     }
 
     if (req.method !== 'GET' && req.method !== 'HEAD') return json(res, 405, { error: 'Method not allowed.' }, { Allow: 'GET, HEAD' });
-    if (await serveStatic(req, res, route, baseHeaders)) return undefined;
-    res.writeHead(404, { ...baseHeaders, 'Content-Type': 'text/plain; charset=utf-8' });
+    if (await serveStatic(req, res, route, headersOf(res))) return undefined;
+    res.writeHead(404, { ...headersOf(res), 'Content-Type': 'text/plain; charset=utf-8' });
     return res.end('Not found');
   }
 
@@ -199,6 +204,7 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
   // maxPayload makes the ws library itself drop anything larger before we see it.
   const wss = new WebSocketServer({ noServer: true, maxPayload: LIMITS.hostMessageBytes, perMessageDeflate: false });
 
+  const socketsByAddress = new Map();
   server.on('upgrade', (req, socket, head) => {
     const url = parseUrl(req);
     // A browser always sends Origin. It must be our own site, so another website
@@ -217,8 +223,22 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
       socket.destroy();
       return;
     }
+    // A cap on open connections, in total and per address, so nobody can use them all up.
+    const address = clientAddress(req, config.trustProxy);
+    const open = socketsByAddress.get(address) || 0;
+    if (wss.clients.size >= LIMITS.maxSockets || open >= LIMITS.socketsPerAddress) {
+      socket.write('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n');
+      socket.destroy();
+      return;
+    }
     wss.handleUpgrade(req, socket, head, (ws) => {
-      const conn = rooms.connect(ws, clientAddress(req, config.trustProxy));
+      socketsByAddress.set(address, (socketsByAddress.get(address) || 0) + 1);
+      ws.on('close', () => {
+        const left = (socketsByAddress.get(address) || 1) - 1;
+        if (left > 0) socketsByAddress.set(address, left);
+        else socketsByAddress.delete(address);
+      });
+      const conn = rooms.connect(ws, address);
       ws.isAlive = true;
       ws.on('pong', () => {
         ws.isAlive = true;
@@ -265,7 +285,7 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
     });
   }
 
-  function listen(port = config.port, host) {
+  function listen(port = config.port, host = config.host) {
     return new Promise((resolve, reject) => {
       server.once('error', reject);
       server.listen(port, host, () => resolve(server.address().port));

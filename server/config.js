@@ -5,12 +5,23 @@ import { randomBytes } from 'node:crypto';
 export const LIMITS = {
   httpBodyBytes: 1024, // the largest JSON body the API accepts
   phoneMessageBytes: 512, // the largest WebSocket message from a phone
-  hostMessageBytes: 16 * 1024, // ... and from the host page (results are bigger)
+  hostMessageBytes: 4096, // ... and from the host page (a result for four players is about 1 KB)
+  relayBytes: { phase: 2048, status: 240, feedback: 480 }, // what the host may pass on to a phone
+  sendBufferBytes: 512 * 1024, // a receiver that stops reading is cut off at this backlog
   phoneMessagesPerSecond: 80,
-  hostMessagesPerSecond: 600,
+  hostMessagesPerSecond: 200,
   maxStrikes: 200, // dropped messages before a socket is closed
   maxRooms: 200,
+  roomsPerAddress: 12, // open at the same time (a lecture hall can share one address)
   roomsPerMinutePerAddress: 10,
+  socketsPerAddress: 150,
+  maxSockets: 3000,
+  idleSocketMs: 60_000, // a connection that never opens or joins a room is closed
+  joinsPerMinutePerAddress: 60, // also stops guessing room codes
+  failedJoinsPerSocket: 10,
+  registrationsPerMinutePerAddress: 40,
+  resultsPerHourPerPlayer: 40, // more than that in an hour no longer counts for the leaderboard
+  maxQueuedResults: 200,
   // A whole lecture hall can share one address (campus Wi-Fi), so these are roomy.
   // Guessing PINs is stopped by the lock on the gamertag, not by this.
   authPerMinutePerAddress: 120,
@@ -23,6 +34,8 @@ export const LIMITS = {
   loginMaxFails: 5,
   loginWindowMs: 10 * 60 * 1000,
   loginLockMs: 10 * 60 * 1000,
+  loginMaxFailsPerDay: 20, // on top of the rule above: at most 20 wrong PINs per gamertag in 24 hours
+  loginDayMs: 24 * 60 * 60 * 1000,
   sessionMs: 30 * 24 * 60 * 60 * 1000, // session tokens expire after 30 days
   leaderboardCacheMs: 60_000,
   leaderboardSize: 10,
@@ -43,6 +56,7 @@ export function readConfig(env = process.env) {
   }
   if (useSheets) {
     if (!/^https:\/\//.test(sheetsUrl)) throw new Error('SHEETS_WEBAPP_URL must start with https://');
+    if (sheetsSecret.length < 16) throw new Error('SHEETS_SHARED_SECRET must be at least 16 characters.');
     // With a real sheet the pepper must be stable, or nobody could log in after a restart.
     if (pinPepper.length < 16) throw new Error('PIN_PEPPER must be set (at least 16 characters) when the Google Sheet is used.');
     if (sessionSecret.length < 16) throw new Error('SESSION_SECRET must be set (at least 16 characters) when the Google Sheet is used.');
@@ -56,7 +70,9 @@ export function readConfig(env = process.env) {
   }
   return {
     port: Number(env.PORT) || 3000,
-    trustProxy: env.TRUST_PROXY === '1',
+    // 'cloudflare' (or '1'): behind Render, whose front door sets CF-Connecting-IP itself.
+    trustProxy: ['1', 'cloudflare'].includes((env.TRUST_PROXY || '').trim().toLowerCase()),
+    host: (env.HOST || '').trim() || undefined, // for example 127.0.0.1 behind Tailscale Funnel
     useSheets, sheetsUrl, sheetsSecret, pinPepper, sessionSecret, warnings,
   };
 }

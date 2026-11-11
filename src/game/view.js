@@ -32,4 +32,10 @@ export function poseOf(f) {
   return 'idle';
 }
 
-export const hearts = (lives, max) => '♥'.repeat(Math.max(0, lives)) + '♡'.repeat(Math.max(0, max - lives));
+// Lives as hearts. Both numbers are kept between 0 and 3, whatever is passed in.
+export function hearts(lives, max) {
+  const clamp = (v) => Math.max(0, Math.min(3, Math.floor(Number(v)) || 0));
+  const total = clamp(max);
+  const left = Math.min(clamp(lives), total || 3);
+  return '♥'.repeat(left) + '♡'.repeat(Math.max(0, total - left));
+}

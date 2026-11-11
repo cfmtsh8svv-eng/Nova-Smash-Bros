@@ -80,11 +80,11 @@ test('a result that is not an object is refused', () => {
 });
 
 test('huge damage in a few seconds is refused', () => {
-  const res = checkResult(match({ lives: 3, startedAt: NOW - 10_000 }), change((r) => {
-    r.durationS = 2;
-    r.players[0].damageDealt = 600;
-    r.players[1].damageTaken = 600;
-  }), NOW);
+  const res = checkResult(match({ lives: 1, startedAt: NOW - 10_000 }), change((r) => {
+    r.durationS = 1;
+    r.players[0].damageDealt = 200;
+    r.players[1].damageTaken = 200;
+  }, { lives: 1 }), NOW);
   assert.equal(res.ok, false);
   assert.match(res.reason, /Too much damage/);
 });
@@ -194,6 +194,9 @@ test('whatever way a real match ends, its result passes the server check', async
     const [a, b] = s.fighters;
     Object.assign(a, { x: 500, facing: 1, percent: 195 });
     Object.assign(b, { x: 560, facing: -1, percent: 195 });
+    a.stats.damageTaken = 195; // as if they had really been hit that often before ...
+    b.stats.damageTaken = 195;
+    s.fightFrames = 60 * 40; // ... in a match that has been going on for 40 seconds
     step(s, { 0: { attack: true }, 1: { attack: true } });
   });
   for (const result of [both, trade]) {

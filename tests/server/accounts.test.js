@@ -249,6 +249,8 @@ test('LoginGuard forgets old entries and Sessions keeps only the newest login', 
   const guard = new LoginGuard();
   guard.fail('ana', 1000);
   guard.sweep(1000 + LIMITS.loginWindowMs + 1);
+  assert.equal(guard.entries.size, 1, 'kept for the daily count');
+  guard.sweep(1000 + LIMITS.loginDayMs + 1);
   assert.equal(guard.entries.size, 0);
 
   const sessions = new Sessions();

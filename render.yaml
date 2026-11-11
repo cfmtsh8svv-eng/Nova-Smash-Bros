@@ -10,8 +10,9 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
+      # Render's front door (Cloudflare) tells us the visitor's address in CF-Connecting-IP.
       - key: TRUST_PROXY
-        value: "1"
+        value: cloudflare
       # The four secrets are typed into the Render dashboard, never into this file.
       - key: SHEETS_WEBAPP_URL
         sync: false

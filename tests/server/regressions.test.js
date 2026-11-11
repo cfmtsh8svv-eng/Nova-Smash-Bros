@@ -207,3 +207,229 @@ test('a kicked connection that joins again right away is not closed by the delay
   assert.equal(a.ws.readyState, 1, 'still open');
   assert.equal(s.app.rooms.rooms.get(h.code).slots[0].connected, true);
 });
+
+// ---- from the security reviews ----
+
+test('a result cannot arrive faster than the match could have been played', async (t) => {
+  const s = await startServer(t);
+  const h = await s.host();
+  await s.player(h, 'Ana', { fighter: 'finance_bro' });
+  await s.player(h, 'Max', { fighter: 'house_dj' });
+  const tryAfter = async (ms, durationS) => {
+    h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+    const { matchId } = await h.next('match_started');
+    s.clock.now += ms;
+    h.send({ t: 'match_result', matchId, result: sampleResult({ durationS }) });
+    let answer = null;
+    for (let i = 0; i < 150 && answer === null; i++) {
+      const got = h.inbox.find((m) => m.t === 'result_saved' || m.t === 'error');
+      if (got) answer = got.t === 'error' ? got.msg : 'saved';
+      else await sleep(20);
+    }
+    if (answer !== 'saved') {
+      h.send({ t: 'match_abort', matchId });
+      await h.next('roster', { match: (r) => r.phase === 'lobby' });
+    }
+    for (const name of ['Ana', 'Max']) s.app.rooms.rooms.get(h.code).slots.find((x) => x && x.gamertag === name).ready = true;
+    h.drain();
+    return answer;
+  };
+  assert.match(await tryAfter(60_000, 2), /too short for the lives/, 'three lives each need two respawns of 2 s');
+  assert.match(await tryAfter(0, 4), /longer than the time since it started/, 'sent the moment the match began');
+  assert.match(await tryAfter(5000, 4), /longer than the time since it started/, 'the countdown alone takes 3 s');
+  assert.equal(await tryAfter(7000, 5), 'saved');
+  assert.equal(s.store.matches.size, 1);
+});
+
+test('results that cannot be: KOs without a victim, more damage at the end than was taken, one player dealing it all in a second', async () => {
+  const { checkResult } = await import('../../server/results.js');
+  const NOW = 1_800_000_000_000;
+  const match = { id: 'x', stage: 'campus', lives: 3, slots: [0, 1], guests: 0, startedAt: NOW - 600_000 };
+  const reason = (mutate, over = {}) => {
+    const r = sampleResult(over);
+    mutate(r);
+    const res = checkResult({ ...match, ...over.match }, r, NOW);
+    return res.ok ? 'accepted' : res.reason;
+  };
+  // The loser claims three KOs although the winner only fell once.
+  assert.equal(reason((r) => {
+    Object.assign(r.players[0], { falls: 1, endLives: 2, kos: 1 });
+    Object.assign(r.players[1], { kos: 3 });
+  }), 'A player has more KOs than the others have falls.');
+  assert.equal(reason((r) => { r.players[0].endPercent = 200; }), 'A player ends with more damage than they took.');
+  assert.equal(reason((r) => { r.durationS = 4; r.players[0].damageDealt = 500; r.players[1].damageTaken = 500; }), 'Too much damage by one player for such a short match.');
+  assert.equal(reason(() => {}), 'accepted');
+});
+
+test('a player whose matches pile up within an hour stops earning points; the limit is per hour', async (t) => {
+  const s = await startServer(t);
+  const h = await s.host();
+  const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
+  const b = await s.player(h, 'Max', { fighter: 'house_dj' });
+  const play = async () => {
+    for (const p of [a, b]) p.send({ t: 'pick', fighter: 'finance_bro', ready: true });
+    await a.settle();
+    await b.settle();
+    h.drain();
+    h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+    const { matchId } = await h.next('match_started');
+    s.clock.now += 20_000;
+    h.send({ t: 'match_result', matchId, result: sampleResult({ durationS: 10 }) });
+    return h.next('result_saved', { timeout: 4000 });
+  };
+  s.clock.now = Math.ceil(s.clock.now / 3_600_000) * 3_600_000 + 1000; // the start of a full hour
+  for (let i = 0; i < LIMITS.resultsPerHourPerPlayer; i++) assert.equal((await play()).stored, true);
+  const extra = await play();
+  assert.equal(extra.stored, false);
+  assert.match(extra.note, /limit of matches per hour/);
+  assert.deepEqual(extra.players.map((p) => p.points), [0, 0]);
+  assert.equal(s.store.matches.size, LIMITS.resultsPerHourPerPlayer);
+  s.clock.now += 3_600_000;
+  assert.equal((await play()).stored, true, 'a new hour, a new allowance');
+});
+
+test('guessing room codes: no answer without a login, and a logged-in guesser is cut off after ten misses', async (t) => {
+  const s = await startServer(t);
+  const h = await s.host();
+  // Without a valid token, a real room and a made-up one look the same.
+  const stranger = await s.open();
+  stranger.send({ t: 'join', room: h.code, token: 'x' });
+  assert.equal((await stranger.next('error')).code, 'bad_token');
+  stranger.send({ t: 'join', room: 'QQQQ', token: 'x' });
+  assert.equal((await stranger.next('error')).code, 'bad_token');
+  // With a login, misses are counted and the socket is closed.
+  const token = await s.register('Guesser');
+  const guesser = await s.open();
+  for (let i = 0; i < LIMITS.failedJoinsPerSocket; i++) guesser.send({ t: 'join', room: `QQ${'ABCDEFGHJK'[i]}Q`, token });
+  assert.equal(await guesser.closed, 1008);
+  // And per address there is a budget for join attempts as a whole.
+  let busy = 0;
+  for (let round = 0; round < 8 && !busy; round++) {
+    const c = await s.open();
+    for (let i = 0; i < 9; i++) c.send({ t: 'join', room: 'QQQQ', token });
+    await c.settle();
+    busy = c.inbox.filter((m) => m.code === 'busy').length;
+  }
+  assert.ok(busy > 0, 'further attempts from this address are refused for the rest of the minute');
+});
+
+test('the host can remove a player, who then cannot come back into that room', async (t) => {
+  const s = await startServer(t);
+  const h = await s.host();
+  const a = await s.player(h, 'Ana');
+  const b = await s.player(h, 'Troll');
+  a.send({ t: 'kick', slot: 1 });
+  assert.equal((await a.next('error')).code, 'not_host', 'only the host can do that');
+  h.send({ t: 'kick', slot: 1 });
+  assert.match((await b.next('closed')).msg, /removed you/);
+  assert.deepEqual((await h.next('roster', { match: (r) => r.players.length === 1 })).players.map((p) => p.gamertag), ['Ana']);
+  b.send({ t: 'join', room: h.code, token: b.token });
+  const refused = await b.next('error');
+  assert.equal(refused.code, 'room_closed');
+  assert.match(refused.msg, /removed you/);
+  // Another room is still open to them.
+  const other = await s.host();
+  b.send({ t: 'join', room: other.code, token: b.token });
+  assert.equal((await b.next('joined')).slot, 0);
+  for (const slot of [7, 'x', null]) {
+    h.send({ t: 'kick', slot });
+    assert.equal((await h.next('error')).code, 'bad_message');
+  }
+});
+
+test('a phone that stops reading is cut off instead of filling the server\'s memory', async (t) => {
+  const s = await startServer(t);
+  const h = await s.host();
+  const a = await s.player(h, 'Ana');
+  const conn = s.app.rooms.rooms.get(h.code).slots[0].conn;
+  // Pretend the phone's connection has a large backlog.
+  Object.defineProperty(conn.ws, 'bufferedAmount', { get: () => LIMITS.sendBufferBytes + 1 });
+  h.send({ t: 'to', slot: 0, msg: { t: 'feedback', kind: 'hit' } });
+  assert.notEqual(await a.closed, 'still open');
+  assert.equal((await h.next('roster', { match: (r) => r.players[0].connected === false })).players[0].gamertag, 'Ana', 'the slot is kept: the phone can reconnect');
+});
+
+test('what the host may pass on is checked field by field: nothing a phone could choke on gets through', async (t) => {
+  const { relayProblem } = await import('../../server/rooms.js');
+  const good = [
+    { t: 'phase', name: 'lobby', vote: true, stages: [{ id: 'campus', name: 'Nova SBE Campus' }] },
+    { t: 'phase', name: 'match', stage: 'beach', stageName: 'Carcavelos Beach', paused: false, lives: 3, slots: [0, 1, 2, 3], hazards: [{ id: 'wave', name: 'Big Wave' }] },
+    { t: 'phase', name: 'results', place: 1, of: 4, won: true, winner: 'Ana', stats: { dealt: 310, taken: 44, kos: 6, falls: 0 }, points: 131, total: 500, achievements: [{ name: 'First Win', text: 'Win a match.' }], note: '' },
+    { t: 'status', pct: 87, lives: 2, state: 'alive', cd: 120, cdMax: 420, held: 'sardine', tipsy: false },
+    { t: 'feedback', kind: 'out', text: "You're out! Grab a coffee and watch.", title: 'BURNOUT!', flash: '#e63946', vibrate: [300, 100, 300, 100, 900] },
+    { t: 'feedback', kind: 'hazardCount', name: 'BIG WAVE', n: 2 },
+  ];
+  for (const m of good) assert.equal(relayProblem(m), false, JSON.stringify(m).slice(0, 60));
+  const bad = [
+    { t: 'phase', name: 'match', lives: 400000000 }, // would be drawn as that many hearts
+    { t: 'phase', name: 'match', lives: 0 },
+    { t: 'phase', name: 'match', slots: [0, 1, 2, 3, 0] },
+    { t: 'phase', name: 'match', slots: [9] },
+    { t: 'phase', name: 'match', hazards: [{ id: 'meteor', name: 'Meteor' }] },
+    { t: 'phase', name: 'lobby', stages: [null] },
+    { t: 'phase', name: 'lobby', vote: 'yes' },
+    { t: 'phase', name: 'results', place: 5 },
+    { t: 'phase', name: 'results', stats: { dealt: -1, taken: 0, kos: 0, falls: 0 } },
+    { t: 'phase', name: 'results', achievements: [null] },
+    { t: 'phase', name: 'results', achievements: [{ name: 'x'.repeat(41) }] },
+    { t: 'phase', name: 'match', url: 'javascript:alert(1)' }, // unknown keys are refused
+    { t: 'status', pct: 1, lives: 1, state: 'alive', cd: 0, cdMax: 400, extra: 1 },
+    { t: 'feedback', kind: '<b>k</b>' },
+    { t: 'feedback', kind: 'ko', vibrate: [1000, 1000, 1000] }, // more than two seconds in total
+    { t: 'feedback', kind: 'ko', vibrate: [10, 10, 10, 10, 10, 10, 10] },
+    { t: 'feedback', kind: 'ko', extra: 'x' },
+    JSON.parse('{"t":"feedback","kind":"ko","__proto__":{"polluted":true}}'),
+  ];
+  for (const m of bad) assert.equal(relayProblem(m), true, JSON.stringify(m).slice(0, 60));
+  assert.ok(t);
+});
+
+test('wrong PINs are also capped per day: after twenty in 24 hours the gamertag is locked until they age out', async (t) => {
+  const s = await startServer(t);
+  await s.register('Target', '7391');
+  const wrong = () => s.api('/api/login', { gamertag: 'Target', pin: '0000' });
+  let misses = 0;
+  let last = null;
+  // Four misses, then wait out the ten-minute window, again and again: never trips the short lock.
+  for (let round = 0; round < 6 && misses < 20; round++) {
+    for (let i = 0; i < 4 && misses < 20; i++) {
+      last = await wrong();
+      if (last.status === 401) misses += 1;
+    }
+    s.clock.now += LIMITS.loginWindowMs + 1000;
+  }
+  assert.equal(misses, 19, 'the twentieth miss is answered with the lock');
+  assert.equal(last.status, 429);
+  assert.match(last.data.error, /Try again in \d+ h\./);
+  s.clock.now += 3 * 3_600_000;
+  assert.equal((await s.api('/api/login', { gamertag: 'Target', pin: '7391' })).status, 429, 'still locked hours later, even with the right PIN');
+  s.clock.now += 22 * 3_600_000;
+  assert.equal((await s.api('/api/login', { gamertag: 'Target', pin: '7391' })).status, 200, 'a day after the first miss it opens again');
+});
+
+test('"Log out" on the phone makes every copy of the login useless', async (t) => {
+  const s = await startServer(t);
+  const h = await s.host();
+  const a = await s.player(h, 'Ana');
+  a.send({ t: 'logout' });
+  await a.next('left');
+  assert.equal((await h.next('roster', { match: (r) => r.players.length === 0 })).players.length, 0);
+  a.send({ t: 'join', room: h.code, token: a.token });
+  assert.equal((await a.next('error')).code, 'signed_out');
+  const fresh = await s.api('/api/login', { gamertag: 'Ana', pin: '1234' });
+  a.send({ t: 'join', room: h.code, token: fresh.data.token });
+  assert.equal((await a.next('joined')).slot, 0, 'logging in again with the PIN works');
+});
+
+test('too many connections from one address are refused, and a connection that never does anything is closed', async (t) => {
+  const s = await startServer(t);
+  const open = [];
+  for (let i = 0; i < LIMITS.socketsPerAddress; i++) open.push(await s.open());
+  await assert.rejects(s.open(), /503/);
+  // Idle connections are cleared by the regular housekeeping.
+  s.clock.now += LIMITS.idleSocketMs + 1000;
+  s.app.rooms.sweep();
+  assert.equal(await open[0].closed, 1008);
+  await sleep(100);
+  assert.equal((await s.open()).ws.readyState, 1, 'there is room again');
+});

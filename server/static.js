@@ -1,6 +1,7 @@
 // Serves the client files. Only three folders are public, and a request can
 // never leave them (no "../" tricks).
 import { createReadStream } from 'node:fs';
+import { pipeline } from 'node:stream';
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -59,8 +60,7 @@ export async function serveStatic(req, res, urlPath, headers) {
     res.end();
     return true;
   }
-  const stream = createReadStream(file);
-  stream.on('error', () => res.destroy());
-  stream.pipe(res);
+  // pipeline closes the file again if the browser gives up halfway.
+  pipeline(createReadStream(file), res, () => {});
   return true;
 }

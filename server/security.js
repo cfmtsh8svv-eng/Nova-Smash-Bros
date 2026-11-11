@@ -68,14 +68,17 @@ export class Bucket {
   }
 }
 
-// The address a request came from. Behind Render's proxy the real one is the
-// last entry the proxy added to X-Forwarded-For; without a proxy we never trust that header.
+// The address a request came from. Without a proxy the forwarding headers are never
+// trusted. Behind Render (TRUST_PROXY=1) the visitor's address is in CF-Connecting-IP,
+// which Render's front door sets itself, or else the first entry of X-Forwarded-For.
 export function clientAddress(req, trustProxy) {
   if (trustProxy) {
+    const direct = req.headers['cf-connecting-ip'];
+    if (typeof direct === 'string' && /^[0-9a-fA-F.:]{3,45}$/.test(direct)) return direct;
     const header = req.headers['x-forwarded-for'];
     if (typeof header === 'string' && header.length < 500) {
-      const last = header.split(',').pop().trim();
-      if (last) return last;
+      const first = header.split(',')[0].trim();
+      if (/^[0-9a-fA-F.:]{3,45}$/.test(first)) return first;
     }
   }
   return req.socket.remoteAddress || 'unknown';

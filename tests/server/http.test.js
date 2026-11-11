@@ -144,13 +144,28 @@ test('the QR link is https for a public host name and http only for local addres
   assert.equal(await linkFor('172.99.1.1'), 'https://172.99.1.1/play?room=ABCD', 'outside 172.16 to 172.31 it is public');
   assert.equal(await linkFor('10.0.0.5:3000'), 'http://10.0.0.5:3000/play?room=ABCD');
   assert.equal(await linkFor('evil.example/x?y=<script>'), 400, 'a host header with odd characters is refused');
+  assert.equal(await linkFor('mac-mini.local:3000'), 'http://mac-mini.local:3000/play?room=ABCD', 'a .local name is on the home network');
+  // The host page says how it was opened itself, and that wins over any guess.
+  const withHint = (host, secure) => new Promise((resolve, reject) => {
+    http.get({ host: '127.0.0.1', port: s.port, path: `/api/qr?room=ABCD&secure=${secure}`, headers: { Host: host } }, (res) => {
+      res.resume();
+      resolve(res.headers['x-join-link']);
+    }).on('error', reject);
+  });
+  assert.equal(await withHint('100.101.102.103:3000', 0), 'http://100.101.102.103:3000/play?room=ABCD');
+  assert.equal(await withHint('193.136.100.7:3000', 0), 'http://193.136.100.7:3000/play?room=ABCD');
+  assert.equal(await withHint('localhost:3000', 1), 'https://localhost:3000/play?room=ABCD');
 });
 
 test('behind a proxy the forwarded address is used for limits', async () => {
   const req = (xff) => ({ headers: xff === undefined ? {} : { 'x-forwarded-for': xff }, socket: { remoteAddress: '10.0.0.1' } });
-  assert.equal(clientAddress(req('1.1.1.1, 2.2.2.2'), true), '2.2.2.2', 'the entry the proxy itself added');
+  assert.equal(clientAddress(req('99.61.165.29, 104.22.17.40'), true), '99.61.165.29', 'the visitor, not the proxy in front of us');
   assert.equal(clientAddress(req('1.1.1.1, 2.2.2.2'), false), '10.0.0.1', 'without a proxy the header is ignored');
   assert.equal(clientAddress(req(undefined), true), '10.0.0.1');
+  assert.equal(clientAddress(req('<script>, 2.2.2.2'), true), '10.0.0.1', 'a header that is not an address is ignored');
+  const viaCloudflare = { headers: { 'cf-connecting-ip': '99.61.165.29', 'x-forwarded-for': '8.8.8.8, 104.22.17.40' }, socket: { remoteAddress: '10.0.0.1' } };
+  assert.equal(clientAddress(viaCloudflare, true), '99.61.165.29');
+  assert.equal(clientAddress(viaCloudflare, false), '10.0.0.1');
 });
 
 test('unknown API routes answer 404 as JSON and the achievements list is public', async (t) => {

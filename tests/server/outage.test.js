@@ -67,7 +67,7 @@ test('with the store down a result is queued, the players see their points, and 
   h.send({ t: 'match_result', matchId, result: sampleResult({ stage: 'beach' }) });
   const saved = await h.next('result_saved', { timeout: 4000 });
   assert.equal(saved.stored, true);
-  assert.match(saved.note, /saved as soon as the Google Sheet is reachable again/);
+  assert.match(saved.note, /still being written to the Google Sheet/);
   assert.deepEqual(saved.players.map((p) => p.points), [130, 64], 'the points are shown right away');
   assert.deepEqual(saved.leaderboard.map((p) => [p.gamertag, p.points]), [['Ana', 130], ['Max', 64]]);
   assert.equal(s.store.matches.size, 0, 'nothing reached the store yet');

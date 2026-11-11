@@ -74,13 +74,27 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
       if (await data.getPlayer(lower)) return json(res, 409, { error: 'That gamertag is taken.', field: 'gamertag' });
       const salt = newSalt();
       const row = await data.createPlayer({ gamertag: body.gamertag, gamertag_lower: lower, salt, pin_hash: await hashPin(body.pin, salt, config.pinPepper), created_at: new Date(now()).toISOString() });
-      const sid = sessions.start(lower);
+      const sid = sessions.start(lower, now());
       rooms.signOutOthers(lower, sid);
       return json(res, 201, { gamertag: row.gamertag, token: createToken(row.gamertag, sid, config.sessionSecret, now()) });
     } catch (err) {
       if (err instanceof StoreError && err.code === 'duplicate') return json(res, 409, { error: 'That gamertag is taken.', field: 'gamertag' });
       if (err instanceof StoreError) return json(res, 503, { error: `${UNAVAILABLE} New players cannot register until it is back.` });
       throw err;
+    }
+  }
+
+  // Logins for the same gamertag wait for each other. Otherwise 30 guesses sent at
+  // the same moment would all be checked before the fifth miss could lock the name.
+  const loginTurns = new Map();
+  async function inTurn(key, work) {
+    const before = loginTurns.get(key) || Promise.resolve();
+    const mine = before.catch(() => {}).then(work);
+    loginTurns.set(key, mine);
+    try {
+      return await mine;
+    } finally {
+      if (loginTurns.get(key) === mine) loginTurns.delete(key);
     }
   }
 
@@ -91,6 +105,10 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
     if (problem) return json(res, 400, { error: problem, field: 'gamertag' });
     if (pinProblem(body.pin)) return json(res, 400, { error: pinProblem(body.pin), field: 'pin' });
     const lower = body.gamertag.toLowerCase();
+    return inTurn(lower, () => checkLogin(res, body, lower));
+  }
+
+  async function checkLogin(res, body, lower) {
     const locked = guard.lockedFor(lower, now());
     const lockedReply = (seconds) => json(res, 429, { error: `Too many wrong PINs. Try again in ${Math.ceil(seconds / 60)} min.`, field: 'pin', retryAfterS: seconds }, { 'Retry-After': String(seconds) });
     if (locked) return lockedReply(locked);
@@ -108,7 +126,7 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
       return json(res, 401, { error: `Wrong PIN, ${left} ${left === 1 ? 'try' : 'tries'} left.`, field: 'pin', triesLeft: left });
     }
     guard.success(lower);
-    const sid = sessions.start(lower);
+    const sid = sessions.start(lower, now());
     rooms.signOutOthers(lower, sid);
     return json(res, 200, { gamertag: row.gamertag, token: createToken(row.gamertag, sid, config.sessionSecret, now()) });
   }
@@ -119,18 +137,29 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
     if (!isRoomCode(room)) return json(res, 400, { error: 'Room code must be 4 letters.' });
     const host = String(req.headers.host || '');
     if (!/^[A-Za-z0-9.:[\]-]{1,255}$/.test(host)) return json(res, 400, { error: 'Bad host.' });
-    // Public hosts (Render, Tailscale Funnel) are always reached over https. Only a local
-    // address (localhost, a home-network IP, a bare machine name) is plain http.
-    const local = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|\[|[^.]+$)/.test(host.replace(/:\d+$/, ''));
-    const proto = req.socket.encrypted || !local ? 'https' : 'http';
+    // The host page says how it was opened itself (secure=1 for https): that is the one
+    // party that knows for sure. Without the hint: https for public names, http for local ones.
+    const hint = url.searchParams.get('secure');
+    const local = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|\[|[^.]+$)/.test(host.replace(/:\d+$/, '')) || /\.local(:\d+)?$/.test(host);
+    const proto = hint === '1' ? 'https' : hint === '0' ? 'http' : req.socket.encrypted || !local ? 'https' : 'http';
     const link = `${proto}://${host}/play?room=${room}`;
     const svg = await QRCode.toString(link, { type: 'svg', margin: 1, errorCorrectionLevel: 'M', color: { dark: '#16122a', light: '#ffffff' } });
     res.writeHead(200, { ...baseHeaders, 'Content-Type': 'image/svg+xml', 'Cache-Control': 'no-store', 'X-Join-Link': link });
     res.end(svg);
   }
 
+  // "//" and similar are not valid URLs: they are answered with 400 instead of throwing.
+  function parseUrl(req) {
+    try {
+      return new URL(req.url, 'http://localhost');
+    } catch {
+      return null;
+    }
+  }
+
   async function handle(req, res) {
-    const url = new URL(req.url, 'http://localhost');
+    const url = parseUrl(req);
+    if (!url) return json(res, 400, { error: 'Bad request.' });
     const route = url.pathname;
     const address = clientAddress(req, config.trustProxy);
 
@@ -171,7 +200,7 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
   const wss = new WebSocketServer({ noServer: true, maxPayload: LIMITS.hostMessageBytes, perMessageDeflate: false });
 
   server.on('upgrade', (req, socket, head) => {
-    const url = new URL(req.url, 'http://localhost');
+    const url = parseUrl(req);
     // A browser always sends Origin. It must be our own site, so another website
     // cannot open a socket in a visitor's name. Tools without Origin (the tests) are fine.
     const origin = req.headers.origin;
@@ -183,7 +212,7 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
         sameSite = false;
       }
     }
-    if (url.pathname !== '/ws' || !sameSite) {
+    if (!url || url.pathname !== '/ws' || !sameSite) {
       socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
       socket.destroy();
       return;

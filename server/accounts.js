@@ -33,7 +33,7 @@ const b64 = (buf) => Buffer.from(buf).toString('base64url');
 const sign = (payload, secret) => createHmac('sha256', secret).update(payload).digest('base64url');
 
 export function createToken(gamertag, sid, secret, now = Date.now()) {
-  const payload = b64(JSON.stringify({ g: gamertag, s: sid, e: now + LIMITS.sessionMs }));
+  const payload = b64(JSON.stringify({ g: gamertag, s: sid, i: now, e: now + LIMITS.sessionMs }));
   return `${payload}.${sign(payload, secret)}`;
 }
 
@@ -53,7 +53,7 @@ export function verifyToken(token, secret, now = Date.now()) {
   }
   if (!data || typeof data.g !== 'string' || typeof data.s !== 'string' || typeof data.e !== 'number') return null;
   if (data.e <= now) return null;
-  return { gamertag: data.g, sid: data.s };
+  return { gamertag: data.g, sid: data.s, issuedAt: typeof data.i === 'number' ? data.i : 0 };
 }
 
 // ---- wrong-PIN lockout: five wrong PINs within 10 minutes lock the gamertag for 10 minutes ----
@@ -99,23 +99,24 @@ export class LoginGuard {
 // same gamertag is refused, and the phone using it is signed out.
 export class Sessions {
   constructor() {
-    this.current = new Map(); // gamertag_lower -> sid
+    this.current = new Map(); // gamertag_lower -> { sid, issuedAt }
   }
 
-  start(lower) {
+  start(lower, now = Date.now()) {
     const sid = randomUUID();
-    this.current.set(lower, sid);
+    this.current.set(lower, { sid, issuedAt: now });
     return sid;
   }
 
-  // True if this session id is the current one. After a server restart nothing is
-  // known yet, so the first valid token seen for a gamertag is adopted.
-  accept(lower, sid) {
+  // True if this session may be used. The newest login wins. After a server
+  // restart nothing is known yet, so the first token seen is adopted; if a token
+  // from a later login shows up afterwards, that one takes over.
+  accept(lower, sid, issuedAt = 0) {
     const known = this.current.get(lower);
-    if (!known) {
-      this.current.set(lower, sid);
+    if (!known || issuedAt > known.issuedAt) {
+      this.current.set(lower, { sid, issuedAt });
       return true;
     }
-    return known === sid;
+    return known.sid === sid;
   }
 }

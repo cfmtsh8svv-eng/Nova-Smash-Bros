@@ -57,6 +57,7 @@ export const ERRORS = {
   room_closed: 'The host closed the room. Ask them to open it again.',
   bad_token: 'Please log in again.',
   signed_out: 'This account was opened on another phone, so this one is signed out.',
+  replaced: 'This player was opened in another tab. This one is no longer used.',
   unavailable: "Can't reach the player list right now. Try again in a moment.",
   not_host: 'Only the host screen can do that.',
   not_joined: 'Join a room first.',
@@ -129,6 +130,7 @@ export class Rooms {
       }
       if (!isPlainObject(msg) || typeof msg.t !== 'string') return this.strike(conn);
       if (msg.t === 'ping') return this.send(conn, { t: 'pong', n: isInt(msg.n, 0, 1e9) ? msg.n : 0 });
+      if (conn.room) conn.room.lastActive = this.now(); // any message keeps the room alive
       const table = conn.role === 'host' ? HOST_HANDLERS : conn.role === 'phone' ? PHONE_HANDLERS : NEW_HANDLERS;
       const handler = Object.hasOwn(table, msg.t) ? table[msg.t] : null;
       if (!handler) {
@@ -192,7 +194,10 @@ export class Rooms {
         Object.assign(slot.conn, { role: null, room: null, slot: -1 });
       }
     }
-    if (room.host) Object.assign(room.host, { role: null, room: null });
+    if (room.host) {
+      this.send(room.host, { t: 'error', code: 'room_gone', msg: ERRORS.room_gone });
+      Object.assign(room.host, { role: null, room: null });
+    }
     room.slots = [null, null, null, null];
   }
 
@@ -240,9 +245,11 @@ export class Rooms {
   endMatch(room) {
     room.match = null;
     room.phase = 'lobby';
+    if (room.phaseAll && room.phaseAll.name === 'match') room.phaseAll = null;
     room.slots.forEach((slot, i) => {
       if (!slot) return;
       slot.ready = false;
+      slot.status = null;
       if (slot.left) this.freeSlot(room, i);
       else if (!slot.connected) this.holdSlot(room, i);
     });
@@ -270,6 +277,7 @@ export class Rooms {
     if (this.byGamertag.get(conn.lower) === conn) this.byGamertag.delete(conn.lower);
     Object.assign(conn, { role: null, room: null, slot: -1 });
     setTimeout(() => {
+      if (conn.role !== null) return; // it joined again in the meantime: leave it alone
       try {
         conn.ws.close(4001, 'signed out');
       } catch { /* already closed */ }
@@ -297,7 +305,7 @@ const NEW_HANDLERS = {
     if (!code) return this.fail(conn, 'busy');
     const room = {
       code, hostKey: randomBytes(24).toString('base64url'), host: conn, hostTimer: null, closed: false, phase: 'lobby',
-      slots: [null, null, null, null], match: null, phaseAll: null, lastActive: this.now(),
+      slots: [null, null, null, null], match: null, phaseAll: null, lastResult: null, lastActive: this.now(),
     };
     this.rooms.set(code, room);
     Object.assign(conn, { role: 'host', room, bucket: new Bucket(LIMITS.hostMessagesPerSecond, this.now()) });
@@ -325,6 +333,7 @@ const NEW_HANDLERS = {
     Object.assign(conn, { role: 'host', room, bucket: new Bucket(LIMITS.hostMessagesPerSecond, this.now()) });
     this.send(conn, { t: 'room', code: room.code, hostKey: room.hostKey, resumed: true, phase: room.phase, matchId: room.match ? room.match.id : null });
     this.sendRoster(room);
+    if (room.lastResult) this.send(conn, room.lastResult);
     this.toPhones(room, { t: 'host', connected: true });
   },
 
@@ -335,7 +344,7 @@ const NEW_HANDLERS = {
     const session = verifyToken(msg.token, this.config.sessionSecret, this.now());
     if (!session) return this.fail(conn, 'bad_token');
     const lower = session.gamertag.toLowerCase();
-    if (!this.sessions.accept(lower, session.sid)) return this.fail(conn, 'signed_out');
+    if (!this.sessions.accept(lower, session.sid, session.issuedAt)) return this.fail(conn, 'signed_out');
     conn.joining = true;
     let player;
     try {
@@ -347,6 +356,8 @@ const NEW_HANDLERS = {
     conn.joining = false;
     if (!conn.alive || conn.role !== null) return;
     if (!player) return this.fail(conn, 'bad_token');
+    // Somebody may have logged in on another phone while we were waiting for the store.
+    if (!this.sessions.accept(lower, session.sid, session.issuedAt)) return this.fail(conn, 'signed_out');
     if (this.rooms.get(room.code) !== room) return this.fail(conn, 'room_not_found');
 
     let index = room.slots.findIndex((s) => s && s.lower === lower);
@@ -356,8 +367,9 @@ const NEW_HANDLERS = {
       if (index < 0) return this.fail(conn, 'room_full');
     }
     // One phone per account: an older connection of this gamertag is signed out.
+    // (The same login opened twice, for example in a second tab, only replaces the older connection.)
     const other = this.byGamertag.get(lower);
-    if (other && other !== conn) this.kick(other, 'signed_out');
+    if (other && other !== conn) this.kick(other, other.sid === session.sid ? 'replaced' : 'signed_out');
 
     let slot = room.slots[index];
     if (!slot) {
@@ -471,6 +483,7 @@ const HOST_HANDLERS = {
     const total = msg.slots.length + msg.guests;
     if (total < 2) return refuse('At least 2 players are needed.');
     if (total > LIMITS.playersPerRoom) return refuse('At most 4 players can fight.');
+    room.lastResult = null;
     room.match = { id: randomUUID(), stage: msg.stage, lives: msg.lives, slots: [...msg.slots], guests: msg.guests, startedAt: this.now(), players: new Map(msg.slots.map((i) => [i, room.slots[i].lower])) };
     room.phase = 'match';
     room.lastActive = this.now();
@@ -500,13 +513,21 @@ const HOST_HANDLERS = {
       this.data.recordMatch(scored.matchRow, scored.updates);
       stored = true;
       await Promise.race([this.data.flush().catch(() => {}), new Promise((r) => setTimeout(r, 1500))]);
-      if (this.data.pending > 0) note = 'The scores are saved as soon as the Google Sheet is reachable again.';
+      if (this.data.pending > 0) note = 'The scores are still being written to the Google Sheet. Nothing is lost.';
     } else {
       note = 'Practice match: points need at least two logged-in players.';
       for (const line of scored.lines) Object.assign(line, { totalPoints: (line.totalPoints || 0) - line.points, points: 0, achievements: [] });
     }
-    const board = await this.data.leaderboard();
-    this.send(conn, { t: 'result_saved', matchId: match.id, stored, note, players: scored.lines, leaderboard: board.players, stale: board.stale });
+    // The leaderboard for the results screen comes from what the server already knows:
+    // it never waits for the sheet here.
+    const board = this.data.leaderboardNow();
+    const saved = { t: 'result_saved', matchId: match.id, stored, note, players: scored.lines, leaderboard: board.players, stale: board.stale };
+    // Sent to whoever is the host now (the page may have reconnected meanwhile), and kept
+    // so a host that reconnects later still gets it.
+    if (this.rooms.get(room.code) === room) {
+      room.lastResult = saved;
+      this.send(room.host, saved);
+    }
   },
 
   match_abort(conn, msg) {

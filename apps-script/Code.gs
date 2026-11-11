@@ -194,6 +194,10 @@ function recordMatch(payload) {
     for (var i = 0; i < ids.length; i++) if (String(ids[i][0]) === id) return { ok: true, data: { duplicate: true } };
   }
 
+  // The match row is written first. It is what marks a match as saved, so if anything
+  // fails after this line a retry adds nothing twice.
+  appendRecord(matches, MATCH_COLUMNS, [id, String(match.ended_at), match.stage, match.mode, match.lives, match.duration_s, String(match.winner), match.players_json]);
+
   var players = tab('players', PLAYER_COLUMNS);
   for (var k = 0; k < updates.length; k++) {
     var row = findPlayerRow(players, String(updates[k].gamertag_lower));
@@ -208,7 +212,6 @@ function recordMatch(payload) {
     players.getRange(row, 6, 1, 7).setValues([STAT_COLUMNS.map(function (c) { return player[c]; })]);
     players.getRange(row, 13).setValue(list.join(','));
   }
-  appendRecord(matches, MATCH_COLUMNS, [id, String(match.ended_at), match.stage, match.mode, match.lives, match.duration_s, String(match.winner), match.players_json]);
   return { ok: true, data: { duplicate: false } };
 }
 

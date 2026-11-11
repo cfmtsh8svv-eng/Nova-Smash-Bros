@@ -11,8 +11,10 @@ export const LIMITS = {
   maxStrikes: 200, // dropped messages before a socket is closed
   maxRooms: 200,
   roomsPerMinutePerAddress: 10,
-  authPerMinutePerAddress: 30,
-  apiPerMinutePerAddress: 240,
+  // A whole lecture hall can share one address (campus Wi-Fi), so these are roomy.
+  // Guessing PINs is stopped by the lock on the gamertag, not by this.
+  authPerMinutePerAddress: 120,
+  apiPerMinutePerAddress: 600,
   playersPerRoom: 4,
   maxGuests: 2, // keyboard players on the host page
   slotHoldMs: 30_000, // a dropped phone keeps its slot this long in the lobby

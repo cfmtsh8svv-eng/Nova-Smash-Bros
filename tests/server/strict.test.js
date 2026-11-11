@@ -407,12 +407,12 @@ test('room_set needs true or false', async (t) => {
   assert.equal((await p.next('joined')).slot, 0, 'an opened room lets players in again');
 });
 
-test('the API allows 240 requests a minute per address, then answers 429', async (t) => {
+test('the API allows 600 requests a minute per address, then answers 429', async (t) => {
   const s = await startServer(t);
   const statuses = [];
   for (let i = 0; i < LIMITS.apiPerMinutePerAddress + 3; i++) statuses.push((await fetch(`${s.base}/api/achievements`)).status);
-  assert.equal(statuses.filter((c) => c === 200).length, 240);
-  assert.deepEqual(statuses.slice(240), [429, 429, 429]);
+  assert.equal(statuses.filter((c) => c === 200).length, 600);
+  assert.deepEqual(statuses.slice(600), [429, 429, 429]);
   assert.equal((await fetch(`${s.base}/healthz`)).status, 200, 'the health check is never limited');
   s.clock.now += 61_000;
   assert.equal((await fetch(`${s.base}/api/achievements`)).status, 200);

@@ -135,7 +135,9 @@ test('the same token opened twice (two tabs): the newer connection wins', async 
   const second = await s.open();
   second.send({ t: 'join', room: h.code, token: first.token });
   assert.equal((await second.next('joined')).slot, 0);
-  assert.equal((await first.next('signed_out')).code, 'signed_out');
+  const told = await first.next('signed_out');
+  assert.equal(told.code, 'replaced', 'not a sign-out: the phone keeps its login');
+  assert.match(told.msg, /another tab/);
   h.send({ t: 'room_set', closed: false });
   const roster = await h.next('roster', { match: (r) => r.players.length === 1 && r.players[0].connected });
   assert.equal(roster.players.length, 1);

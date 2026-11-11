@@ -9,6 +9,7 @@ import { StoreError, STAT_KEYS } from './store/memory.js';
 
 const RETRY_MIN_MS = 2_000;
 const RETRY_MAX_MS = 60_000;
+const BOARD_RETRY_MS = 5_000;
 
 export class DataService {
   constructor(store, { now = () => Date.now(), autoRetry = true, log = () => {} } = {}) {
@@ -21,7 +22,11 @@ export class DataService {
     this.flushing = null;
     this.retryMs = RETRY_MIN_MS;
     this.retryTimer = null;
-    this.board = null; // { at, rows }
+    this.board = null; // { at, rows }: the last list read from the store
+    this.boardRead = null; // a read that is on its way
+    this.boardRetryAt = 0;
+    this.boardStale = false;
+    this.writes = 0; // counts successful writes, to notice a read that was overtaken
   }
 
   // Returns the player row or null. Throws StoreError('unavailable') only if the
@@ -37,7 +42,6 @@ export class DataService {
   async createPlayer(player) {
     const row = await this.store.createPlayer(player);
     this.players.set(row.gamertag_lower, row);
-    this.board = null;
     return row;
   }
 
@@ -83,7 +87,8 @@ export class DataService {
         return false;
       }
       this.queue.shift();
-      this.board = null;
+      this.writes += 1;
+      if (this.board) this.board.at = 0; // read the list again next time
     }
     this.retryMs = RETRY_MIN_MS;
     return true;
@@ -99,22 +104,13 @@ export class DataService {
     this.retryMs = Math.min(RETRY_MAX_MS, this.retryMs * 2);
   }
 
-  // Top players by points. Results that are still waiting in the queue are added
-  // on top of what the store returned, so nobody's points seem to vanish.
-  async leaderboard() {
-    const now = this.now();
-    let stale = false;
-    if (!this.board || now - this.board.at >= LIMITS.leaderboardCacheMs) {
-      try {
-        this.board = { at: now, rows: await this.store.listPlayers() };
-      } catch {
-        stale = true;
-      }
-    }
+  // Top players by points, without waiting for the store: built from the last list the
+  // store gave us (or, if there is none yet, from the players this server has seen),
+  // plus every result that is still waiting in the queue.
+  leaderboardNow() {
     let rows;
     if (this.board) {
       rows = new Map(this.board.rows.map((r) => [r.gamertag.toLowerCase(), { ...r }]));
-      // Results still waiting in the queue are not in the store's numbers yet.
       for (const job of this.queue) {
         for (const u of job.updates) {
           const row = rows.get(u.gamertag_lower);
@@ -122,8 +118,12 @@ export class DataService {
           for (const key of ['matches', 'wins', 'points', 'kos']) row[key] += u.deltas[key] || 0;
         }
       }
+      // Players the server knows better than that list (they just played, or just registered).
+      for (const p of this.players.values()) {
+        const row = rows.get(p.gamertag_lower);
+        if (!row || p.matches > row.matches) rows.set(p.gamertag_lower, { gamertag: p.gamertag, matches: p.matches, wins: p.wins, points: p.points, kos: p.kos });
+      }
     } else {
-      // The store was never reachable: show the players this server has seen, with their current numbers.
       rows = new Map([...this.players.values()].map((r) => [r.gamertag_lower, { gamertag: r.gamertag, matches: r.matches, wins: r.wins, points: r.points, kos: r.kos }]));
     }
     const players = [...rows.values()]
@@ -131,7 +131,31 @@ export class DataService {
       .sort((a, b) => b.points - a.points || b.wins - a.wins || a.gamertag.localeCompare(b.gamertag))
       .slice(0, LIMITS.leaderboardSize)
       .map((r, i) => ({ rank: i + 1, gamertag: r.gamertag, points: r.points, wins: r.wins, matches: r.matches }));
-    return { players, stale };
+    return { players, stale: this.boardStale };
+  }
+
+  // The leaderboard, read from the store at most once per 60 s. Several callers
+  // share one read; a failed read is not repeated for a few seconds.
+  async leaderboard() {
+    const now = this.now();
+    const expired = !this.board || now - this.board.at >= LIMITS.leaderboardCacheMs;
+    if (expired && now >= this.boardRetryAt) {
+      if (!this.boardRead) {
+        const version = this.writes;
+        this.boardRead = this.store.listPlayers().then((rows) => {
+          // A result was written while this read was on its way: the list may predate it, so it is not kept as fresh.
+          this.board = { at: this.writes === version ? this.now() : 0, rows };
+          this.boardStale = false;
+        }, () => {
+          this.boardStale = true;
+          this.boardRetryAt = this.now() + BOARD_RETRY_MS;
+        }).finally(() => {
+          this.boardRead = null;
+        });
+      }
+      await this.boardRead;
+    }
+    return this.leaderboardNow();
   }
 
   stop() {

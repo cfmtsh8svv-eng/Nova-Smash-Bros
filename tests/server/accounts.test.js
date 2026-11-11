@@ -195,7 +195,7 @@ test('too many login attempts from one address are slowed down', async (t) => {
 test('a session token is accepted for 30 days and refused after that', () => {
   const now = 1_800_000_000_000;
   const token = createToken('Ana', 'sid-1', 'secret', now);
-  assert.deepEqual(verifyToken(token, 'secret', now + 1000), { gamertag: 'Ana', sid: 'sid-1' });
+  assert.deepEqual(verifyToken(token, 'secret', now + 1000), { gamertag: 'Ana', sid: 'sid-1', issuedAt: now });
   assert.ok(verifyToken(token, 'secret', now + LIMITS.sessionMs - 1000));
   assert.equal(verifyToken(token, 'secret', now + LIMITS.sessionMs), null, 'expired');
   assert.equal(LIMITS.sessionMs, 30 * 24 * 60 * 60 * 1000);
@@ -228,7 +228,7 @@ test('a token whose payload is not what we signed for is refused even with a val
   assert.equal(verifyToken(make({ g: 'Ana', s: 'x' }), 'secret', 0), null, 'no expiry');
   assert.equal(verifyToken(make({ g: 5, s: 'x', e: 10 }), 'secret', 0), null, 'gamertag is not text');
   assert.equal(verifyToken(make('just text'), 'secret', 0), null);
-  assert.deepEqual(verifyToken(make({ g: 'Ana', s: 'x', e: 10 }), 'secret', 0), { gamertag: 'Ana', sid: 'x' });
+  assert.deepEqual(verifyToken(make({ g: 'Ana', s: 'x', e: 10 }), 'secret', 0), { gamertag: 'Ana', sid: 'x', issuedAt: 0 });
 });
 
 // ---- small units ----
@@ -252,9 +252,15 @@ test('LoginGuard forgets old entries and Sessions keeps only the newest login', 
   assert.equal(guard.entries.size, 0);
 
   const sessions = new Sessions();
-  assert.equal(sessions.accept('ana', 'old'), true, 'after a restart the first token seen is adopted');
-  assert.equal(sessions.accept('ana', 'old'), true);
-  const fresh = sessions.start('ana');
-  assert.equal(sessions.accept('ana', 'old'), false, 'the older session is refused');
-  assert.equal(sessions.accept('ana', fresh), true);
+  assert.equal(sessions.accept('ana', 'old', 1000), true, 'after a restart the first token seen is adopted');
+  assert.equal(sessions.accept('ana', 'old', 1000), true);
+  const fresh = sessions.start('ana', 5000);
+  assert.equal(sessions.accept('ana', 'old', 1000), false, 'the older session is refused');
+  assert.equal(sessions.accept('ana', fresh, 5000), true);
+
+  // After a restart the phone that logged in LAST wins, whichever reconnects first.
+  const restarted = new Sessions();
+  assert.equal(restarted.accept('ana', 'older-phone', 1000), true, 'adopted because nothing else is known');
+  assert.equal(restarted.accept('ana', 'newer-phone', 9000), true, 'a later login takes over');
+  assert.equal(restarted.accept('ana', 'older-phone', 1000), false, 'and the older one is out');
 });

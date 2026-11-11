@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NOVA Brawl</title>
+  <link rel="icon" href="/shared/icon.svg">
+  <link rel="stylesheet" href="/shared/fonts.css">
+  <link rel="stylesheet" href="/host/host.css">
+</head>
+<body>
+  <main id="frame">
+    <canvas id="stage" width="1280" height="720" aria-label="The game"></canvas>
+    <div id="dim"></div>
+
+    <section id="title" class="screen">
+      <h1 class="logo">NOVA <span>BRAWL</span></h1>
+      <p class="tagline">Scan. Pick. Brawl.</p>
+      <button id="openRoom" class="big">Open a room</button>
+      <p class="small">A party fighter for 2 to 4 players. Your phone is the controller.</p>
+    </section>
+
+    <section id="lobby" class="screen" hidden>
+      <div class="col join">
+        <h1 class="logo mini">NOVA <span>BRAWL</span></h1>
+        <img id="qr" alt="QR code to join this room" width="300" height="300">
+        <p class="scan">Scan with your phone camera</p>
+        <p class="codeline">Room <b id="roomCode">----</b></p>
+        <p class="small" id="joinUrl"></p>
+        <p class="small warn" id="netNote" hidden></p>
+      </div>
+
+      <div class="col players">
+        <div id="slots" class="slots"></div>
+        <div class="keys">
+          <span>Keyboard players</span>
+          <button id="guestLess" aria-label="One keyboard player less">-</button>
+          <b id="guestCount">0</b>
+          <button id="guestMore" aria-label="One keyboard player more">+</button>
+        </div>
+        <button id="startMatch" class="big" disabled>Start match</button>
+        <p class="small" id="startHint">Waiting for players…</p>
+      </div>
+
+      <div class="col settings">
+        <h2>Stage</h2>
+        <div id="stageButtons" class="choice four"></div>
+        <h2>Lives</h2>
+        <div id="lifeButtons" class="choice three"></div>
+        <div class="toggles">
+          <button id="toggleItems" class="toggle" aria-pressed="true">Items on</button>
+          <button id="toggleHazards" class="toggle" aria-pressed="true">Hazards on</button>
+          <button id="toggleRoom" class="toggle" aria-pressed="false">Room open</button>
+        </div>
+        <label class="slider">Music <input id="volMusic" type="range" min="0" max="100" value="45"></label>
+        <label class="slider">Effects <input id="volEffects" type="range" min="0" max="100" value="80"></label>
+        <h2>Leaderboard</h2>
+        <ol id="board" class="board"></ol>
+      </div>
+    </section>
+
+    <section id="loading" class="screen" hidden>
+      <p class="tagline">Get ready…</p>
+    </section>
+
+    <section id="pause" class="screen" hidden>
+      <h1 class="logo mini">PAUSED</h1>
+      <button id="resume" class="big">Resume</button>
+      <button id="quitMatch" class="plain">End the match without a result</button>
+      <p class="small">Esc or P pauses and resumes.</p>
+    </section>
+
+    <section id="results" class="screen" hidden>
+      <h1 id="winnerLine" class="winner"></h1>
+      <div id="podium" class="podium"></div>
+      <p id="resultNote" class="small"></p>
+      <div class="resultsBottom">
+        <div>
+          <h2>Leaderboard</h2>
+          <ol id="resultBoard" class="board wide"></ol>
+        </div>
+        <button id="backToLobby" class="big">Back to the lobby</button>
+      </div>
+    </section>
+
+    <div id="toast" role="status" hidden></div>
+    <div id="offline" role="status" hidden>Connection lost, reconnecting…</div>
+  </main>
+  <script type="module" src="/host/main.js"></script>
+</body>
+</html>

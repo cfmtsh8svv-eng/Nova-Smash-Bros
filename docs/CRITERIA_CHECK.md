@@ -4,13 +4,14 @@ Written at the end of the build, on the branch `build`. For each of the six crit
 
 ## What was run, and what was not
 
-Run on the build machine (macOS, Node 26.13.0; the unit and server tests also under Node 22.23.4, the version the project targets):
+Run on the build machine (macOS, Node 26.13.0; the unit and server tests also under Node 22.23.4, the version the project targets) and by GitHub Actions:
 
 | Command | Result |
 |---|---|
 | `npm test` | 410 tests, 410 pass, 0 fail (about 7 seconds). Same result under Node 22.23.4 |
 | `npm run test:browser` | 3 tests, 3 pass, 0 fail (Chromium through Playwright, about 30 seconds) |
 | `npm audit --audit-level=high` | `found 0 vulnerabilities` |
+| GitHub Actions on the pushed branch (commit `1c6eac0`, Ubuntu, Node 22), for the push and for the pull request | Both runs succeeded: `npm test` 410 of 410, `npm audit --audit-level=high` 0 vulnerabilities, `npm run test:browser` 3 of 3 |
 | `PORT=3987 node server/index.js`, then played with two emulated phones | A match from the title screen to the results, 60 pictures a second, no console errors |
 
 **Not run by anyone yet.** These are the honest gaps, and they matter for criterion 1:
@@ -19,7 +20,6 @@ Run on the build machine (macOS, Node 26.13.0; the unit and server tests also un
 - **The real Google Sheet.** `apps-script/Code.gs` has never been executed. The server side of the sheet connection is tested against a stand-in that speaks the same protocol (`tests/server/outage.test.js`), and all other tests use the in-memory store.
 - **Real phones.** Everything was checked in Chromium with emulated iPhone and Android screens and touch events. Safari on a real iPhone, a real Android phone, the demo room's Wi-Fi and a projector were not tested.
 - **`main`.** The work is on `build` with an open pull request. The tests pass on `build`; they pass on `main` only after the team merges.
-- **GitHub Actions.** The workflow file exists (`.github/workflows/ci.yml`). Its first run happens when the branch is pushed; check the result on the pull request.
 
 ## 1. It works (20 %)
 
@@ -69,7 +69,7 @@ Left out on purpose: demo mode ([`DEMO.md`](DEMO.md) describes what is prepared 
 - **Rejected actions**: specials and items out of range, votes from the wrong player or for the wrong stage, wrong PINs and the lockout, tampered and expired tokens, a player trying host actions, a host touching another host's room, forged and implausible results, oversized and malformed messages (`tests/server/rooms.test.js`, `strict.test.js`, `results.test.js`, `accounts.test.js`).
 - **Edge cases**: a tap shorter than one frame, presses bunched by a network hiccup, simultaneous hits, the last player standing, a KO in the same step as a burnout, exact boundaries of every limit (`tests/game/exact.test.js`, `input.test.js`, `tests/server/strict.test.js`), and a regression test for every defect the reviews found (`tests/*/regressions.test.js`).
 - **Were the tests themselves checked?** Yes. For each package a reviewer agent changed the code on purpose in many small ways and looked at which changes the tests missed; tests were added for those. For the client the last count before the final additions was 57 of 80 breakages caught; the smoke test was then rewritten to catch the remaining kinds that matter to a player (a dead button, an empty canvas, a pause that does not freeze).
-- **CI**: `.github/workflows/ci.yml` runs `npm ci`, `npm test`, `npm audit --audit-level=high` and the browser tests on every push and pull request.
+- **CI**: `.github/workflows/ci.yml` runs `npm ci`, `npm test`, `npm audit --audit-level=high` and the browser tests on every push and pull request. It passed on the pushed branch (see the table at the top); later commits show their own result on the pull request.
 
 Not at the top level until: the pull request is merged, so that the tests pass on `main`. Known gaps in the tests: the Apps Script file, Safari, and parts of the client that only a person can judge (how the game looks and sounds).
 

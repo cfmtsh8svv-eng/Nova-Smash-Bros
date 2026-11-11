@@ -1,5 +1,8 @@
 # NOVA Brawl: Specification
 
+> **Historical in parts.** The build follows [`GAME_SPEC.md`](GAME_SPEC.md) (2026-11-11). Where this file disagrees, for example on Python, six players, the shield or the fighter names, `GAME_SPEC.md` wins.
+
+
 | | |
 |---|---|
 | **Document** | Functional & technical specification (the *how*) |

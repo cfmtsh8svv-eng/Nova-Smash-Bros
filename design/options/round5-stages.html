@@ -1,0 +1,132 @@
+<title>NOVA Brawl Stages</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;800&display=swap">
+<style>
+/* Layout: three bands, one per stage, each with three framed 16:9 mood variants. Single committed dark look. */
+:root{
+  color-scheme:dark;
+  --night:#1b1330; --line:#4a3a66; --ink:#eef3f8; --mute:#b6a9cf; --orange:#ff7a3d; --yellow:#f6c343;
+  --display:"Bungee","Arial Black",sans-serif; --body:"Nunito","Segoe UI",system-ui,sans-serif;
+}
+body{background:var(--night);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:30px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(26px,4vw,40px);line-height:1.1;margin:0;text-wrap:balance}
+h1 span{color:var(--orange)}
+.lead{color:var(--mute);max-width:64ch;margin:8px 0 0}
+.band{border-top:1px solid var(--line);padding-top:20px;display:flex;flex-direction:column;gap:14px}
+.band h2{font-family:var(--display);font-weight:400;font-size:22px;margin:0}
+.band h2 small{font-family:var(--body);font-weight:800;font-size:13px;color:var(--yellow);margin-right:10px;letter-spacing:.06em}
+.band>p{margin:0;color:var(--mute);font-size:15px;max-width:70ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.opt{min-width:0;display:flex;flex-direction:column;gap:8px}
+.screen{border:3px solid var(--line);border-radius:10px;overflow:hidden;background:#000;aspect-ratio:16/9;max-width:100%}
+.screen svg{display:block;width:100%;height:100%}
+.tag{font-family:var(--display);font-size:17px;display:flex;align-items:baseline;gap:10px}
+.tag b{color:var(--yellow);font-weight:400}
+.opt p{margin:0;color:var(--mute);font-size:14px}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Runde 5: <span>Drei Stages, je drei Stimmungen</span></h1>
+    <p class="lead">Wählt pro Stage A, B oder C. Die Plattformen sind in allen drei Varianten gleich, es ändert sich Licht, Tageszeit und Dekoration.</p>
+  </header>
+  <div id="bands"></div>
+</div>
+
+<script>
+let uid=0;
+const lg=(id,stops,x2=0,y2=1)=>`<linearGradient id="${id}" x1="0" y1="0" x2="${x2}" y2="${y2}">${stops.map((c,i)=>`<stop offset="${(i/(stops.length-1)).toFixed(2)}" stop-color="${c}"/>`).join('')}</linearGradient>`;
+function frame(P,body){
+  const u='s'+(uid++);
+  const defs=`<defs>${lg(u+'sky',P.sky)}${lg(u+'sea',P.sea)}${lg(u+'pl',P.plat)}${lg(u+'far',P.far)}${lg(u+'bld',P.bld,1,1)}
+  <radialGradient id="${u}orb"><stop offset="0" stop-color="${P.orb.core}"/><stop offset=".22" stop-color="${P.orb.col}"/><stop offset="1" stop-color="${P.orb.col}" stop-opacity="0"/></radialGradient>
+  <radialGradient id="${u}glow"><stop offset="0" stop-color="${P.light}" stop-opacity=".9"/><stop offset="1" stop-color="${P.light}" stop-opacity="0"/></radialGradient>
+  <filter id="${u}b2"><feGaussianBlur stdDeviation="2.2"/></filter><filter id="${u}b6"><feGaussianBlur stdDeviation="6"/></filter>
+  <filter id="${u}d" x="-20%" y="-60%" width="140%" height="260%"><feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="${P.shadow}" flood-opacity=".6"/></filter></defs>`;
+  const U=k=>`url(#${u}${k})`;
+  const stars=P.stars?`<g fill="#fff" opacity="${P.stars}">${[[40,26],[110,60],[190,18],[260,48],[330,22],[410,64],[505,30],[585,52],[620,14],[150,90]].map(([x,y],i)=>`<circle cx="${x}" cy="${y}" r="${i%3?.8:1.3}"/>`).join('')}</g>`:'';
+  const clouds=`<g filter="${U('b2')}" opacity="${P.cloudOp??.85}">${(P.clouds||[]).map(([x,y,rx,ry])=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${P.cloud}"/>`).join('')}</g>`;
+  return `<svg viewBox="0 0 640 360" role="img" aria-label="${P.label}">${defs}<rect width="640" height="360" fill="${U('sky')}"/>${stars}
+  <circle cx="${P.orb.x}" cy="${P.orb.y}" r="${P.orb.r*4}" fill="${U('orb')}"/><circle cx="${P.orb.x}" cy="${P.orb.y}" r="${P.orb.r}" fill="${P.orb.core}"/>${clouds}${body(U,P)}</svg>`;
+}
+const plat=(U,x,y,w,h,P,r=7)=>`<g filter="${U('d')}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${U('pl')}"/></g><rect x="${x+2}" y="${y}" width="${w-4}" height="3.5" rx="1.7" fill="#fff" opacity="${P.rim}"/>`;
+const seaBlock=(U,P,y=228)=>`<rect y="${y}" width="640" height="${360-y}" fill="${U('sea')}"/>${[0,1,2,3].map(i=>`<rect x="${P.orb.x-58+i*16}" y="${y+6+i*10}" width="${116-i*32}" height="2.5" rx="1.2" fill="${P.orb.col}" opacity="${.75-i*.13}"/>`).join('')}
+  <g stroke="#dfe9ff" stroke-width="1.5" stroke-linecap="round" opacity=".3"><path d="M30,${y+22} h46"/><path d="M560,${y+30} h40"/><path d="M250,${y+12} h30"/><path d="M40,${y+100} h60"/><path d="M540,${y+108} h56"/></g>`;
+
+function campus(U,P){
+  const win=[0,1,2,3,4].map(i=>[150,176,202].map((y,j)=>`<rect x="${36+i*27}" y="${y}" width="16" height="12" rx="1.5" fill="${P.light}" opacity="${((i+j)%3?P.winOn:P.winOn*.5).toFixed(2)}"/>`).join('')).join('');
+  return `<path d="M0,228 L0,196 Q70,168 150,190 Q220,206 300,228z" fill="${U('far')}"/><path d="M640,228 L640,204 Q590,188 540,206 Q510,216 480,228z" fill="${U('far')}" opacity=".8"/>
+  ${seaBlock(U,P)}
+  <g filter="${U('d')}"><rect x="24" y="132" width="150" height="100" rx="3" fill="${U('bld')}"/><rect x="60" y="104" width="78" height="30" rx="3" fill="${U('bld')}"/><rect x="178" y="170" width="78" height="62" rx="3" fill="${U('bld')}"/></g>
+  <rect x="24" y="132" width="150" height="5" fill="#fff" opacity=".45"/><rect x="178" y="170" width="78" height="4" fill="#fff" opacity=".45"/>${win}
+  <rect x="190" y="186" width="14" height="11" rx="1.5" fill="${P.light}" opacity="${P.winOn}"/><rect x="234" y="186" width="14" height="11" rx="1.5" fill="${P.light}" opacity="${P.winOn}"/>
+  <text x="99" y="124" text-anchor="middle" font-family="Bungee,sans-serif" font-size="11" fill="${P.ink}" opacity=".85">CAMPUS</text>
+  <g fill="${P.sil}"><rect x="596" y="150" width="5" height="80" rx="2"/><path d="M598,152 q-30,-14 -40,8 q22,-10 40,-4 q-12,-26 -34,-22 q26,-2 36,20 q4,-28 28,-28 q-18,8 -22,28 q18,-14 34,-2 q-20,-4 -36,6z"/></g>
+  ${P.lamps?[[84,278],[556,278]].map(([x,y])=>`<circle cx="${x}" cy="${y-58}" r="34" fill="${U('glow')}"/><rect x="${x-1.5}" y="${y-58}" width="3" height="58" fill="${P.sil}"/><circle cx="${x}" cy="${y-58}" r="5" fill="${P.light}"/>`).join(''):''}
+  <ellipse cx="320" cy="340" rx="250" ry="12" fill="${P.shadow}" opacity=".5" filter="${U('b6')}"/>
+  ${plat(U,90,278,460,50,P,8)}${[...Array(13)].map((_,i)=>`<rect x="${100+i*34}" y="290" width="30" height="11" rx="2" fill="${i%2?P.tileA:P.tileB}"/><circle cx="${115+i*34}" cy="295.5" r="2.6" fill="${i%2?P.tileB:P.tileA}"/>`).join('')}
+  <g stroke="${P.sil}" stroke-width="3" opacity=".8"><path d="M0,350 h640"/><path d="M0,356 h640"/></g>
+  ${plat(U,126,192,124,15,P)}${plat(U,396,172,124,15,P)}${plat(U,270,104,100,13,P)}`;
+}
+function beach(U,P){
+  const umb=(x,y,c)=>`<rect x="${x-1.5}" y="${y-46}" width="3" height="46" fill="${P.sil}"/><path d="M${x-34},${y-44} q34,-34 68,0z" fill="${c}"/><path d="M${x-11},${y-44} q11,-30 22,0z" fill="#fff" opacity=".85"/>`;
+  return `<path d="M0,214 L0,150 q40,-22 90,-6 l0,-18 h14 v10 h34 v-10 h14 v26 q50,22 90,62z" fill="${U('far')}"/>
+  ${seaBlock(U,P,214)}
+  ${P.storm?`<g fill="none" stroke="#eef3f8" stroke-width="3" opacity=".7"><path d="M0,250 q40,-22 80,0 t80,0 t80,0 t80,0 t80,0 t80,0 t80,0 t80,0"/><path d="M-30,292 q40,-18 80,0 t80,0 t80,0 t80,0 t80,0 t80,0 t80,0 t80,0 t80,0" opacity=".6"/></g><path d="M470,40 l-16,34 h14 l-12,36" stroke="#fff7c2" stroke-width="3.5" fill="none" stroke-linejoin="round"/>`:''}
+  <g fill="${P.sil}" opacity=".9"><path d="M556,300 q10,-34 40,-30 q34,-6 44,30z"/><path d="M0,306 q14,-30 44,-22 q20,4 26,22z"/></g>
+  <ellipse cx="320" cy="342" rx="240" ry="12" fill="${P.shadow}" opacity=".5" filter="${U('b6')}"/>
+  <g filter="${U('d')}"><path d="M100,330 q-6,-46 20,-50 h400 q26,4 20,50z" fill="${U('pl')}"/></g>
+  <path d="M122,280 h396" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity="${P.rim}"/>
+  <g fill="${P.shadow}" opacity=".18"><ellipse cx="190" cy="298" rx="16" ry="3"/><ellipse cx="300" cy="312" rx="22" ry="3"/><ellipse cx="430" cy="300" rx="14" ry="3"/><ellipse cx="370" cy="322" rx="18" ry="3"/></g>
+  ${umb(196,280,P.tileA)}${umb(470,280,P.accent)}
+  <g stroke="${P.sil}" stroke-width="4" stroke-linecap="round"><path d="M300,280 l8,-98 M360,280 l-8,-98 M303,246 l54,-32 M357,246 l-54,-32"/></g>
+  ${plat(U,286,170,88,14,P)}<rect x="300" y="140" width="60" height="30" rx="3" fill="${P.accent}"/><rect x="300" y="140" width="60" height="7" fill="#fff" opacity=".85"/><path d="M294,140 l36,-18 l36,18z" fill="${P.sil}"/>
+  ${plat(U,96,196,96,14,P)}${plat(U,452,196,96,14,P)}`;
+}
+function bairro(U,P){
+  const house=(x,w,h,c,k)=>{const y=300-h;let s=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/><rect x="${x}" y="${y}" width="${w}" height="5" fill="#fff" opacity=".25"/><path d="M${x-3},${y} h${w+6} l-6,-9 h${-(w-6)}z" fill="${P.roof}"/>`;
+    for(let r=0;r<Math.floor((h-30)/42);r++)for(let q=0;q<Math.floor(w/30);q++){const wx=x+9+q*30,wy=y+16+r*42,on=(r+q+k)%3!==0;
+      s+=`<rect x="${wx}" y="${wy}" width="13" height="22" rx="6" fill="${on?P.light:P.winOff}" opacity="${on?P.winOn:1}"/><rect x="${wx-3}" y="${wy+22}" width="19" height="3" fill="${P.sil}"/>`;}
+    return s};
+  const lights=(x1,y1,x2,y2)=>{let s=`<path d="M${x1},${y1} Q${(x1+x2)/2},${Math.max(y1,y2)+26} ${x2},${y2}" stroke="${P.sil}" stroke-width="1.2" fill="none"/>`;
+    for(let i=1;i<10;i++){const t=i/10,mx=(x1+x2)/2,my=Math.max(y1,y2)+26,x=(1-t)*(1-t)*x1+2*(1-t)*t*mx+t*t*x2,y=(1-t)*(1-t)*y1+2*(1-t)*t*my+t*t*y2;
+      s+=P.flags?`<path d="M${x-4},${y} h8 l-4,9z" fill="${P.bunting[i%P.bunting.length]}"/>`:`<circle cx="${x}" cy="${y+2}" r="7" fill="${U('glow')}"/><circle cx="${x}" cy="${y+2}" r="2.2" fill="${P.light}"/>`;}
+    return s};
+  const neon=(x,y,w,t,c)=>`<rect x="${x-4}" y="${y-4}" width="${w+8}" height="24" rx="6" fill="${c}" opacity=".35" filter="${U('b6')}"/><rect x="${x}" y="${y}" width="${w}" height="16" rx="4" fill="${P.winOff}" stroke="${c}" stroke-width="2"/><text x="${x+w/2}" y="${y+12}" text-anchor="middle" font-family="Bungee,sans-serif" font-size="9" fill="${c}">${t}</text>`;
+  return `<g opacity=".55">${house(210,70,150,P.far[0],1)}${house(300,60,120,P.far[1],2)}${house(372,66,160,P.far[0],0)}</g>
+  ${house(-6,116,236,P.h1,0)}${house(110,84,190,P.h2,1)}${house(452,82,204,P.h3,2)}${house(534,112,246,P.h1,1)}
+  ${lights(104,84,460,96)}${lights(190,130,540,70)}
+  ${P.neon?neon(24,236,62,'BAR',P.accent)+neon(556,232,66,'FADO',P.tileA):''}
+  <path d="M0,300 L640,268 L640,360 L0,360z" fill="${P.street}"/>
+  <g stroke="${P.sil}" stroke-width="1" opacity=".35">${[...Array(16)].map((_,i)=>`<path d="M${i*44-10},${322-i*2.2} q22,-8 44,0"/><path d="M${i*44-30},${342-i*2.2} q22,-8 44,0"/>`).join('')}</g>
+  <g stroke="${P.rail}" stroke-width="2.5"><path d="M0,312 L640,280"/><path d="M0,322 L640,290"/></g>
+  <ellipse cx="320" cy="330" rx="250" ry="10" fill="${P.shadow}" opacity=".5" filter="${U('b6')}"/>
+  <g filter="${U('d')}"><path d="M80,292 L560,268 L560,300 L80,324z" fill="${U('pl')}"/></g><path d="M82,292 L558,268" stroke="#fff" stroke-width="3" opacity="${P.rim}"/>
+  ${plat(U,120,198,110,13,P)}<g stroke="${P.sil}" stroke-width="2">${[0,1,2,3,4,5].map(i=>`<path d="M${128+i*19},198 v-16"/>`).join('')}<path d="M122,182 h106"/></g>
+  ${plat(U,412,178,110,13,P)}<g stroke="${P.sil}" stroke-width="2">${[0,1,2,3,4,5].map(i=>`<path d="M${420+i*19},178 v-16"/>`).join('')}<path d="M414,162 h106"/></g>
+  ${plat(U,268,120,104,13,P)}`;
+}
+
+const STAGES=[
+ {n:'Nova SBE Campus',d:'Terrasse mit Meerblick, zwei mittlere Plattformen, eine hohe. Unten fährt der Zug.',fn:campus,v:[
+  ['Goldene Stunde','Warm und stimmungsvoll, Fenster leuchten.',{label:'Campus bei Sonnenuntergang',sky:['#27204f','#7a4a8f','#e8707a','#ff9a52','#ffd27a'],sea:['#f08f62','#7d5a9c','#1f4f86','#0b2545'],plat:['#fff1dc','#e9c9a8','#6d5a8c'],far:['#6a4a86','#3a2a5c'],bld:['#f6d9c4','#8a6a9c'],orb:{x:450,y:214,r:30,col:'#ffe08a',core:'#fff6d2'},cloud:'#f7a8a0',clouds:[[150,110,90,12],[560,140,80,10],[330,160,60,7]],light:'#ffdf8a',winOn:.9,stars:.5,ink:'#27204f',sil:'#2a1b45',shadow:'#160c2c',rim:.7,tileA:'#2f7fc4',tileB:'#f4f7fb'}],
+  ['Klarer Tag','Hell und freundlich, bester Kontrast für die Figuren.',{label:'Campus am Tag',sky:['#2f8fe0','#6fbaf2','#bfe5ff','#e9f7ff'],sea:['#7fd0f0','#2f8fd0','#1a5fa0','#0b3c6d'],plat:['#ffffff','#f2e2c4','#b9a27e'],far:['#7fb88a','#4f8f6a'],bld:['#ffffff','#c9d8ea'],orb:{x:500,y:70,r:26,col:'#fff2a8',core:'#ffffff'},cloud:'#ffffff',clouds:[[140,70,70,14],[190,62,40,10],[400,110,60,10],[590,150,50,8]],light:'#5fa8e6',winOn:.85,ink:'#0b3c5d',sil:'#1d4a3a',shadow:'#0b2545',rim:.9,tileA:'#1f6fb2',tileB:'#ffffff'}],
+  ['Abend mit Laternen','Dunkelblau, Laternen und Fenster als Lichtquellen.',{label:'Campus in der Dämmerung',sky:['#0c1030','#1b2560','#3a3f8f','#7a5aa0'],sea:['#4a4a90','#1b2a66','#0e1840','#070c26'],plat:['#cfd3f0','#8a8fc0','#3a3f70'],far:['#2a2f66','#151a44'],bld:['#6a70a8','#2a2f5c'],orb:{x:520,y:64,r:18,col:'#cfd8ff',core:'#f4f6ff'},cloud:'#4a4f90',clouds:[[160,90,80,10],[420,130,70,8]],cloudOp:.6,light:'#ffd66b',winOn:1,stars:.9,ink:'#f4f6ff',sil:'#0a0d26',shadow:'#04061a',rim:.5,tileA:'#3f6fd0',tileB:'#dfe6ff',lamps:1}]]},
+ {n:'Carcavelos Beach',d:'Sandbank in der Mitte, Rettungsturm als hohe Plattform, zwei Sonnenschirme, links die Festung.',fn:beach,v:[
+  ['Mittag türkis','Postkarten-Strand, sehr klar.',{label:'Strand am Mittag',sky:['#1f8fe0','#5fc0f5','#bff0ff'],sea:['#7fe6e0','#2fb8d0','#1a80b8','#0b4f86'],plat:['#fff3cf','#f2d49b','#c9a066'],far:['#d9b98a','#a8865c'],bld:['#fff','#ddd'],orb:{x:330,y:56,r:24,col:'#fff2a8',core:'#ffffff'},cloud:'#ffffff',clouds:[[120,80,70,12],[540,100,60,10]],light:'#ffe08a',winOn:1,ink:'#0b3c5d',sil:'#5a4630',shadow:'#0b2545',rim:.9,tileA:'#e63946',accent:'#ff7a3d'}],
+  ['Sonnenuntergang','Orange und Lila, passt zum Campus-Look A.',{label:'Strand bei Sonnenuntergang',sky:['#2b1e4f','#8a4a8f','#f0707a','#ffa052','#ffd88a'],sea:['#ffa870','#b06a9c','#3a4f96','#141f4f'],plat:['#ffe6c0','#e8b888','#8a5a7c'],far:['#5a3a76','#2f2050'],bld:['#fff','#ddd'],orb:{x:470,y:204,r:32,col:'#ffe08a',core:'#fff6d2'},cloud:'#f7a8a0',clouds:[[150,100,90,12],[520,120,70,9],[320,150,60,7]],light:'#ffdf8a',winOn:1,stars:.4,ink:'#27204f',sil:'#2a1b45',shadow:'#160c2c',rim:.7,tileA:'#e63946',accent:'#ff7a3d'}],
+  ['Sturm zieht auf','Dramatisch, dunkle Wolken und hohe Wellen.',{label:'Strand bei Sturm',storm:1,sky:['#1a2030','#3a4658','#6a7888','#a8b4b8'],sea:['#7a8c98','#3a5870','#1f3850','#0c1c30'],plat:['#e6dcc0','#b8a888','#6a6458'],far:['#3a4450','#222a34'],bld:['#fff','#ddd'],orb:{x:120,y:60,r:14,col:'#e6eef4',core:'#f4f8fb'},cloud:'#2a3240',clouds:[[160,60,150,26],[420,50,170,30],[560,96,110,20],[300,104,120,16]],cloudOp:.95,light:'#fff7c2',winOn:1,ink:'#f4f8fb',sil:'#161c26',shadow:'#060a12',rim:.5,tileA:'#e63946',accent:'#f6c343'}]]},
+ {n:'Bairro Alto',d:'Schräge Kopfsteinpflaster-Straße, zwei Balkone und ein hohes Vordach als Plattformen, Tramschienen.',fn:bairro,v:[
+  ['Neon-Nacht','Lila Nacht, Leuchtreklamen, Lichterketten.',{label:'Bairro Alto bei Nacht',neon:1,sky:['#0e0a26','#2b1e4f','#5a2f7a','#a04a8a'],sea:['#000','#000'],plat:['#e6d0f0','#9a7ab8','#4a3470'],far:['#3a2a5c','#4a2f6a'],bld:['#000','#000'],orb:{x:330,y:50,r:16,col:'#e6dcff',core:'#fbf8ff'},cloud:'#3a2a5c',clouds:[[140,60,80,9],[520,44,70,8]],cloudOp:.6,light:'#ffd66b',winOn:.95,winOff:'#1a1230',stars:.9,sil:'#0e0a20',shadow:'#05030f',rim:.55,h1:'#5a3a80',h2:'#7a3a6a',h3:'#3f4a90',roof:'#2a1b45',street:'#2b2148',rail:'#b6a9cf',tileA:'#3fd0e0',accent:'#ff4fa0'}],
+  ['Blaue Stunde','Pastellfassaden im Abendlicht, warm leuchtende Fenster.',{label:'Bairro Alto in der Dämmerung',sky:['#1f2f6a','#4a5fa8','#c98aa8','#ffc08a'],sea:['#000','#000'],plat:['#fff1dc','#d9b8a8','#7a5a7c'],far:['#8a7aa8','#a888a8'],bld:['#000','#000'],orb:{x:560,y:80,r:15,col:'#fff0d0',core:'#ffffff'},cloud:'#f0a8b0',clouds:[[160,70,90,10],[420,50,80,9]],light:'#ffd98a',winOn:.95,winOff:'#3a3f6a',stars:.4,sil:'#2a2548',shadow:'#12102a',rim:.7,h1:'#f2b8a0',h2:'#f6dc98',h3:'#a8d0e0',roof:'#b8564a',street:'#6a6488',rail:'#eef3f8'}],
+  ['Straßenfest','Bunte Wimpel statt Lichterketten, wie bei den Stadtfesten im Juni.',{label:'Bairro Alto beim Straßenfest',flags:1,bunting:['#e63946','#f6c343','#22a36b','#2f7fe0','#ff7a3d'],sky:['#141a4a','#3a3f8f','#8a5aa0','#f08a7a'],sea:['#000','#000'],plat:['#fff1dc','#e0b890','#7a4a5c'],far:['#6a5a98','#8a5a8a'],bld:['#000','#000'],orb:{x:90,y:54,r:15,col:'#fff0d0',core:'#ffffff'},cloud:'#6a5a98',clouds:[[360,60,90,9]],cloudOp:.6,light:'#ffe08a',winOn:1,winOff:'#2a2548',stars:.7,sil:'#1a1436',shadow:'#0a0820',rim:.7,h1:'#e88a6a',h2:'#f2c85a',h3:'#5aa8c8',roof:'#8a3a3a',street:'#4a3f6a',rail:'#eef3f8'}]]},
+];
+const bands=document.getElementById('bands'); bands.style.display='flex'; bands.style.flexDirection='column'; bands.style.gap='30px';
+STAGES.forEach((s,i)=>{
+  const el=document.createElement('section'); el.className='band';
+  el.innerHTML=`<h2><small>STAGE ${i+1}</small>${s.n}</h2><p>${s.d}</p><div class="grid">${s.v.map((v,j)=>`<div class="opt"><div class="screen">${frame(v[2],s.fn)}</div><div class="tag"><b>${'ABC'[j]}</b>${v[0]}</div><p>${v[1]}</p></div>`).join('')}</div>`;
+  bands.appendChild(el);
+});
+</script>

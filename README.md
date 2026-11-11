@@ -2,35 +2,45 @@
 
 > **Scan. Pick. Brawl.** A party platform fighter set at Nova SBE. Your phone is the controller.
 
-Group project for **Introduction to Programming** (ItP).
+Team project for **Introduction to Programming**.
 
-Up to **6 players** scan a QR code, their phones turn into controllers, and they fight on the **Nova SBE Campus**, at **Carcavelos Beach** and in **Bairro Alto**. Every hit raises your **damage %**, and the higher it gets, the further you fly. Get knocked off the screen or hit **200 % (BURNOUT!)** and you lose one of your **3 lives**. Watch out for bad Wi-Fi, giant waves, thieving seagulls, the Tram 28 and that Blue Drink.
+Two to four players scan a QR code, their phones turn into controllers, and they fight on the **Nova SBE Campus**, at **Carcavelos Beach** and in **Bairro Alto**. Every hit raises your damage %, and the higher it gets, the further you fly. Get knocked off the screen or reach 200 % and you lose a life. The last player standing wins.
+
+## Deployed app
+
+**URL:** *added after the first deployment*
+
+## Team
+
+| Name | Student number |
+|---|---|
+| Benedikt Heuser | 75868 |
+| Valentina Larissa Brocar | 80832 |
+| Bastian Volkery | 80448 |
+
+## Run it locally
+
+*Implementation has not started. The commands below are the planned ones and are confirmed by the build.*
+
+```bash
+npm ci
+npm start        # then open http://localhost:3000 on the laptop
+npm test         # runs the test suite
+```
 
 ## Documentation
 
 | Document | What's inside |
 |---|---|
-| [`docs/CONCEPT.md`](docs/CONCEPT.md) | Brand (name, voice, colours, logo), fighters, stages, hazards, items, easter eggs |
-| [`docs/SPECS.md`](docs/SPECS.md) | Requirements (MoSCoW), architecture, class diagram, network protocol, tuning values, tests, 3-week plan |
-| [`docs/DECISIONS.md`](docs/DECISIONS.md) | **Every decision** (made, proposed and open) in one log |
-| [`docs/BRAINSTORM.md`](docs/BRAINSTORM.md) | Ideas not decided yet: login, gamification, leaderboard, stats, achievements, skins, more fighters |
-| [`mockup/index.html`](mockup/index.html) | Clickable visual mock-up: screens, phone controller, fighters, stages, items, knockback chart. Download the file and open it in a browser. |
+| [`docs/GAME_SPEC.md`](docs/GAME_SPEC.md) | **The spec the build follows**: rules, controls, fighters, stages, architecture, security, hosting |
+| [`docs/BUILD_PROMPT.md`](docs/BUILD_PROMPT.md) | The prompt that builds the game in one session, including tests and the grading-criteria check |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Every decision in one log |
+| [`design/final/`](design/final/) | Final art for the 8 fighters and 3 stages (open `reference.html` in a browser) |
+| [`design/options/`](design/options/) | The option rounds the team chose from |
+| [`docs/CONCEPT.md`](docs/CONCEPT.md), [`docs/SPECS.md`](docs/SPECS.md), [`docs/BRAINSTORM.md`](docs/BRAINSTORM.md) | Earlier concept work, historical in parts |
 
 ## Tech
 
-- **Python 3.11+** with **Pygame** for the game
-- A small built-in web server + WebSockets for the **phone controller** (a plain HTML/JS page, no app install)
-- **pytest** for tests
-
-## Status
-
-Concept phase: specs and mock-up done, implementation not started yet.
-
-## Getting started *(planned)*
-
-```bash
-pip install -r requirements.txt
-python -m nova_brawl
-```
-
-Then scan the QR code on the screen with your phone.
+- **JavaScript**: a small Node.js server (static files, rooms, WebSocket relay, accounts) and plain browser clients drawing on Canvas
+- **Google Sheet** for players and high scores, reached only by the server
+- Tests with Node's built-in test runner

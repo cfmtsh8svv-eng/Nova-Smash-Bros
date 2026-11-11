@@ -1,5 +1,8 @@
 # NOVA Brawl: Game & Brand Concept
 
+> **Historical in parts.** The build follows [`GAME_SPEC.md`](GAME_SPEC.md) (2026-11-11). Where this file disagrees, for example on Python, six players, the shield or the fighter names, `GAME_SPEC.md` wins.
+
+
 > **Scan. Pick. Brawl.**
 > A party platform fighter set at Nova SBE. Your phone is the controller.
 

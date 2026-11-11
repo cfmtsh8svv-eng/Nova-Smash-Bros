@@ -1,0 +1,111 @@
+<title>NOVA Brawl Campus Detail</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;800&display=swap">
+<style>
+/* Layout: one full-width proof image, then the three production routes side by side as plain text. Single committed dark look. */
+:root{
+  color-scheme:dark;
+  --night:#1b1330; --line:#4a3a66; --ink:#eef3f8; --mute:#b6a9cf; --orange:#ff7a3d; --yellow:#f6c343;
+  --display:"Bungee","Arial Black",sans-serif; --body:"Nunito","Segoe UI",system-ui,sans-serif;
+}
+body{background:var(--night);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(26px,4vw,40px);line-height:1.1;margin:0;text-wrap:balance}
+h1 span{color:var(--orange)}
+.lead{color:var(--mute);max-width:66ch;margin:8px 0 0}
+.screen{border:3px solid var(--line);border-radius:10px;overflow:hidden;background:#000;aspect-ratio:16/9;max-width:100%}
+.screen svg{display:block;width:100%;height:100%}
+.routes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px;border-top:1px solid var(--line);padding-top:20px}
+.routes div{min-width:0}
+.routes h2{font-family:var(--display);font-weight:400;font-size:18px;margin:0 0 6px}
+.routes h2 b{color:var(--yellow);font-weight:400;margin-right:8px}
+.routes p{margin:0;color:var(--mute);font-size:15px}
+</style>
+<div class="wrap">
+  <header>
+    <h1>Runde 6: <span>Campus, realistischer</span></h1>
+    <p class="lead">Ein Probebild: natürliches Tageslicht, echte Architektur des Campus in Carcavelos, mehr Detail und Textur, doppelte Auflösung. Die weißen Betonplatten sind die Plattformen.</p>
+  </header>
+  <div class="screen" id="scene"></div>
+  <div class="routes">
+    <div><h2><b>A</b>Gezeichnet wie hier</h2><p>Ich zeichne alle drei Stages in dieser Detailstufe als Code. Läuft im Build in einem Zug, bleibt aber eine Illustration.</p></div>
+    <div><h2><b>B</b>Eigene Fotos</h2><p>Ihr fotografiert Campus, Strand und Bairro Alto im Querformat. Am echtesten. Das Spiel legt Plattformen und Licht darüber.</p></div>
+    <div><h2><b>C</b>Fotos plus Zeichnung</h2><p>Eure Fotos als Hintergrund, davor gezeichnete Plattformen, Zug, Tram und Wellen. Echt und trotzdem ein Spiel. Meine Empfehlung.</p></div>
+  </div>
+</div>
+<script>
+const R=(x,y,w,h,f,ex='')=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}" ${ex}/>`;
+function glass(x,y,w,h,step){let s=R(x,y,w,h,'url(#glass)');
+  s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#refl)" opacity=".55"/>`;
+  for(let i=x+step;i<x+w-2;i+=step)s+=R(i-1,y,2,h,'#39424f');
+  s+=R(x,y,w,3,'#1c232d','opacity=".7"');return s}
+function pine(x,y,s){let o=`<path d="M${x-3*s},${y} q${2*s},${-40*s} ${-1*s},${-78*s} h${7*s} q${-2*s},${40*s} ${3*s},${78*s}z" fill="#5a4636"/>`;
+  [[-34,-92,30,13],[0,-104,40,17],[36,-92,30,13],[-16,-84,26,10],[20,-82,28,10]].forEach(([dx,dy,rx,ry],i)=>{o+=`<ellipse cx="${x+dx*s}" cy="${y+dy*s}" rx="${rx*s}" ry="${ry*s}" fill="${i<3?'#2f5a3a':'#274a30'}"/>`});
+  [[-30,-98,20,6],[2,-112,28,7],[38,-98,20,6]].forEach(([dx,dy,rx,ry])=>{o+=`<ellipse cx="${x+dx*s}" cy="${y+dy*s}" rx="${rx*s}" ry="${ry*s}" fill="#6f9a5a" opacity=".7"/>`});
+  return o}
+function palm(x,y,h){let o=`<path d="M${x-4},${y} q6,${-h/2} 0,${-h} h7 q6,${h/2} 1,${h}z" fill="#6b5540"/>`;
+  for(let a=-160;a<=-20;a+=20){const r=a*Math.PI/180,ex=x+3+Math.cos(r)*62,ey=y-h+Math.sin(r)*30+24;o+=`<path d="M${x+3},${y-h} Q${x+3+Math.cos(r)*40},${y-h-26} ${ex},${ey}" stroke="${a%40?'#2f6a3f':'#3f8050'}" stroke-width="7" fill="none" stroke-linecap="round"/>`}
+  return o}
+function slab(x,y,w,h){return `<ellipse cx="${x+w/2}" cy="${y+h+16}" rx="${w/2}" ry="7" fill="#1a2a3a" opacity=".28" filter="url(#b8)"/>
+  ${R(x,y,w,h,'url(#conc)','rx="3"')}${R(x,y,w,4,'#ffffff','opacity=".9"')}${R(x,y+h-6,w,6,'#8a8f96','opacity=".55"')}<rect x="${x}" y="${y}" width="${w}" height="${h}" filter="url(#grain)" opacity=".5"/>`}
+let s=`<svg viewBox="0 0 1280 720" role="img" aria-label="Campus von Nova SBE in Carcavelos bei Tageslicht">
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f7fd0"/><stop offset=".55" stop-color="#8fc4ee"/><stop offset="1" stop-color="#e6f3fb"/></linearGradient>
+<linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a6aa0"/><stop offset="1" stop-color="#3fa0b8"/></linearGradient>
+<linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbfaf6"/><stop offset="1" stop-color="#dcdad2"/></linearGradient>
+<linearGradient id="wallS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9ccd0"/><stop offset="1" stop-color="#a9adb4"/></linearGradient>
+<linearGradient id="glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a5a78"/><stop offset="1" stop-color="#1f3348"/></linearGradient>
+<linearGradient id="refl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#bfe0f7"/><stop offset=".35" stop-color="#bfe0f7" stop-opacity="0"/><stop offset=".6" stop-color="#9fd0f0" stop-opacity=".6"/><stop offset="1" stop-color="#9fd0f0" stop-opacity="0"/></linearGradient>
+<linearGradient id="conc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6f5f1"/><stop offset="1" stop-color="#cfcdc6"/></linearGradient>
+<linearGradient id="pave" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2ddd0"/><stop offset="1" stop-color="#b9b3a4"/></linearGradient>
+<linearGradient id="lawn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fae5c"/><stop offset="1" stop-color="#4f8444"/></linearGradient>
+<linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".8" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<mask id="cm"><rect width="1280" height="400" fill="url(#fade)"/></mask>
+<filter id="clouds" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.0045 0.015" numOctaves="5" seed="11"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  2.4 0 0 0 -1.25"/><feGaussianBlur stdDeviation="1.2"/></filter>
+<filter id="water" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.004 0.12" numOctaves="3" seed="3"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1.8 0 0 0 -0.9"/></filter>
+<filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="5"/><feColorMatrix values="0 0 0 0 .2  0 0 0 0 .2  0 0 0 0 .2  0 0 0 .5 -.14"/></filter>
+<filter id="b8"><feGaussianBlur stdDeviation="8"/></filter><filter id="b3"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+${R(0,0,1280,720,'url(#sky)')}
+<rect width="1280" height="400" filter="url(#clouds)" mask="url(#cm)" opacity=".9"/>
+${R(0,392,1280,70,'url(#sea)')}<rect x="0" y="392" width="1280" height="70" filter="url(#water)" opacity=".5"/>
+${R(0,391,1280,2,'#dff0fa','opacity=".8"')}
+<path d="M1040,404 q30,-16 80,-14 l0,-10 h10 v8 h44 v-8 h10 v12 q50,2 86,14 v12 h-230z" fill="#b9a487"/><path d="M1040,410 h240 v8 h-240z" fill="#8f7c62" opacity=".6"/>
+<rect x="1196" y="356" width="7" height="30" fill="#e8e4d8"/><rect x="1194" y="350" width="11" height="7" fill="#c84a3a"/>
+${R(0,440,1280,26,'#5f6a72')}${R(0,451,1280,2,'#e8e4d8','stroke-dasharray="4"')}
+<path d="M0,451 h1280" stroke="#f1eee4" stroke-width="2" stroke-dasharray="26 22"/>
+${[90,330,570,950,1190].map(x=>`<rect x="${x}" y="398" width="3" height="44" fill="#4a525a"/><rect x="${x-12}" y="398" width="15" height="3" fill="#4a525a"/>`).join('')}
+${R(0,464,1280,120,'url(#lawn)')}<rect x="0" y="464" width="1280" height="120" filter="url(#grain)" opacity=".6"/>
+<!-- tall block behind -->
+${R(96,150,200,300,'url(#wallS)')}${glass(112,172,168,26,24)}${glass(112,222,168,26,24)}${glass(112,272,168,26,24)}
+<!-- main building -->
+<rect x="150" y="470" width="740" height="26" fill="#1a2a3a" opacity=".3" filter="url(#b8)"/>
+${R(170,214,700,262,'url(#wall)')}
+${glass(190,244,660,46,30)}${glass(190,322,660,46,30)}
+${R(170,214,700,10,'#ffffff')}${R(170,290,700,6,'#b9bcc0','opacity=".7"')}${R(170,368,700,6,'#b9bcc0','opacity=".7"')}
+${R(170,396,700,80,'#2a3644')}${glass(184,400,672,76,42)}
+${[0,1,2,3,4,5,6,7].map(i=>R(182+i*96,396,12,80,'url(#wall)')).join('')}
+${R(140,196,770,20,'url(#conc)')}${R(140,196,770,4,'#ffffff')}${R(140,216,770,12,'#1a2a3a','opacity=".28" filter="url(#b3)"')}
+<text x="520" y="436" text-anchor="middle" font-family="Nunito,sans-serif" font-weight="800" font-size="20" letter-spacing="6" fill="#eef3f8" opacity=".9">SCHOOL OF BUSINESS &amp; ECONOMICS</text>
+<!-- side wing -->
+${R(900,300,250,176,'url(#wall)')}${glass(916,326,218,40,26)}${glass(916,392,218,84,36)}${R(886,288,280,14,'url(#conc)')}${R(886,302,280,10,'#1a2a3a','opacity=".25" filter="url(#b3)"')}
+<rect x="96" y="150" width="1070" height="330" filter="url(#grain)" opacity=".35"/>
+${pine(60,520,1.1)}${pine(1210,524,1.25)}${pine(980,500,.8)}${palm(1120,516,120)}${palm(34,560,90)}
+<!-- stairs and plaza -->
+${[0,1,2,3,4].map(i=>R(300-i*14,476+i*10,480+i*28,10,i%2?'#d6d1c4':'#e6e2d6')+R(300-i*14,485+i*10,480+i*28,1.5,'#8f8a7c')).join('')}
+<!-- gameplay: floating slabs -->
+${slab(250,330,250,22)}${slab(780,300,250,22)}${slab(540,170,200,20)}
+<!-- gameplay: main terrace -->
+<ellipse cx="640" cy="664" rx="520" ry="14" fill="#101c28" opacity=".35" filter="url(#b8)"/>
+${R(170,560,940,84,'url(#pave)','rx="4"')}${R(170,560,940,5,'#ffffff','opacity=".9"')}
+${[...Array(24)].map((_,i)=>R(170+i*40,566,1.5,22,'#8f8a7c','opacity=".5"')).join('')}${R(170,588,940,2,'#8f8a7c','opacity=".6"')}
+${[...Array(47)].map((_,i)=>`<rect x="${174+i*20}" y="596" width="16" height="16" fill="${i%2?'#1f6fb2':'#f1f5fa'}"/><circle cx="${182+i*20}" cy="604" r="3.4" fill="${i%2?'#f1f5fa':'#1f6fb2'}"/>`).join('')}
+${R(170,616,940,28,'#9a9486','opacity=".55"')}<rect x="170" y="560" width="940" height="84" filter="url(#grain)" opacity=".6"/>
+<!-- train line -->
+${R(0,676,1280,44,'#6b655c')}<rect x="0" y="676" width="1280" height="44" filter="url(#grain)" opacity=".9"/>
+${[...Array(44)].map((_,i)=>R(i*30,690,18,22,'#4a4036')).join('')}${R(0,694,1280,3,'#c9ccd0')}${R(0,707,1280,3,'#c9ccd0')}
+${[160,640,1120].map(x=>R(x,580,5,100,'#4a525a')+R(x-40,584,84,3,'#4a525a')).join('')}<path d="M0,592 Q320,600 640,592 T1280,592" stroke="#2a3038" stroke-width="1.5" fill="none"/>
+</svg>`;
+document.getElementById('scene').innerHTML=s;
+</script>

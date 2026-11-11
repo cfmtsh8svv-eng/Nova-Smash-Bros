@@ -95,7 +95,7 @@ test("Round's On Me: 4 % and tipsy for 4 s inside 200 px, nothing outside", () =
 test('Wave Rider: surfs 360 px, 10 % and carries the opponent along', () => {
   const { caster, foes, told } = cast('surfer_girl', [{ dx: 200 }, { dx: 700 }], { frames: 36 });
   const [inside, outside] = foes;
-  assert.ok(Math.abs(caster.x - (300 + 360)) < 30, `surfed to ${caster.x}`);
+  assert.ok(Math.abs(caster.x - (300 + 360)) < 6, `surfed to ${caster.x}`);
   assert.equal(inside.percent, 10);
   assert.ok(inside.x > 500 + 100, `pushed along to ${inside.x}`);
   assert.equal(outside.percent, 0);

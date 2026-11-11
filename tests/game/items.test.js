@@ -74,6 +74,7 @@ test('Sardine: the next 5 normal attacks do 6 % with very high knockback, then i
     speeds.push(of(events, 'hit')[0].speed);
     if (swing < 5) assert.equal(a.held.uses, 5 - swing);
     else assert.equal(of(events, 'itemBreak').length, 1);
+    if (swing < 5) assert.equal(of(events, 'itemBreak').length, 0);
   }
   assert.equal(a.held, null, 'broken after five swings');
   // A normal hit at the same damage is much weaker.
@@ -189,4 +190,26 @@ test('items spawn on a platform surface', () => {
       assert.ok(p, `item at ${e.x},${e.y} is on a platform`);
     }
   }
+});
+
+test('Sardine: it is gone after the fifth swing even if that swing is interrupted', () => {
+  const { state, a, b } = withItem('sardine', { fighters: ['finance_bro', 'bairro_chad'] });
+  for (let i = 0; i < 4; i++) tap(state, 0, { attack: true }, CONFIG.attack.total + 2);
+  assert.equal(a.held.uses, 1);
+  // The fifth swing starts, and the opponent lands a hit before it comes out.
+  place(a, 400);
+  place(b, 440);
+  b.facing = -1;
+  tap(state, 1, { attack: true }, 3);
+  tap(state, 0, { attack: true }, 1);
+  run(state, 30);
+  assert.ok(a.percent > 0, 'the swing was interrupted by a hit');
+  assert.equal(a.held, null);
+  place(a, 400);
+  place(b, 460);
+  a.facing = 1;
+  a.hitstun = 0;
+  b.percent = 0;
+  tap(state, 0, { attack: true }, 12);
+  assert.equal(b.percent, 8, 'the next attack is a normal one');
 });

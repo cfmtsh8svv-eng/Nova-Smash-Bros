@@ -344,3 +344,25 @@ test('hazards do not hit a freshly respawned (invincible) fighter', () => {
   pinned(state, [[a, 640, 600]], WARN_FRAMES + 200);
   assert.equal(a.percent, 0);
 });
+
+// ---- the vote counter, also used for the stage vote in the lobby ----
+
+test('a vote is won by the option with the most votes', async () => {
+  const { tallyVote } = await import('../../src/game/stages.js');
+  const stages = ['campus', 'beach', 'bairro'];
+  assert.equal(tallyVote(stages, ['beach', 'beach', 'campus'], () => 0), 'beach');
+  assert.equal(tallyVote(stages, ['bairro'], () => 0.99), 'bairro');
+  assert.equal(tallyVote(stages, ['moon', 'bairro', 'moon', 'moon'], () => 0), 'bairro', 'unknown options do not count');
+});
+
+test('a tied vote is decided at random between the tied options only', async () => {
+  const { tallyVote } = await import('../../src/game/stages.js');
+  const stages = ['campus', 'beach', 'bairro'];
+  const votes = ['campus', 'bairro', 'campus', 'bairro'];
+  assert.equal(tallyVote(stages, votes, () => 0), 'campus');
+  assert.equal(tallyVote(stages, votes, () => 0.6), 'bairro');
+  assert.equal(tallyVote(stages, votes, () => 0.999999), 'bairro');
+  assert.equal(tallyVote(stages, votes, () => 1), 'bairro', 'even a random value of exactly 1 stays in range');
+  // Nobody voted: any of the three, by chance.
+  assert.deepEqual([0, 0.4, 0.8].map((r) => tallyVote(stages, [], () => r)), stages);
+});

@@ -17,6 +17,11 @@ export function startAttack(state, f) {
   if (f.held && f.held.type === 'sardine') {
     attack.kind = 'sardine';
     f.held.uses -= 1;
+    // The fifth swing uses it up at once, so it cannot come back if that swing is interrupted.
+    if (f.held.uses <= 0) {
+      f.held = null;
+      state.events.push({ type: 'itemBreak', slot: f.slot, item: 'sardine', x: f.x, y: f.y });
+    }
   } else if (f.held && f.held.type === 'book') {
     attack.kind = 'book';
   }
@@ -42,18 +47,12 @@ export function updateAttack(state, f) {
       const landed = applyHit(state, o, {
         by: f.slot, kind: attack.kind === 'sardine' ? 'item' : 'normal', source: attack.kind,
         damage: power.damage, baseKb: power.baseKb, kbGrowth: power.kbGrowth,
-        angleDeg: up ? 80 : A.angleDeg, dirX: up ? Math.sign(o.x - f.x) || attack.facing : attack.facing,
+        angleDeg: up ? CONFIG.match.upAngleDeg : A.angleDeg, dirX: up ? Math.sign(o.x - f.x) || attack.facing : attack.facing,
       });
       if (landed) feedback(state, o.slot, 'hit', '', '#ffffff');
     }
   }
-  if (attack.t >= A.total) {
-    f.attack = null;
-    if (f.held && f.held.type === 'sardine' && f.held.uses <= 0) {
-      f.held = null;
-      state.events.push({ type: 'itemBreak', slot: f.slot, item: 'sardine', x: f.x, y: f.y });
-    }
-  }
+  if (attack.t >= A.total) f.attack = null;
 }
 
 function throwBook(state, f, attack) {
@@ -80,7 +79,7 @@ export function spawnProjectile(state, p) {
 function projectileHit(state, p) {
   if (p.kind === 'book') {
     const B = CONFIG.items.book;
-    return { kind: 'item', damage: B.damage, baseKb: B.baseKb, kbGrowth: B.kbGrowth, angleDeg: 38, once: true };
+    return { kind: 'item', damage: B.damage, baseKb: B.baseKb, kbGrowth: B.kbGrowth, angleDeg: B.angleDeg, once: true };
   }
   const owner = state.fighters.find((f) => f.slot === p.owner);
   const S = getFighter(owner.fighterId).special;

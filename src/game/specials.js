@@ -100,8 +100,8 @@ const UPDATE = {
       }
     }
     if (sp.t === S.at + rideFrames + 1) {
-      f.vx *= 0.4;
-      f.vy *= 0.4;
+      f.vx *= S.keepSpeed;
+      f.vy *= S.keepSpeed;
     }
     if (sp.t >= S.total) f.special = null;
   },
@@ -132,7 +132,7 @@ const UPDATE = {
     }
     if (sp.t === 1) {
       f.vy = -S.hop;
-      f.vx *= 0.3;
+      f.vx *= S.hopKeepSpeed;
       f.onGround = false;
       sp.phase = 'hop';
       return;
@@ -143,7 +143,7 @@ const UPDATE = {
       for (const o of inRadius(state, f, S.radius)) {
         const hit = applyHit(state, o, {
           by: f.slot, kind: 'special', source: S.id, damage: S.damage, baseKb: S.baseKb, kbGrowth: S.kbGrowth,
-          angleDeg: 80, dirX: Math.sign(o.x - f.x) || sp.facing,
+          angleDeg: S.angleDeg, dirX: Math.sign(o.x - f.x) || sp.facing,
         });
         if (hit) tell(state, o, S);
       }
@@ -176,7 +176,7 @@ const UPDATE = {
 
   // Carcavelos Gang Member: the lasso pulls the first opponent it reaches to him.
   spaghetti_lasso(state, f, sp, S) {
-    sp.lock = sp.t < S.total - 8;
+    sp.lock = sp.t < S.freeAt;
     if (sp.t === S.at) {
       const box = reachBox(f, sp.dir, sp.facing, S.range, S.thickness);
       const me = centreOf(f);

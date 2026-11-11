@@ -9,13 +9,14 @@ import { CONFIG, FPS, makeSettings } from './config.js';
 import { getFighter } from './fighters.js';
 import { getStage } from './stages.js';
 import { neutralInput, withPresses } from './input.js';
-import { clearFighterEffects, knockOut } from './combat.js';
+import { clearFighterEffects, feedback, knockOut } from './combat.js';
 import { controlFighter, moveFighter, pushApart } from './physics.js';
 import { startAttack, updateAttack, updateProjectiles } from './attacks.js';
 import { startSpecial, updateSpecial } from './specials.js';
 import { nextItemDelay, updateItems } from './items.js';
 import { newHazardState, updateHazards, wifiDelayFor } from './hazards.js';
 
+export const FINAL_KO_TEXT = 'FINAL KO!';
 const HELD_KEYS = ['left', 'right', 'up', 'down', 'attack', 'jump', 'special'];
 const heldOnly = (inp) => Object.fromEntries(HELD_KEYS.map((k) => [k, Boolean(inp[k])]));
 
@@ -39,7 +40,7 @@ function createFighter(player, spawn, lives, index, players) {
     hitstun: 0, stun: 0, tipsy: 0, slip: 0, speedBoost: 0,
     attack: null, special: null, pull: null, held: null,
     cooldown: 0, cooldownMax: def.special.cooldown,
-    lastHitBy: null, lastHitKind: null, lastHitTimer: 0,
+    lastHitBy: null, lastHitKind: null, lastHitTimer: 0, koFrame: -1,
     prevRaw: neutralInput(), lastInput: neutralInput(), lagQueue: [],
     squash: 0, stretch: 0, runPhase: 0,
     stats: { damageDealt: 0, damageTaken: 0, kos: 0, falls: 0, specialKos: 0 },
@@ -131,7 +132,7 @@ export function step(state, inputs = {}) {
   for (const f of state.fighters) {
     if (f.state === 'out') continue;
     if (f.state === 'dead') {
-      if (fighting) {
+      if (fighting && f.koFrame !== state.frame) {
         f.respawnTimer -= 1;
         if (f.respawnTimer <= 0) respawn(state, f);
       }
@@ -189,7 +190,11 @@ function checkEnd(state) {
     state.phase = 'finalKo';
     state.finalTimer = Math.round(CONFIG.match.finalKoRealSeconds * FPS * CONFIG.match.finalKoTimeScale);
     const ko = state.lastKo || { slot: null, x: 640, y: 360 };
-    state.events.push({ type: 'finalKo', slot: ko.slot, winner: state.winner, x: ko.x, y: ko.y });
+    const winnerName = state.fighters.find((f) => f.slot === state.winner).name;
+    const winnerText = `${winnerName} graduates with honours!`;
+    state.events.push({ type: 'finalKo', slot: ko.slot, winner: state.winner, x: ko.x, y: ko.y, text: FINAL_KO_TEXT, winnerText });
+    // The big moment: every phone vibrates.
+    for (const f of state.fighters) feedback(state, f.slot, 'finalKo', winnerText, '#ffffff', { title: FINAL_KO_TEXT });
     return;
   }
   // Optional time cap. It is off in the normal game (timeCapS = 0).

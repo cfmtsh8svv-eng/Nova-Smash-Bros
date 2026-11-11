@@ -17,7 +17,7 @@ export function controlFighter(state, f, inp) {
   if (!canAct) {
     f.aimUp = false;
     if (f.hitstun > 0) {
-      f.vx *= f.onGround ? 0.9 : P.launchDrag;
+      f.vx *= f.onGround ? P.hitstunGroundFriction : P.launchDrag;
     } else {
       f.vx *= f.onGround ? P.groundFriction : P.airFriction;
     }
@@ -102,7 +102,7 @@ export function moveFighter(state, f, inp) {
     const canSteer = f.hitstun <= 0 && f.stun <= 0;
     const fast = canSteer && inp.down && !f.onGround && f.vy > -2;
     f.vy += P.gravity * f.gravityScale + (fast ? P.fastFallExtra : 0);
-    f.vy = Math.min(f.vy, fast ? P.fastFallMax : Math.max(P.maxFall, f.hitstun > 0 ? 40 : P.maxFall));
+    f.vy = Math.min(f.vy, fast ? P.fastFallMax : f.hitstun > 0 ? P.hitstunMaxFall : P.maxFall);
   }
   const prevX = f.x;
   const prevY = f.y;

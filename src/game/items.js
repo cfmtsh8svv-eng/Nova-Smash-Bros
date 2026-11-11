@@ -12,7 +12,6 @@ const PICKUP_TEXT = {
   sardine: 'Sardine! Your next 5 attacks hit hard.',
   book: 'Book! Your next attack throws it.',
 };
-const SPAWN_IN_FRAMES = 20; // an item cannot be taken while it is still popping in
 
 export const nextItemDelay = (state) => seconds(randomBetween(state, CONFIG.items.spawnMinS, CONFIG.items.spawnMaxS));
 export const itemBox = (item) => ({ x: item.x - CONFIG.items.size / 2, y: item.y - CONFIG.items.size, w: CONFIG.items.size, h: CONFIG.items.size });
@@ -63,7 +62,7 @@ export function updateItems(state) {
   for (const item of state.items) {
     item.age += 1;
     let taken = item.age > CONFIG.items.lifetime;
-    if (!taken && item.age >= SPAWN_IN_FRAMES) {
+    if (!taken && item.age >= CONFIG.items.spawnInFrames) {
       const box = itemBox(item);
       for (const f of state.fighters) {
         if (f.state !== 'alive' || !rectsOverlap(box, hurtbox(f))) continue;

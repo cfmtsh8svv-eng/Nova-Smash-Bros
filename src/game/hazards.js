@@ -4,7 +4,7 @@
 // and each one only touches one level or zone of the stage, so a player who
 // reads the warning can always get out of the way.
 import { CONFIG, SCREEN, seconds } from './config.js';
-import { HAZARDS } from './stages.js';
+import { HAZARDS, tallyVote } from './stages.js';
 import { applyHit, canBeHit, feedback, hurtbox, rectsOverlap } from './combat.js';
 import { nextRandom, pick, randomBetween } from './rng.js';
 
@@ -37,12 +37,9 @@ export function voteHazard(state, slot, hazardId) {
 }
 
 function chooseHazard(state) {
-  const tally = {};
-  for (const id of Object.values(state.hazardVotes)) tally[id] = (tally[id] || 0) + 1;
-  const best = Math.max(0, ...Object.values(tally));
-  const options = best > 0 ? state.stage.hazards.filter((id) => tally[id] === best) : state.stage.hazards;
+  const votes = Object.values(state.hazardVotes);
   state.hazardVotes = {};
-  return pick(state, options);
+  return tallyVote(state.stage.hazards, votes, () => nextRandom(state));
 }
 
 // Start the warning for a hazard. Normally the game picks it (votes first, then chance).

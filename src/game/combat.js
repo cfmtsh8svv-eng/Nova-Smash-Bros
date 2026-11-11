@@ -74,7 +74,7 @@ export function applyHit(state, target, hit) {
   }
   state.events.push({
     type: 'hit', slot: target.slot, by: hit.by ?? null, kind: hit.kind, source: hit.source, damage: hit.damage,
-    percent: target.percent, x: target.x, y: target.y - CONFIG.body.h / 2, speed, strong: speed >= 11,
+    percent: target.percent, x: target.x, y: target.y - CONFIG.body.h / 2, speed, strong: speed >= M.strongHitSpeed,
   });
   return true;
 }
@@ -109,6 +109,7 @@ export function knockOut(state, f, kind) {
   }
   f.state = eliminated ? 'out' : 'dead';
   f.respawnTimer = eliminated ? 0 : M.respawnFrames;
+  f.koFrame = state.frame;
   f.finalPercent = Math.min(f.percent, 999);
   clearFighterEffects(f);
   f.vx = 0;

@@ -15,7 +15,7 @@ export const CONFIG = {
     maxFall: 14,
     fastFallExtra: 0.7, // extra gravity while Down is held in the air
     fastFallMax: 20,
-    jumpSpeed: 13.9, // reaches about 160 px: v*v / (2*gravity)
+    jumpSpeed: 14.15, // reaches about 160 px (gravity is applied before each move)
     doubleJumpSpeed: 12.6,
     runBase: 3.2, // run speed = runBase + runPerSpeed * speed stat (2..5)
     runPerSpeed: 0.6,
@@ -32,6 +32,8 @@ export const CONFIG = {
     coyoteFrames: 5, // a jump still counts this long after walking off an edge
     inputBufferFrames: 6, // a press this long before it becomes possible still counts
     pushApart: 0.5, // two fighters standing in each other drift apart
+    hitstunGroundFriction: 0.9,
+    hitstunMaxFall: 40,
   },
   // The box that can be hit. x is the centre, y is the feet.
   body: { w: 44, h: 96 },
@@ -46,6 +48,8 @@ export const CONFIG = {
     finalKoRealSeconds: 2, // length of the slow motion, in real time
     finalKoTimeScale: 0.25, // simulation speed during it
     hitstunFactor: 2.5, // hitstun frames = launch speed * this
+    strongHitSpeed: 11, // a launch at least this fast shakes the screen
+    upAngleDeg: 80, // launch angle of a hit that was aimed upward
   },
   // Normal attack: the same numbers for every fighter.
   attack: {
@@ -65,12 +69,13 @@ export const CONFIG = {
     max: 3,
     size: 36,
     lifetime: seconds(25),
+    spawnInFrames: 20, // an item cannot be taken while it is still popping in
     tartHeal: 20,
     espressoBoost: 1.3,
     espressoFrames: seconds(8),
     sardineSwings: 5,
     sardine: { damage: 6, baseKb: 9, kbGrowth: 15 },
-    book: { damage: 14, baseKb: 5, kbGrowth: 9, speed: 13, life: 46, size: 30 },
+    book: { damage: 14, baseKb: 5, kbGrowth: 9, angleDeg: 38, speed: 13, life: 46, size: 30 },
   },
   hazards: {
     minS: 25,
@@ -87,6 +92,31 @@ export const CONFIG = {
   },
   // Height bands used by hazards: a fighter is "on the ground level" when the feet are below this line.
   levels: { groundAbove: 520, roofBelow: 400 },
+};
+
+// Weight (heavier = flies less far) and speed (2..5) of each fighter.
+export const FIGHTER_STATS = {
+  finance_bro: { weight: 100, speed: 3 },
+  maastricht_blondie: { weight: 85, speed: 4 },
+  bairro_chad: { weight: 120, speed: 2 },
+  surfer_girl: { weight: 85, speed: 5 },
+  wannabe_influencer: { weight: 90, speed: 4 },
+  house_dj: { weight: 100, speed: 3 },
+  lisboa_og: { weight: 115, speed: 2 },
+  carcavelos_gang_member: { weight: 100, speed: 3 },
+};
+
+// The numbers of each special. `at` is the frame on which it takes effect,
+// `total` the frame on which the fighter can act again.
+export const SPECIAL_TUNING = {
+  cash_rain: { cooldown: seconds(7), radius: 220, damage: 6, slipFrames: seconds(1.5), push: 9, at: 10, total: 36 },
+  padel_smash: { cooldown: seconds(7), range: 510, speed: 17, size: 18, damage: 18, baseKb: 7, kbGrowth: 12, angleDeg: 32, at: 8, total: 30 },
+  rounds_on_me: { cooldown: seconds(8), radius: 200, damage: 4, tipsyFrames: seconds(4), at: 10, total: 36 },
+  wave_rider: { cooldown: seconds(6), range: 360, speed: 12, damage: 10, reach: 22, endStun: 16, keepSpeed: 0.1, at: 4, total: 40 },
+  ring_light_flash: { cooldown: seconds(7), radius: 320, damage: 5, stunFrames: seconds(1), at: 8, total: 30 },
+  bass_drop: { cooldown: seconds(8), radius: 180, damage: 12, baseKb: 7, kbGrowth: 9, angleDeg: 80, hop: 11, hopKeepSpeed: 0.3, slam: 18, slamAt: 12, maxAir: 50, recovery: 14 },
+  ding_ding: { cooldown: seconds(7), range: 600, speed: 8, w: 70, h: 44, damage: 12, baseKb: 6, kbGrowth: 9, angleDeg: 15, toss: 15, at: 10, total: 30 },
+  spaghetti_lasso: { cooldown: seconds(6), range: 380, thickness: 64, damage: 6, stunFrames: seconds(0.4), pullFrames: 10, pullGap: 56, freeAt: 26, at: 8, total: 34 },
 };
 
 // Match settings chosen in the lobby. Everything a later "demo mode" needs to

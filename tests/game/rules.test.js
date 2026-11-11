@@ -302,3 +302,34 @@ test('the optional time cap is off by default and ranks by lives, then lowest da
   assert.equal(result.winner, 1);
   assert.equal(result.byTimeCap, true);
 });
+
+test('the final KO announces "FINAL KO!", names the winner and vibrates every phone', () => {
+  const state = fight({ fighters: ['finance_bro', 'house_dj', 'surfer_girl'], settings: { lives: 1 } });
+  launchOut(state, state.fighters[2]);
+  const events = launchOut(state, state.fighters[1]);
+  const final = of(events, 'finalKo')[0];
+  assert.equal(final.text, 'FINAL KO!');
+  assert.equal(final.winnerText, 'P1 graduates with honours!');
+  assert.equal(final.winner, 0);
+  assert.deepEqual(feedbackFor(events, 'finalKo').sort(), [0, 1, 2], 'all three phones, also the eliminated ones');
+  const longest = of(events, 'feedback').find((e) => e.kind === 'out').vibrate.reduce((a, b) => a + b, 0);
+  assert.ok(longest >= 1700, 'an elimination vibrates longest');
+});
+
+test('respawn takes exactly 2 s also when the KO comes from a special of an earlier player', () => {
+  const state = fight({ fighters: ['finance_bro', 'house_dj'] });
+  const [a, b] = state.fighters;
+  place(a, 300);
+  place(b, 400);
+  b.percent = 196;
+  let koAt = null;
+  let backAt = null;
+  tap(state, 0, { special: true }, 1);
+  for (let i = 0; i < 200 && backAt === null; i++) {
+    for (const e of run(state, 1)) {
+      if (e.type === 'ko') koAt = state.frame;
+      if (e.type === 'respawn') backAt = state.frame;
+    }
+  }
+  assert.equal(backAt - koAt, CONFIG.match.respawnFrames);
+});

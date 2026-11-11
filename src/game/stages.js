@@ -9,8 +9,8 @@ export const STAGES = [
     id: 'campus', name: 'Nova SBE Campus', time: 'day', trim: 'tile',
     platforms: [
       { id: 'terrace', label: 'the terrace', x: 120, y: 600, w: 1040, h: 66, solid: true },
-      { id: 'canopy', label: 'the Student Hall canopy', x: 130, y: 470, w: 190 },
-      { id: 'wing-roof', label: 'the shop roof', x: 960, y: 470, w: 240 },
+      { id: 'canopy', label: 'the CTT Student Hall canopy', x: 130, y: 470, w: 190 },
+      { id: 'wing-roof', label: 'the Pingo Doce & Go roof', x: 960, y: 470, w: 240 },
       { id: 'roof', label: 'the main roof', x: 270, y: 336, w: 740 },
       { id: 'tower-roof', label: 'the tower roof', x: 540, y: 206, w: 220 },
     ],
@@ -21,9 +21,9 @@ export const STAGES = [
   {
     id: 'beach', name: 'Carcavelos Beach', time: 'day', trim: 'life',
     platforms: [
-      { id: 'sand', label: 'the sand', x: 120, y: 600, w: 1040, h: 120, solid: true },
+      { id: 'sand', label: 'the sandbank', x: 120, y: 600, w: 1040, h: 120, solid: true },
       { id: 'bar-roof', label: 'the surf bar roof', x: 150, y: 470, w: 260 },
-      { id: 'acai-roof', label: 'the kiosk roof', x: 900, y: 480, w: 230 },
+      { id: 'acai-roof', label: 'the açaí kiosk roof', x: 900, y: 480, w: 230 },
       { id: 'tower-deck', label: 'the lifeguard deck', x: 660, y: 350, w: 220 },
       { id: 'tower-roof', label: 'the lifeguard roof', x: 690, y: 240, w: 160 },
     ],
@@ -50,6 +50,17 @@ export const STAGES = [
 export const STAGE_IDS = STAGES.map((s) => s.id);
 const BY_ID = new Map(STAGES.map((s) => [s.id, s]));
 export const getStage = (id) => BY_ID.get(id) || null;
+
+// Count a vote. `votes` is a list of chosen ids; ids that are not among the
+// options are ignored. The option with the most votes wins; a tie (or no vote at
+// all) is decided at random between the tied options. `random` returns 0..1.
+export function tallyVote(options, votes, random) {
+  const count = new Map(options.map((id) => [id, 0]));
+  for (const id of votes) if (count.has(id)) count.set(id, count.get(id) + 1);
+  const best = Math.max(...count.values());
+  const tied = options.filter((id) => count.get(id) === best);
+  return tied[Math.min(tied.length - 1, Math.floor(random() * tied.length))];
+}
 
 // Names shown in the hazard announcement and on the phone vote.
 export const HAZARDS = {

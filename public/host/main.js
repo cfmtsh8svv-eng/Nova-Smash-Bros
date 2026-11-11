@@ -87,7 +87,7 @@ const MESSAGES = {
     lobby.room = { code: msg.code, hostKey: msg.hostKey };
     storage.set('sessionStorage', 'nb_room', JSON.stringify(lobby.room));
     $('roomCode').textContent = msg.code;
-    $('qr').src = `/api/qr?room=${msg.code}`;
+    $('qr').src = `/api/qr?room=${msg.code}&secure=${location.protocol === 'https:' ? 1 : 0}`;
     $('joinUrl').textContent = `${location.host}/play`;
     const local = /^(localhost|127\.|\[)/.test(location.host);
     $('netNote').hidden = !local;

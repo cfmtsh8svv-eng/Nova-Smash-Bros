@@ -62,7 +62,7 @@ test('host page, an iPhone and an Android phone: register, pick, ready, start, p
   await host.waitForFunction(() => /^[A-Z]{4}$/.test(document.getElementById('roomCode').textContent));
   const code = await host.textContent('#roomCode');
   assert.equal(await host.isDisabled('#startMatch'), true, 'nobody can start an empty room');
-  assert.match(await host.getAttribute('#qr', 'src'), new RegExp(`room=${code}$`));
+  assert.match(await host.getAttribute('#qr', 'src'), new RegExp(`room=${code}&secure=0$`));
 
   // --- an iPhone scans the QR code (the link carries the room code)
   const iphone = await phone('iPhone 13', 'iphone');

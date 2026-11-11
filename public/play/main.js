@@ -173,8 +173,12 @@ const MESSAGES = {
 
   signed_out(msg) {
     me.joined = false;
+    if (msg.code === 'replaced') {
+      // The same player was opened in another tab: this one just steps aside.
+      return notice(String(msg.msg), 'Use this one instead', () => { notice('Joining…'); tryJoin(); });
+    }
     forgetLogin();
-    notice(String(msg.msg || 'You were signed out.'), 'Log in again', () => showAuth('login'));
+    return notice(String(msg.msg || 'You were signed out.'), 'Log in again', () => showAuth('login'));
   },
 
   left() {

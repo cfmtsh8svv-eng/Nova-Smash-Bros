@@ -86,6 +86,9 @@ test('with the store down a result is queued, the players see their points, and 
   await h.next('result_saved', { timeout: 4000 });
   assert.equal(s.app.data.pending, 2);
   assert.equal(await s.app.data.flush(), false, 'still failing');
+  const during = await s.api('/api/leaderboard');
+  assert.deepEqual(during.data.players.map((p) => [p.gamertag, p.points]), [['Ana', 260], ['Max', 128]], 'the leaderboard keeps up during the outage');
+  assert.equal(during.data.stale, true);
 
   // The store comes back: both results are written, in order, once.
   s.store.failing = false;

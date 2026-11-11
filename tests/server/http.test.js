@@ -122,10 +122,23 @@ test('the QR code is refused for anything that is not a room code', async (t) =>
   assert.equal((await fetch(`${s.base}/api/qr`)).status, 400);
 });
 
-test('behind a proxy the QR link uses https and the forwarded address is used for limits', async (t) => {
-  const s = await startServer(t, { config: { trustProxy: true } });
-  const res = await fetch(`${s.base}/api/qr?room=ABCD`, { headers: { 'X-Forwarded-Proto': 'https' } });
-  assert.match(res.headers.get('x-join-link'), /^https:\/\//);
+test('the QR link is https for a public host name and http only for local addresses', async (t) => {
+  const s = await startServer(t);
+  const { default: http } = await import('node:http');
+  const linkFor = (host) => new Promise((resolve, reject) => {
+    http.get({ host: '127.0.0.1', port: s.port, path: '/api/qr?room=ABCD', headers: { Host: host } }, (res) => {
+      res.resume();
+      resolve(res.headers['x-join-link'] || res.statusCode);
+    }).on('error', reject);
+  });
+  assert.equal(await linkFor('nova-brawl.onrender.com'), 'https://nova-brawl.onrender.com/play?room=ABCD');
+  assert.equal(await linkFor('mac-mini.tail1234.ts.net'), 'https://mac-mini.tail1234.ts.net/play?room=ABCD');
+  assert.equal(await linkFor('localhost:3000'), 'http://localhost:3000/play?room=ABCD');
+  assert.equal(await linkFor('192.168.1.20:3000'), 'http://192.168.1.20:3000/play?room=ABCD');
+  assert.equal(await linkFor('evil.example/x?y=<script>'), 400, 'a host header with odd characters is refused');
+});
+
+test('behind a proxy the forwarded address is used for limits', async () => {
   const req = (xff) => ({ headers: xff === undefined ? {} : { 'x-forwarded-for': xff }, socket: { remoteAddress: '10.0.0.1' } });
   assert.equal(clientAddress(req('1.1.1.1, 2.2.2.2'), true), '2.2.2.2', 'the entry the proxy itself added');
   assert.equal(clientAddress(req('1.1.1.1, 2.2.2.2'), false), '10.0.0.1', 'without a proxy the header is ignored');

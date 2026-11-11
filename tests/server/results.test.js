@@ -40,6 +40,7 @@ for (const [name, mutate, reason] of [
   ['a duration of zero', (r) => { r.durationS = 0; }, /duration/],
   ['a negative duration', (r) => { r.durationS = -5; }, /duration/],
   ['a duration longer than the time since the start', (r) => { r.durationS = 500; }, /longer than the time/],
+  ['a duration of more than six hours', (r) => { r.durationS = 6 * 3600 + 1; }, /duration/],
   ['a duration that is not a whole number', (r) => { r.durationS = 12.5; }, /duration/],
   ['a time-cap win, which this build does not have', (r) => { r.byTimeCap = true; }, /time limit/],
   ['a missing player', (r) => { r.players.pop(); }, /player list/],
@@ -169,4 +170,35 @@ test('scoring: places and damage become points, guests get none', () => {
   assert.equal(matchRow.duration_s, 60);
   assert.equal(JSON.parse(matchRow.players_json).length, 3);
   assert.ok(matchRow.players_json.startsWith('['), 'never starts like a spreadsheet formula');
+});
+
+test('a long match is fine: there is no time limit', () => {
+  const m = match({ startedAt: NOW - 3 * 3600 * 1000 });
+  const res = checkResult(m, change((r) => { r.durationS = 2 * 3600; }), NOW);
+  assert.equal(res.ok, true, res.reason);
+});
+
+test('whatever way a real match ends, its result passes the server check', async () => {
+  const { createMatch, step, buildResult } = await import('../../src/game/match.js');
+  const play = (setup) => {
+    const state = createMatch({ stageId: 'campus', players: [{ slot: 0, name: 'A', fighterId: 'finance_bro' }, { slot: 1, name: 'B', fighterId: 'house_dj' }], settings: { lives: 1, items: false, hazards: false }, seed: 2 });
+    while (state.phase === 'countdown') step(state, {});
+    setup(state);
+    while (state.phase !== 'ended') step(state, {});
+    return buildResult(state);
+  };
+  // Both remaining players leave the screen in the very same frame.
+  const both = play((s) => { s.fighters[0].x = -1000; s.fighters[1].x = -1000; });
+  // Both hit each other into the 200 % burnout in the very same frame.
+  const trade = play((s) => {
+    const [a, b] = s.fighters;
+    Object.assign(a, { x: 500, facing: 1, percent: 195 });
+    Object.assign(b, { x: 560, facing: -1, percent: 195 });
+    step(s, { 0: { attack: true }, 1: { attack: true } });
+  });
+  for (const result of [both, trade]) {
+    const res = checkResult(match({ lives: 1 }), result, NOW);
+    assert.equal(res.ok, true, res.reason);
+    assert.equal(result.players.filter((p) => p.endLives === 1).length, 1, 'exactly one player is left standing');
+  }
 });

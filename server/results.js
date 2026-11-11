@@ -25,7 +25,7 @@ export const achievementName = (id) => BY_ID.get(id)?.name || id;
 // Hidden notes kept next to the achievements: which stages a player has won on.
 const wonMarker = (stage) => `won_${stage}`;
 
-const MAX_DURATION_S = 60 * 60;
+const MAX_DURATION_S = 6 * 60 * 60; // there is no time limit; this only stops absurd numbers
 
 // Check a result the host sent against what the server knows about the match.
 // match: { id, stage, lives, slots: [..], guests, startedAt }

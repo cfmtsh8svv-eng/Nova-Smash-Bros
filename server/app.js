@@ -35,16 +35,20 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
       if (!String(req.headers['content-type'] || '').startsWith('application/json')) return resolve({ error: 415 });
       let size = 0;
       const chunks = [];
+      let tooBig = false;
       req.on('data', (chunk) => {
+        if (tooBig) return; // keep reading (and ignoring) so the answer can still be delivered
         size += chunk.length;
         if (size > LIMITS.httpBodyBytes) {
+          tooBig = true;
+          chunks.length = 0;
           resolve({ error: 413 });
-          req.destroy();
           return;
         }
         chunks.push(chunk);
       });
       req.on('end', () => {
+        if (tooBig) return;
         try {
           const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
           resolve(isPlainObject(body) ? { body } : { error: 400 });
@@ -60,7 +64,7 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
 
   async function register(req, res) {
     const { body, error } = await readBody(req);
-    if (error) return json(res, error, { error: BODY_ERRORS[error] });
+    if (error) return json(res, error, { error: BODY_ERRORS[error] }, error === 413 ? { Connection: 'close' } : {});
     const problem = gamertagProblem(body.gamertag);
     if (problem) return json(res, 400, { error: problem, field: 'gamertag' });
     if (pinProblem(body.pin)) return json(res, 400, { error: pinProblem(body.pin), field: 'pin' });
@@ -82,7 +86,7 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
 
   async function login(req, res) {
     const { body, error } = await readBody(req);
-    if (error) return json(res, error, { error: BODY_ERRORS[error] });
+    if (error) return json(res, error, { error: BODY_ERRORS[error] }, error === 413 ? { Connection: 'close' } : {});
     const problem = gamertagProblem(body.gamertag);
     if (problem) return json(res, 400, { error: problem, field: 'gamertag' });
     if (pinProblem(body.pin)) return json(res, 400, { error: pinProblem(body.pin), field: 'pin' });
@@ -115,7 +119,10 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
     if (!isRoomCode(room)) return json(res, 400, { error: 'Room code must be 4 letters.' });
     const host = String(req.headers.host || '');
     if (!/^[A-Za-z0-9.:[\]-]{1,255}$/.test(host)) return json(res, 400, { error: 'Bad host.' });
-    const proto = config.trustProxy && req.headers['x-forwarded-proto'] === 'https' ? 'https' : req.socket.encrypted ? 'https' : config.trustProxy ? 'https' : 'http';
+    // Public hosts (Render, Tailscale Funnel) are always reached over https. Only a local
+    // address (localhost, a home-network IP, a bare machine name) is plain http.
+    const local = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|\[|[^.]+$)/.test(host.replace(/:\d+$/, ''));
+    const proto = req.socket.encrypted || !local ? 'https' : 'http';
     const link = `${proto}://${host}/play?room=${room}`;
     const svg = await QRCode.toString(link, { type: 'svg', margin: 1, errorCorrectionLevel: 'M', color: { dark: '#16122a', light: '#ffffff' } });
     res.writeHead(200, { ...baseHeaders, 'Content-Type': 'image/svg+xml', 'Cache-Control': 'no-store', 'X-Join-Link': link });

@@ -109,13 +109,12 @@ export class DataService {
         this.board = { at: now, rows: await this.store.listPlayers() };
       } catch {
         stale = true;
-        if (!this.board) {
-          this.board = { at: 0, rows: [...this.players.values()].map((r) => ({ gamertag: r.gamertag, matches: r.matches, wins: r.wins, points: r.points, kos: r.kos })), fromCache: true };
-        }
       }
     }
-    const rows = new Map(this.board.rows.map((r) => [r.gamertag.toLowerCase(), { ...r }]));
-    if (!this.board.fromCache) {
+    let rows;
+    if (this.board) {
+      rows = new Map(this.board.rows.map((r) => [r.gamertag.toLowerCase(), { ...r }]));
+      // Results still waiting in the queue are not in the store's numbers yet.
       for (const job of this.queue) {
         for (const u of job.updates) {
           const row = rows.get(u.gamertag_lower);
@@ -123,6 +122,9 @@ export class DataService {
           for (const key of ['matches', 'wins', 'points', 'kos']) row[key] += u.deltas[key] || 0;
         }
       }
+    } else {
+      // The store was never reachable: show the players this server has seen, with their current numbers.
+      rows = new Map([...this.players.values()].map((r) => [r.gamertag_lower, { gamertag: r.gamertag, matches: r.matches, wins: r.wins, points: r.points, kos: r.kos }]));
     }
     const players = [...rows.values()]
       .filter((r) => r.matches > 0)

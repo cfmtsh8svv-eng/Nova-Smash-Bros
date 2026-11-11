@@ -160,8 +160,11 @@ test('the API refuses bodies that are not JSON, not an object, or too large', as
   assert.equal((await s.api('/api/register', '{not json')).status, 400);
   assert.equal((await s.api('/api/register', '[1,2,3]')).status, 400);
   assert.equal((await s.api('/api/register', '"text"')).status, 400);
-  const big = await s.api('/api/register', { gamertag: 'Big', pin: '1234', pin2: '1234', junk: 'x'.repeat(5000) }).catch(() => ({ status: 413 }));
-  assert.equal(big.status, 413);
+  for (const size of [1100, 5000, 200_000]) {
+    const big = await s.api('/api/register', { gamertag: 'Big', pin: '1234', pin2: '1234', junk: 'x'.repeat(size) });
+    assert.equal(big.status, 413, `${size} bytes`);
+    assert.equal(big.data.error, 'The request is too large.');
+  }
   const form = await fetch(`${s.base}/api/login`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'gamertag=a&pin=1' });
   assert.equal(form.status, 415);
   assert.equal((await fetch(`${s.base}/api/register`)).status, 405, 'GET is not allowed');

@@ -70,7 +70,14 @@ function withLock(work) {
   }
 }
 
+// For reading only: the tab, or null if it does not exist yet. Reads never create
+// anything, so they do not need the lock.
+function existingTab(name) {
+  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+}
+
 // Returns the tab, creating it with its header row the first time.
+// Only called from inside withLock (createPlayer, recordMatch) and from setup().
 function tab(name, columns) {
   var book = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = book.getSheetByName(name);
@@ -121,8 +128,9 @@ function rowToPlayer(values) {
 
 function getPlayer(payload) {
   var lower = String(payload.gamertag_lower || '');
-  if (!GAMERTAG.test(lower)) return null;
-  var sheet = tab('players', PLAYER_COLUMNS);
+  if (!/^[a-z0-9_]{3,12}$/.test(lower)) return null;
+  var sheet = existingTab('players');
+  if (!sheet) return null;
   var row = findPlayerRow(sheet, lower);
   if (!row) return null;
   return rowToPlayer(sheet.getRange(row, 1, 1, PLAYER_COLUMNS.length).getValues()[0]);
@@ -145,6 +153,14 @@ function createPlayer(payload) {
   return { ok: true, data: { gamertag: gamertag, gamertag_lower: lower, salt: salt, pin_hash: hash, created_at: created, matches: 0, wins: 0, points: 0, kos: 0, falls: 0, damage_dealt: 0, damage_taken: 0, achievements: [] } };
 }
 
+function isJsonList(text) {
+  try {
+    return typeof text === 'string' && Array.isArray(JSON.parse(text));
+  } catch (err) {
+    return false;
+  }
+}
+
 function wholeNumber(value, max) {
   return typeof value === 'number' && isFinite(value) && Math.floor(value) === value && value >= 0 && value <= max;
 }
@@ -153,7 +169,7 @@ function recordMatch(payload) {
   var match = payload.match || {};
   var updates = payload.updates;
   var id = String(match.match_id || '');
-  if (!/^[0-9a-f-]{36}$/.test(id) || STAGES.indexOf(match.stage) < 0 || !wholeNumber(match.lives, 3) || !wholeNumber(match.duration_s, 3600) ||
+  if (!/^[0-9a-f-]{36}$/.test(id) || STAGES.indexOf(match.stage) < 0 || !wholeNumber(match.lives, 3) || match.lives < 1 || !wholeNumber(match.duration_s, 21600) || !isJsonList(match.players_json) ||
       !/^[0-9T:.Z-]{10,30}$/.test(String(match.ended_at || '')) || match.mode !== 'stock' ||
       !(GAMERTAG.test(String(match.winner)) || match.winner === '(keyboard player)') ||
       typeof match.players_json !== 'string' || match.players_json.length > 2000 || match.players_json.charAt(0) !== '[' ||
@@ -198,7 +214,8 @@ function recordMatch(payload) {
 
 // The numbers the leaderboard needs. Salts and PIN hashes never leave the sheet this way.
 function listPlayers() {
-  var sheet = tab('players', PLAYER_COLUMNS);
+  var sheet = existingTab('players');
+  if (!sheet) return [];
   var last = sheet.getLastRow();
   if (last < 2) return [];
   var rows = sheet.getRange(2, 1, last - 1, PLAYER_COLUMNS.length).getValues();
@@ -210,6 +227,9 @@ function listPlayers() {
 
 /** Run this once from the editor (Run > setup) to create both tabs with their headers. */
 function setup() {
-  tab('players', PLAYER_COLUMNS);
-  tab('matches', MATCH_COLUMNS);
+  withLock(function () {
+    tab('players', PLAYER_COLUMNS);
+    tab('matches', MATCH_COLUMNS);
+    return { ok: true };
+  });
 }

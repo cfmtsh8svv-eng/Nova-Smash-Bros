@@ -1,0 +1,74 @@
+<title>NOVA Brawl Controller final</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;700;800&display=swap">
+<style>
+/* Layout: two landscape phones stacked, the two control modes that ship side by side. Single committed dark look. */
+:root{
+  color-scheme:dark;
+  --night:#1b1330; --line:#4a3a66; --ink:#eef3f8; --mute:#b6a9cf; --orange:#ff7a3d; --yellow:#f6c343; --dark:#16122a;
+  --p:#2f7fe0;
+  --display:"Bungee","Arial Black",sans-serif; --body:"Nunito","Segoe UI",system-ui,sans-serif;
+}
+body{background:var(--night);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(26px,4vw,40px);line-height:1.1;margin:0}
+h1 span{color:var(--orange)}
+.lead{color:var(--mute);max-width:66ch;margin:8px 0 0}
+.opt{display:grid;grid-template-columns:minmax(0,3fr) minmax(200px,1.2fr);gap:20px;align-items:center;border-top:1px solid var(--line);padding-top:22px}
+@media(max-width:720px){.opt{grid-template-columns:1fr}}
+.opt h2{font-family:var(--display);font-weight:400;font-size:20px;margin:0 0 6px}
+.opt h2 b{color:var(--yellow);font-weight:400;margin-right:10px}
+.opt p{margin:0;color:var(--mute);font-size:15px}
+.phone{container-type:inline-size;aspect-ratio:19.5/9;background:#0e0a1c;border:.9cqw solid #05040c;border-radius:2.6cqw;position:relative;overflow:hidden;max-width:100%}
+.hdr{position:absolute;left:0;right:0;top:0;height:12%;display:flex;align-items:center;justify-content:center;gap:2.4cqw;background:rgba(22,18,42,.95);border-bottom:.35cqw solid var(--p)}
+.hdr .pill{background:var(--p);color:#fff;font-weight:800;font-size:2.3cqw;padding:.05em .9em;border-radius:99px}
+.hdr .pct{font-family:var(--display);font-size:3.4cqw;color:#f9b03c;line-height:1}
+.hdr .h{color:var(--p);font-size:2.5cqw;letter-spacing:.12em}.hdr .h s{text-decoration:none;opacity:.28}
+.hdr .sw{position:absolute;right:3%;font-weight:800;font-size:1.6cqw;color:var(--mute);border:.25cqw solid var(--line);border-radius:99px;padding:.1em .8em}
+.btn{position:absolute;display:flex;align-items:center;justify-content:center;font-family:var(--display);color:#fff;border-radius:2.4cqw;border:.5cqw solid rgba(255,255,255,.2);box-shadow:0 .6cqw 0 rgba(0,0,0,.45)}
+.mv{background:#2b2148;font-size:6cqw}
+.atk{background:#e63946}.jmp{background:#22a36b}.spc{background:#8e5cc8;overflow:hidden}
+.btn small{font-family:var(--body);font-weight:800;font-size:1.7cqw;display:block;line-height:1;margin-top:.3em;letter-spacing:.06em}
+.btn div{text-align:center;line-height:1;position:relative}
+.spc::before{content:"";position:absolute;left:0;bottom:0;height:1.6cqw;width:70%;background:var(--yellow)}
+.zone{position:absolute;background:#1c1436;border:.5cqw dashed rgba(255,255,255,.2);border-radius:2.4cqw}
+.ring{position:absolute;border-radius:50%;border:.5cqw solid rgba(255,255,255,.25);background:#231a40}
+.knob{position:absolute;border-radius:50%;background:var(--p);border:.5cqw solid rgba(255,255,255,.45);box-shadow:0 .6cqw 0 rgba(0,0,0,.45)}
+.lab{position:absolute;font-weight:800;font-size:1.6cqw;color:var(--mute);letter-spacing:.06em;text-align:center}
+</style>
+<div class="wrap">
+  <header>
+    <h1>Runde 9: <span>Zwei Steuerungen, beide im Spiel</span></h1>
+    <p class="lead">Drei Tasten rechts: Attack, Jump (zweimal für den Doppelsprung) und Special. Angriffe gehen dorthin, wohin die Figur schaut, auch nach oben. Fast der ganze Bildschirm ist Taste. Oben rechts schaltet jeder Spieler selbst zwischen Steuerkreuz und Joystick um.</p>
+  </header>
+
+  <section class="opt">
+    <div class="phone">
+      <div class="hdr"><span class="pill">P2 · MAX</span><span class="pct">118%</span><span class="h">♥♥<s>♥</s></span><span class="sw">JOYSTICK ⇄</span></div>
+      <div class="btn mv" style="left:17.5%;top:14.5%;width:15%;height:27%">▲</div>
+      <div class="btn mv" style="left:1.5%;top:43%;width:15%;height:27%">◀</div>
+      <div class="btn mv" style="left:33.5%;top:43%;width:15%;height:27%">▶</div>
+      <div class="btn mv" style="left:17.5%;top:71.5%;width:15%;height:26%">▼</div>
+      <div class="lab" style="left:17.5%;top:53%;width:15%">MOVE</div>
+      <div class="btn atk" style="right:1.5%;top:14.5%;width:27%;height:40%"><div style="font-size:5cqw">A<small>ATTACK</small></div></div>
+      <div class="btn jmp" style="right:1.5%;top:56.5%;width:27%;height:41%"><div style="font-size:5cqw">J<small>JUMP</small></div></div>
+      <div class="btn spc" style="right:30%;top:14.5%;width:19%;height:83%"><div style="font-size:4.4cqw">S<small>SPECIAL</small></div></div>
+    </div>
+    <div><h2><b>1</b>Steuerkreuz</h2><p>Vier große Tasten: links und rechts laufen, oben schaut die Figur nach oben (dann gehen Angriffe nach oben), unten lässt durch die Plattform fallen. Rechts drei rechteckige Tasten. Der gelbe Streifen unten in Special zeigt die Ladung.</p></div>
+  </section>
+
+  <section class="opt">
+    <div class="phone">
+      <div class="hdr"><span class="pill">P2 · MAX</span><span class="pct">118%</span><span class="h">♥♥<s>♥</s></span><span class="sw">D-PAD ⇄</span></div>
+      <div class="zone" style="left:1.5%;top:14.5%;width:47%;height:83%"></div>
+      <div class="ring" style="left:12%;top:28%;width:26%;aspect-ratio:1"></div>
+      <div class="knob" style="left:24%;top:36%;width:12%;aspect-ratio:1"></div>
+      <div class="lab" style="left:1.5%;top:88%;width:47%">ÜBERALL HIER AUFSETZEN UND ZIEHEN</div>
+      <div class="btn atk" style="right:1.5%;top:14.5%;width:27%;height:40%"><div style="font-size:5cqw">A<small>ATTACK</small></div></div>
+      <div class="btn jmp" style="right:1.5%;top:56.5%;width:27%;height:41%"><div style="font-size:5cqw">J<small>JUMP</small></div></div>
+      <div class="btn spc" style="right:30%;top:14.5%;width:19%;height:83%"><div style="font-size:4.4cqw">S<small>SPECIAL</small></div></div>
+    </div>
+    <div><h2><b>2</b>Joystick</h2><p>Die ganze linke Hälfte ist der Joystick: Er entsteht dort, wo der Daumen aufsetzt. Nach links und rechts laufen, nach oben halten schaut nach oben, nach unten fallen lassen. Rechts dieselben drei Tasten.</p></div>
+  </section>
+</div>

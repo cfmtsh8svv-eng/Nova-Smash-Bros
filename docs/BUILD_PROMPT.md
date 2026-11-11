@@ -18,11 +18,11 @@ NOVA Brawl is a university team project for an introductory programming course. 
 
 ## What to build
 
-Everything in `docs/GAME_SPEC.md`. The points below are the ones where a build most easily goes wrong.
+Everything in `docs/GAME_SPEC.md`. **Do not build demo mode**: it comes later and is described in `docs/DEMO.md`. Keep all match settings (lives, hazard interval, an optional time cap that stays off) in one settings object so it can be added without touching the rules. The points below are the ones where a build most easily goes wrong.
 
 **Structure.** One Node 22 server (`server/`) that serves the static client, runs the WebSocket relay with rooms, and exposes the account, result and leaderboard API. Client in `public/` as ES modules: `public/host/` (the big screen), `public/play/` (the phone), and `src/game/` for the pure game logic that both the host page and the Node tests import. The game logic must not touch the DOM, the network or the clock directly: it takes inputs and a time step and returns state and events. That is what makes it testable. Runtime dependencies are `ws` and `qrcode` only, pinned to exact versions, with a committed lockfile.
 
-**Phones.** They must work in iOS Safari and Android Chrome. Use Pointer Events with multi-touch so holding ▶ while tapping Jump works. Prevent zoom, text selection, scroll and the long-press menu on the gamepad. Request a screen wake lock and tolerate refusal. Show a rotate hint in portrait. Send input on every change plus a heartbeat, and make sure a tap shorter than one frame still registers once. iPhone browsers have no vibration API, so feedback is always three things together: `navigator.vibrate` where it exists, a full-screen colour flash, and a short Web Audio sound that is unlocked on the player's first tap. Never let a missing API throw.
+**Phones.** They must work in iOS Safari and Android Chrome. Build both control modes from `docs/GAME_SPEC.md` §6, the D-pad and the floating joystick, behind one input interface with a toggle in the header, and remember the player's choice on the phone. Use Pointer Events with multi-touch so holding ▶ while tapping Jump or Attack works. Give the joystick a dead zone and make its thresholds tuning values. Prevent zoom, text selection, scroll and the long-press menu on the gamepad. Request a screen wake lock and tolerate refusal. Show a rotate hint in portrait. Send input on every change plus a heartbeat, and make sure a tap shorter than one frame still registers once. iPhone browsers have no vibration API, so feedback is always three things together: `navigator.vibrate` where it exists, a full-screen colour flash, and a short Web Audio sound that is unlocked on the player's first tap. Never let a missing API throw.
 
 **Accounts and the Google Sheet.** Write the Apps Script web app (`apps-script/Code.gs`) that the server calls: it checks the shared secret, validates input again, uses `LockService` around every read-then-write, and returns JSON. Write `docs/SETUP_SHEETS.md` with click-by-click steps for creating the sheet, pasting the script, deploying it and setting the four environment variables. Put all sheet access behind one module with two implementations, the real one and an in-memory one. The in-memory one is used when the environment variables are missing and in every test. The server must start and be fully playable without any sheet configured.
 
@@ -42,11 +42,24 @@ Everything in `docs/GAME_SPEC.md`. The points below are the ones where a build m
 - `AGENTS.md` with the run and test commands, the branch rule, the secrets rule and "never edit tests to make them pass"; `CLAUDE.md` that points to it.
 - Rewrite `docs/SPECS.md` and `docs/CONCEPT.md` so they match what was built, or mark them as historical at the top. Remove the Python instructions everywhere.
 
+## How to work: Fable only, with independent reviewers
+
+Use Claude Fable for everything. Every subagent you start must run on the Fable model; do not use a smaller model for any step.
+
+Build in three packages, in this order: game logic, then server, then client. After each package is written and its tests pass, start **independent reviewer agents** that did not write the code and give them the code and the spec, not your own summary of it:
+
+1. **Spec reviewer:** reads `docs/GAME_SPEC.md` and the package, and lists every rule, value or screen that is missing or differs.
+2. **Bug reviewer:** hunts for real defects: wrong edge cases, race conditions between phone messages and the game loop, state that survives a reconnect wrongly, anything that can throw.
+3. **Security reviewer** (server and client packages): checks input validation, access control, secrets, the sheet integration and the HTTP headers against §8.
+4. **Test reviewer:** checks that the tests would actually fail if the behaviour were wrong, that rejected actions and edge cases are covered, and that no test was weakened to pass.
+
+Treat their findings as claims to verify, not as facts: reproduce each one, fix the real ones, and say which you rejected and why. After the last package, run one final review over the whole repository with fresh reviewers, including a **beginner-readability reviewer** who reads the code as a first-year student would and flags anything they could not explain in the walkthrough.
+
 ## Verification
 
 The course grades tests on whether they cover accepted actions, rejected actions and edge cases, and whether they all pass on `main`. Write tests with `node:test` as you build each part, not at the end.
 
-- **Rules and combat:** knockback grows with damage and shrinks with weight; a hit from 195 % to over 200 % is a burnout; crossing each blast zone is a KO; respawn invincibility; lives 1, 2 and 3; the match ends only when one player is left; demo mode ends at 120 s with the lowest damage winning and the tie-break applied.
+- **Rules and combat:** knockback grows with damage and shrinks with weight; a hit from 195 % to over 200 % is a burnout; crossing each blast zone is a KO; respawn invincibility; lives 1, 2 and 3; the match ends only when one player is left; jump and exactly one double jump per airtime; attacks and specials go left, right or up according to where the fighter looks.
 - **Each of the 8 specials:** hits inside its range, misses outside it, emits the phone feedback event for the hit player only. Ring Light Flash hits exactly one opponent, the nearest.
 - **Items and hazards:** each item's effect, the maximum of three, tart never heals below 0 %, sardine breaks after five swings; never two hazards at once, the warning always precedes the effect, the train strike.
 - **Rejected actions:** gamertag too short, too long, illegal characters, starting with `=`; duplicate gamertag in a different case; PINs that do not match, are not four digits; wrong PIN, and lockout after five; tampered and expired session tokens; joining a missing room; a fifth player; a non-host starting a match or submitting a result; a result for a player who is not in the room; a duplicate result; an implausible result; malformed, oversized and unknown WebSocket messages.

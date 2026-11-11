@@ -252,8 +252,6 @@ ${grain(860, 350, 380, 250, 0.5)}
 ${R(850, 336, 400, 16, '#b8564a')}${R(850, 352, 400, 8, '#0c0a1c', 'opacity=".4" filter="url(#b3)"')}${T(P['roof-right'])}
 ${seq(8, i => `<path d="M${916 + i * 36},486 q0,22 14,26" stroke="#1a1630" stroke-width="3" fill="none"/>`)}
 ${R(900, 470, 280, 14, '#d9d3c4')}${R(900, 484, 280, 6, '#0c0a1c', 'opacity=".4" filter="url(#b3)"')}${T(P['balcony-right'])}
-<!-- laundry line -->
-<path d="M420,300 Q440,318 460,306" stroke="#1a1630" stroke-width="1.5" fill="none"/>${R(424, 304, 12, 20, '#f7f3ea')}${R(440, 310, 12, 16, '#e63946')}
 ${lampPost(440)}${lampPost(840)}
 <!-- street: main ground, dark alleys left and right -->
 ${R(0, 600, 1280, 120, '#0c0a1c')}

@@ -89,7 +89,6 @@ The **leaderboard** ranks players by **points**. Each match gives placement poin
 | Starting | Only the laptop starts the match, once at least 2 players are logged in and have picked a fighter. The host can **close the room** so nobody else joins, and start with 2 or 3 players. |
 | Leaving | If a player leaves or loses connection, the match **keeps running**. Their fighter stands idle, **can still be hit**, and they can rejoin at any time until the match ends. |
 | Pause | Only on the laptop |
-| **Demo mode** | Host toggle for the presentation: 1 life, hazards every 15 s, hard cap **120 s**. At the cap the lowest damage % wins; a tie goes to the most damage dealt. |
 
 **Knockback**
 
@@ -102,19 +101,28 @@ Coordinates are a 1280×720 space at 60 Hz. Gravity 0.6 px/f². A single jump re
 
 ## 6. Controls (phone, landscape)
 
-| Control | Action |
-|---|---|
-| ◀ ▶ | Move. The fighter faces the last direction pressed. |
-| ▼ | Drop through a platform, fast fall in the air |
-| **Jump** | Jump, press again in the air for the double jump |
-| **Attack** | Normal attack **in the direction the fighter faces** |
-| **Special** | The fighter's unique special. Cooldown shown as a ring on the button. |
+Almost the whole screen is touch surface. Two control modes ship, and each player switches between them with a toggle in the phone header. The team decides after playtesting which one is the default.
 
-There is no shield and there are no directional attack variants.
+| Mode | Left half | Right half |
+|---|---|---|
+| **D-pad** | Four large keys: ◀ ▶ move, ▲ look up, ▼ drop through a platform or fast fall | Three rectangular buttons: **Attack**, **Jump**, **Special** |
+| **Joystick** | The whole left half is a floating joystick that appears where the thumb lands: left/right to move, hold up to look up, down to drop | The same three buttons |
+
+Both modes produce the same input state (`left, right, up, down, attack, jump, special`), so the game logic does not know which one is used.
+
+**Jump** jumps; pressing it again in the air is the **double jump** (one per airtime). It triggers on the press, so holding it does not repeat.
+
+**Facing.** A fighter faces left or right (the last direction pressed) or **up while up is held**. **Attack and Special go where the fighter looks**, so holding up hits or reaches an opponent who is above or jumping over. A yellow strip in the Special button shows the cooldown.
+
+Reference: `design/options/round9-phone-final.html`.
+
+There is no shield.
 
 The phone header shows the player's **name tag in their player colour**, damage % and lives. Player colours: P1 red `#e63946`, P2 blue `#2f7fe0`, P3 green `#22a36b`, P4 yellow `#f6c343`, always with the "P1" to "P4" label.
 
 **Feedback on the phone** when something happens to its player: a vibration pattern (Android), a full-screen colour flash and a short sound (all phones, because iPhone browsers do not vibrate), and a one-line message such as "You're drunk! Drink water!". Every special that hits a player triggers this on that player's phone only.
+
+**Demo mode is not part of this build.** It comes later; everything agreed about it is kept in [`DEMO.md`](DEMO.md). Match settings live in one settings object so it can be added without touching the rules.
 
 ## 6a. What is on the big screen during a match
 
@@ -131,7 +139,7 @@ Whether the special is ready is shown **only on the phone** (a ring on the Speci
 
 **KO moments.** Each KO shows one of several short texts on the big screen ("LAUNCHED!", "SEE YA!", "DROPPED OUT!", "OUT OF OFFICE!"; for the 200 % rule "BURNOUT!", "NEEDS A GAP YEAR!") and a matching line with the lives left on that player's phone, with a long, strong vibration pattern and a red flash. An elimination vibrates longest.
 
-**Final KO.** The last KO of the match is the big moment: the game drops to slow motion for about 1.5 s, the camera zooms in on the hit, the screen flashes, "FINAL KO!" appears, then "{name} graduates with honours!". All phones vibrate.
+**Final KO.** The last KO of the match is the big moment: the game drops to slow motion for **2 s**, the camera zooms in on the hit, the screen flashes, "FINAL KO!" appears, then "{name} graduates with honours!". All phones vibrate.
 
 ## 7. Content
 
@@ -164,7 +172,7 @@ Detailed illustration, drawn in code, true to the real places. Platforms are **p
 | **Carcavelos Beach** | Day | Sandbank, surf-bar roof, açaí kiosk roof, lifeguard deck, lifeguard roof. Fort, Ponte 25 de Abril and Cristo Rei in the background. | **Big Wave** sweeps the sand level · **Seagulls** steal an item |
 | **Bairro Alto** | Night | Street without tram rails or overhead wires (with Erasmus Corner and its "BEER €1.50" sign), two balconies, the roof terrace of the bar The Spot, two roofs | **Drunk Crowd** pushes along the street and drags players with it · **Drinks** that make you tipsy for 8 s |
 
-One hazard at a time, every 25 to 40 s (15 s in demo mode). Every hazard is **announced as animated text only**: the hazard's name, then a large **3, 2, 1** where each number pops in on its own, on the big screen and on every phone. No box and no bar. On the big screen it sits in the **top right corner**, over open sky, so it never covers a platform or a fighter. **Every hazard can be escaped** by moving or jumping: each one only affects one level or zone, and at least one platform is always safe.
+One hazard at a time, every 25 to 40 s. Every hazard is **announced as animated text only**: the hazard's name, then a large **3, 2, 1** where each number pops in on its own, on the big screen and on every phone. No box and no bar. On the big screen it sits in the **top right corner**, over open sky, so it never covers a platform or a fighter. **Every hazard can be escaped** by moving or jumping: each one only affects one level or zone, and at least one platform is always safe.
 
 The campus roof carries the **Nova SBE logo**, redrawn from the official mark (source: Wikimedia Commons, `Nova_logo.png`, author Nova SBE, CC BY-SA 4.0). It is credited in `CREDITS.md` and stays the school's trademark.
 
@@ -201,11 +209,15 @@ Both are free. `docs/DEPLOY.md` has the steps for each.
 
 ## 10. Screens
 
-**Host (laptop):** Title (no team names) → Lobby (QR code, room code, player cards, stage select or vote, close room, lives 1/2/3, demo mode, items and hazards on/off, **separate volume sliders for music and effects**, leaderboard) → Countdown → Match (HUD with one card per player at the top) → Results (winner, per-player stats, points, new achievements, leaderboard) → back to the lobby. There is no rematch button.
+**Host (laptop):** Title (no team names) → Lobby (QR code, room code, player cards, stage select or vote, close room, lives 1/2/3, items and hazards on/off, **separate volume sliders for music and effects**, leaderboard) → Countdown → Match (HUD with one card per player at the top) → Results (winner, per-player stats, points, new achievements, leaderboard) → back to the lobby. There is no rematch button.
 
-**Phone:** Register / log in → Fighter select (8 fighters; each card shows the sprite, the two attacks and **Speed and Weight as five-step bars, without numbers**) → Ready → Gamepad → KO'd → Eliminated + hazard vote → Results.
+**Phone:** Register / log in → Fighter select (swipe through the 8 fighters one at a time, with the neighbours peeking in at the sides; each card shows the sprite, the two attacks and **Speed and Weight as five-step bars, without numbers**) → Ready → Gamepad → KO'd → Eliminated + hazard vote → Results.
 
 Every error is shown in plain words next to where it happened ("That gamertag is taken", "Wrong PIN, 3 tries left", "Room not found", "Connection lost, reconnecting…").
+
+**Lobby.** When a player joins, their slot appears on the big screen with a short entrance effect (flash and pop in the player colour, with a sound). Until that player has picked a fighter, the slot shows a **grey silhouette**; picking a fighter reveals the sprite.
+
+**Results screen.** The stage stays visible, dimmed, behind the results. A **podium for places 1, 2 and 3** shows the fighters with their name tags; a fourth player lies flat on the ground beside it. Under each: damage dealt, damage taken, KOs, falls, points earned and new achievements. Then the leaderboard, then back to the lobby.
 
 ## 11. How each grading criterion is covered
 
@@ -213,7 +225,7 @@ Every error is shown in plain words next to where it happened ("That gamertag is
 |---|---|
 | It works | Deployed, health check, reconnects, every invalid input handled, sheet outage handled, keyboard fallback for two players on the host |
 | UI and UX | One-scan join, auto-login, clear errors, hazard warnings, phone feedback, rotate hint |
-| Scope | Real-time multiplayer over the network, phones as controllers, accounts, leaderboard, 8 fighters, 3 stages, hazards, items, demo mode |
+| Scope | Real-time multiplayer over the network, phones as controllers, accounts, leaderboard, achievements, 8 fighters, 3 stages, hazards, items |
 | Verification | Unit tests for rules, combat, specials, items, hazards; rejected actions and edge cases; server and protocol tests; one browser smoke test; CI on `main` |
 | Security | §8 |
 | Walkthrough | `docs/WALKTHROUGH.md`: how it is built, why, limits, what could change |

@@ -64,8 +64,8 @@ Decided by the team in the grilling session before the build. Full detail: [`GAM
 | D-043 | Player count | **2 to 4 players** | Up to 6 (D-002) | Readable on one screen | Team | Decided |
 | D-044 | Connection | **Small Node server with rooms and WebSocket relay**, hosted free on Render, Mac mini + Tailscale Funnel as backup | Serverless WebRTC (risk on university Wi-Fi), Mac mini only | "No risk" and no cost | Team | Decided |
 | D-045 | Match end and lives | Lives **1, 2 or 3** (host setting). Match ends when **one player is left**. No time limit. | Fixed 3 lives (D-008), 3-minute timer | | Team | Decided |
-| D-046 | Demo mode | 1 life, hazards every 15 s, hard cap **120 s**, lowest damage wins at the cap | | Fits the presentation slot | Team | Decided |
-| D-047 | Controls | Move, drop, **Jump, Attack, Special**. Attacks go in the facing direction. **No shield**, no directional attacks. | Medium moveset with shield and dodge (D-006, D-007) | Understandable in 10 seconds | Team | Decided |
+| D-046 | Demo mode | 1 life, hazards every 15 s, hard cap **120 s**, lowest damage wins at the cap | | Fits the presentation slot | Team | Deferred by D-096 |
+| D-047 | Controls | Move, drop, **Jump, Attack, Special**. Attacks go in the facing direction. **No shield**, no directional attacks. | Medium moveset with shield and dodge (D-006, D-007) | Understandable in 10 seconds | Team | Changed by D-091 |
 | D-048 | Art style | **HD pixel fighters** (81 px, shaded, outlined) on **detailed, realistic drawn stages** | Flat vector (D-011), 8-bit, 16-bit, photos | Team picked from visual options | Team | Decided |
 | D-049 | Roster | **8 fighters**: Finance Bro, Maastricht Blondie, Bairro Chad, Surfer Girl, Wannabe Influencer, House DJ, Lisboa OG, Carcavelos Gang Member. Archetype names, no first names. | Six named archetypes (D-010, D-028) | | Team | Decided |
 | D-050 | Attacks | One normal and one **unique special** per fighter. Specials hit only within a range and trigger vibration, flash and a message on the hit player's phone. During a special the fighter shows the special's item. | | | Team | Decided |
@@ -105,6 +105,15 @@ Decided by the team in the grilling session before the build. Full detail: [`GAM
 | D-085 | Damage colour | Gradient white (0 %) → yellow (100 %) → orange → red → dark red (200 %) | Three fixed colours | | Team | Decided |
 | D-086 | Special-ready indicator | Phone only | Also on the big screen | | Team | Decided |
 | D-087 | KO moments | Varied texts on screen and phone, strong vibration on a KO. The **final KO** gets slow motion and a zoom. Eliminated cards turn grey with "OUT". | Single text | | Team | Decided |
+| D-088 | KO and winner texts | "LAUNCHED!", "SEE YA!", "DROPPED OUT!", "OUT OF OFFICE!", "BURNOUT!", "NEEDS A GAP YEAR!"; winner "{name} graduates with honours!". Final-KO slow motion lasts 2 s. | | | Team | Decided |
+| D-089 | Lobby | A joining player appears with an entrance effect; grey silhouette until a fighter is picked | | | Team | Decided |
+| D-090 | Results screen | Dimmed stage behind a podium for places 1 to 3, with damage dealt, damage taken and the other stats | Plain table | | Team | Decided |
+| D-091 | Phone controls | Two modes ship, **D-pad** and **joystick**, switchable on the phone; the team picks the default after playtesting. Three rectangular buttons: **Attack, Jump (with double jump), Special**; nearly the whole screen is touch surface. | Three round buttons (D-047); no jump button (tried and reverted the same day) | Team picked from visual options | Team | Decided |
+| D-092 | Fighter select | Swipe through fighters with the neighbours peeking in | Grid of eight | | Team | Decided |
+| D-093 | Fourth place | Lies flat on the ground beside the podium | Standing, or hidden | | Team | Decided |
+| D-094 | Build process | Built with Claude Fable only, with independent reviewer agents after each package | | Team request | Team | Decided |
+| D-095 | Aiming | Attack and Special go **where the fighter looks**: left, right, or up while up is held | Left and right only | Hit someone jumping over you | Team | Decided |
+| D-096 | Demo mode | **Built later.** Everything agreed is kept in `DEMO.md`; the first build is the full game without it. | Build it now (D-046) | Team decision | Team | Decided |
 
 ### Proposals made by Claude while writing the docs
 

@@ -88,7 +88,7 @@ The two `SHEETS_` values belong together: with only one of them the server stops
 
 ## 8. Check that it works
 
-1. Start (or restart) the server. The start line must say `store: sheets`. `https://<your-url>/healthz` shows `"store":"sheets"`.
+1. Start (or restart) the server. The start line must say `store: sheets`, followed by `The Google Sheet answers.` `https://<your-url>/healthz` shows `"store":"sheets"` and `"storeReachable":true`. If the log shows a warning instead, the URL or the secret is wrong, or the script is not deployed for "Anyone".
 2. Open the game, register a test player on a phone.
 3. Look at the `players` tab: a new row with the gamertag, a salt, a hash, and zeros. **There is no PIN in the sheet**, only its hash.
 4. Play one match with two logged-in players. The `matches` tab gets a row, and the players' numbers go up.

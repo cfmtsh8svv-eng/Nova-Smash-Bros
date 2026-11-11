@@ -20,7 +20,7 @@ The repository contains [`render.yaml`](../render.yaml), a description of the se
    `SHEETS_WEBAPP_URL`, `SHEETS_SHARED_SECRET`, `PIN_PEPPER`, `SESSION_SECRET`.
 5. Click **Apply**. The first build takes two to three minutes.
 6. Open the service page. At the top is the URL, something like `https://nova-brawl.onrender.com`.
-7. Check `https://<url>/healthz`. It must show `{"ok":true,"store":"sheets",...}`.
+7. Check `https://<url>/healthz`. It must show `"ok":true`, `"store":"sheets"` and `"storeReachable":true`. If `storeReachable` is `false`, the server cannot talk to the sheet: check the two `SHEETS_` values and the script's deployment ([`SETUP_SHEETS.md`](SETUP_SHEETS.md), step 8). The server's log says the same in words at start.
 8. Put the URL into [`README.md`](../README.md) under "Deployed app" and commit that to the `build` branch (it becomes part of the pull request).
 9. **After the pull request is merged:** in the Render dashboard open the service → **Settings → Branch** and change it to `main`. From then on the public URL shows what is on `main`, which is what gets graded.
 
@@ -77,7 +77,7 @@ Both servers use the same sheet, so accounts work on both. Only one of them shou
 
 ## Before the demo: checklist
 
-1. Two minutes before: open the public URL (wakes the free host). `/healthz` shows `"ok":true`.
+1. Two minutes before: open the public URL (wakes the free host). `/healthz` shows `"ok":true` and `"storeReachable":true`. While a room is open, the big screen keeps the host awake by itself.
 2. Open a room, scan with one iPhone and one Android phone on the room's network. Both reach the fighter select.
 3. Play ten seconds. Buttons respond, the phone shows damage and lives.
 4. Sound: click once on the laptop page (browsers only allow sound after a click); set the two volume sliders.

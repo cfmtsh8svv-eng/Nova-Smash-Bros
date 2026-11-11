@@ -341,7 +341,7 @@ What is enforced, and where:
 | Rate limits: per address for the API, for logins and for new rooms; per connection for messages | `server/security.js`, `server/config.js` |
 | Gamertags cannot start a formula or contain HTML | `server/validate.js`, checked again in `apps-script/Code.gs` |
 | Only the host may start a match, submit or cancel a result, or talk to the phones | The role tables in `server/rooms.js` |
-| One result per match, and only a possible one; not sooner than the match could have been played; at most 40 counted matches per player per hour | `server/rooms.js`, `server/results.js` |
+| One result per match, and only a possible one; not sooner than the match could have been played; at most 120 counted matches per player per hour | `server/rooms.js`, `server/results.js` |
 | What the host passes on to phones is checked field by field | `relayProblem` in `server/rooms.js` |
 | The host can remove a player; a phone can log out everywhere | `kick` and `logout` in `server/rooms.js` |
 | Limits on rooms, connections and join attempts per address; a receiver that stops reading is cut off | `server/config.js`, `server/rooms.js`, `server/app.js` |
@@ -392,12 +392,14 @@ Say these plainly when asked; they are choices, not accidents.
 5. **A 4-digit PIN is weak** by nature. Salt, pepper, a slow hash and the lockout make it reasonable for a party game. It is not suitable for anything valuable.
 6. **Anyone can lock a gamertag** by entering wrong PINs for it: ten minutes after five misses, up to a day after twenty. That is the price of a lockout by name. A phone that is still logged in is not affected; only a new login with the PIN is.
 7. **A room code is four letters.** Guessing is slowed down (only logged-in players learn whether a room exists, attempts are limited), and the host can remove a stranger and close the room, but a code is not a password.
-8. **Accounts are free.** Someone who registers many gamertags and runs their own "host" can still collect points slowly (at most 40 counted matches per account per hour). The leaderboard is for fun, not for prizes.
-9. **After a server restart**, the server no longer knows which phone logged in last until that phone shows up again, so an older login can work for a moment.
-10. **No bad-word filter** for gamertags (team decision).
-11. **Vibration does not work on iPhones** (a browser limit); flash and sound replace it.
-12. **Tuning is a first version.**
-13. **Demo mode is not built.** What was agreed is in `DEMO.md`.
+8. **Accounts are free.** Someone who registers many gamertags and runs their own "host" can still collect points slowly (at most 120 counted matches per account per hour). The leaderboard is for fun, not for prizes.
+9. **After a server restart**, the server no longer knows which phone logged in last until that phone shows up again, so an older login (also one that was logged out) can work again, and the wrong-PIN counters start from zero.
+10. **The sheet is written at most once per match.** The script writes the match row first and the players' numbers after it. If Google fails in between, the retry sees the match row and adds nothing, so those points are lost rather than counted twice.
+11. **No bad-word filter** for gamertags (team decision).
+12. **Vibration does not work on iPhones** (a browser limit); flash and sound replace it.
+13. **Tuning is a first version.**
+14. **Demo mode is not built.** What was agreed is in `DEMO.md`.
+15. **The big screen needs a current browser** (Chrome, Edge, Firefox or Safari from 2023 on). The phone page also runs on older phones (iOS 15 and later).
 
 ---
 

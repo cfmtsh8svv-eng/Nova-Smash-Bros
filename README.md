@@ -8,7 +8,7 @@ Two to four players scan a QR code, their phones turn into controllers, and they
 
 ## Deployed app
 
-**URL:** *added after the first deployment* (see [`docs/DEPLOY.md`](docs/DEPLOY.md))
+**URL:** <https://nova-brawl.onrender.com> (how it is deployed: [`docs/DEPLOY.md`](docs/DEPLOY.md))
 
 The free host sleeps when nobody uses it. Open the URL two minutes before playing.
 

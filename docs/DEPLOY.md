@@ -28,7 +28,9 @@ What `render.yaml` sets, in words: the region Frankfurt (every button press trav
 
 Once after the first deployment, check that the limits see real addresses: open the game on two different networks (for example Wi-Fi and mobile data) and register one player on each. If the second one is told "Too many…" although it did nothing, the header is missing; remove `TRUST_PROXY` in the Render dashboard and tell the team.
 
-**Once the service follows `main`, every merge to `main` is deployed automatically.** That is also why nobody pushes to `main` directly.
+**Once the service follows `main`, every merge to `main` is deployed automatically, if Render is connected to the GitHub account** (the "GitHub" button when choosing the repository). That is also why nobody pushes to `main` directly.
+
+The current service was created from the repository's public address instead, without connecting GitHub. Render then does not notice new commits: after a merge, open the service and click **Manual Deploy → Deploy latest commit**. To get automatic deploys later, connect GitHub under the service's **Settings → Repository**.
 
 ### Things to know about the free plan
 

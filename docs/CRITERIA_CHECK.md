@@ -12,12 +12,14 @@ Run on the build machine (macOS, Node 26.13.0; the unit and server tests also un
 | `npm run test:browser` | 3 tests, 3 pass, 0 fail (Chromium through Playwright, about 30 seconds) |
 | `npm audit --audit-level=high` | `found 0 vulnerabilities` |
 | GitHub Actions on the pushed branch (commit `1c6eac0`, Ubuntu, Node 22), for the push and for the pull request | Both runs succeeded: `npm test` 410 of 410, `npm audit --audit-level=high` 0 vulnerabilities, `npm run test:browser` 3 of 3 |
+| The deployed app at <https://nova-brawl.onrender.com> (Render, Frankfurt, branch `build`, with the real Google Sheet): opened a room, registered two test players from an emulated iPhone and an emulated Android phone, started a match, landed a hit, reloaded a phone. Run twice | `/healthz` shows `"store":"sheets"` and `"storeReachable":true`; the QR image loads; both phones join; the hit shows as 8 % on the victim's phone only; the reloaded phone gets its pad back; 60 pictures a second. From a button press on the phone to the fighter moving on the big screen: median 52 and 55 ms (measured from Lisbon). The first run logged two failed WebSocket handshakes on the host page right after the service had started; the page reconnected by itself, and 27 further connections and the second run had none |
+| The real Google Sheet, with the server running locally: two test players registered, wrong and right PIN, one match result sent, server restarted, login again | Registration takes 3 to 5 seconds (the sheet is slow); the result was stored after 2.5 seconds with the right points and achievements; after the restart the login was answered from the sheet; the sheet holds a salt and a hash, no PIN. The match came from a script acting as host and phones over WebSocket, not from a played match |
 | `PORT=3987 node server/index.js`, then played with two emulated phones | A match from the title screen to the results, 60 pictures a second, no console errors |
 
 **Not run by anyone yet.** These are the honest gaps, and they matter for criterion 1:
 
-- **No deployment.** There is no public URL. The README has an empty slot for it. Deploying needs the team's accounts ([`DEPLOY.md`](DEPLOY.md)).
-- **The real Google Sheet.** `apps-script/Code.gs` has never been executed. The server side of the sheet connection is tested against a stand-in that speaks the same protocol (`tests/server/outage.test.js`), and all other tests use the in-memory store.
+- **A whole match on the deployed app.** The deployed app was played for a few seconds with emulated phones (see the table). A complete match played to the end on the public URL, with its result arriving in the sheet, has not been done by the build. (A result was stored in the real sheet, but through the locally running server.)
+- **The automated tests do not use the real sheet.** They use the in-memory store and a stand-in that speaks the same protocol (`tests/server/outage.test.js`). The checks with the real sheet in the table were done once by hand.
 - **Real phones.** Everything was checked in Chromium with emulated iPhone and Android screens and touch events. Safari on a real iPhone, a real Android phone, the demo room's Wi-Fi and a projector were not tested.
 - **`main`.** The work is on `build` with an open pull request. The tests pass on `build`; they pass on `main` only after the team merges.
 
@@ -25,7 +27,7 @@ Run on the build machine (macOS, Node 26.13.0; the unit and server tests also un
 
 > "The deployed app runs all workflows without errors, including invalid input."
 
-**Not at the top level yet: the app is not deployed.** Everything below is evidence that it works when run locally.
+**Deployed at <https://nova-brawl.onrender.com> and checked there with emulated phones (see the table at the top). Not at the top level until it has been played on real phones.** The list below is the evidence from the automated tests.
 
 - **Every workflow, in a real browser.** `tests/browser/flow.test.js`, "a whole match from the stage vote to the results, a second match, removing a player, logging out", plays the complete loop twice with the real pages and the real server and fails on any console error or broken file.
 - **What a player would notice.** `tests/browser/smoke.test.js` uses an emulated iPhone and an emulated Android phone: the fighter follows the phone and stops when the thumb lifts, a real hit shows as damage on the victim's phone only, the stage and the sprites are really drawn (pixels are read back from the canvas), every pad button can be reached by a finger, a held button stays held, pause really freezes the match, and a phone that reloads or loses its connection gets its pad back.
@@ -34,7 +36,7 @@ Run on the build machine (macOS, Node 26.13.0; the unit and server tests also un
 - **Four players end to end.** `tests/server/e2e.test.js`: "four phones register, join, pick, play a full match to a winner; the result reaches the store and the leaderboard".
 - **A robustness pass with a simulated bad network** (delay, jitter, stalls, a host or phone cut off for 5 to 40 seconds) and nine matches in a row found no lost or doubled button presses, no memory growth, and a result saved exactly once in every case. The problems it did find were fixed (D-129 to D-131 in [`DECISIONS.md`](DECISIONS.md)).
 
-Missing for the top level: deploy, connect the real sheet, and play on real phones in the demo room ([`TEAM_TASKS.md`](TEAM_TASKS.md)).
+Missing for the top level: play complete matches on real phones in the demo room ([`TEAM_TASKS.md`](TEAM_TASKS.md)), and merge so that the deployed app shows `main`.
 
 ## 2. User interface and experience (20 %)
 

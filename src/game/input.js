@@ -46,7 +46,7 @@ export class InputBuffer {
 
   // A message from the phone. seq is the phone's message counter: anything that
   // is not newer than the last one seen is ignored (a late duplicate after a reconnect).
-  // A phone that reloaded starts counting from 0 again, which is accepted.
+  // (When a phone reconnects, the host resets this buffer, so its new counter starts fresh.)
   receive(mask, seq) {
     if (!isValidMask(mask)) return false;
     if (seq !== undefined) {

@@ -258,7 +258,7 @@ test('createMatch rejects bad player lists, stages and fighters', () => {
   assert.throws(() => createMatch({ stageId: 'campus', players: [p(0), p(0)] }), /different slot/);
   assert.throws(() => createMatch({ stageId: 'campus', players: [p(0), p(7)] }), /different slot/);
   assert.throws(() => createMatch({ stageId: 'moon', players: [p(0), p(1)] }), /Unknown stage/);
-  assert.throws(() => createMatch({ stageId: 'campus', players: [p(0), p(1, 'mario')] }), /Unknown fighter/);
+  assert.throws(() => createMatch({ stageId: 'campus', players: [p(0), p(1, 'not_a_fighter')] }), /Unknown fighter/);
 });
 
 test('the later player with the same fighter is marked for the player-colour top', () => {

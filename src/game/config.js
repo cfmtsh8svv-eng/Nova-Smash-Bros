@@ -1,4 +1,6 @@
-// Every tuning value of the game lives in this file.
+// The tuning values of the rules live in this file: physics, attacks, specials, items, hazards.
+// (The few that belong to the phone or the screen sit where they are used: the joystick
+// thresholds in public/play/controls.js, the server's limits in server/config.js.)
 // Units: positions in pixels of a 1280x720 space, speeds in pixels per frame,
 // times in frames at 60 frames per second (so 60 = one second).
 
@@ -49,6 +51,7 @@ export const CONFIG = {
     finalKoTimeScale: 0.25, // simulation speed during it
     hitstunFactor: 2.5, // hitstun frames = launch speed * this
     strongHitSpeed: 11, // a launch at least this fast shakes the screen
+    hitPauseMs: { normal: 30, strong: 85, ko: 120 }, // how long the game freezes on a hit (real milliseconds)
     upAngleDeg: 80, // launch angle of a hit that was aimed upward
   },
   // Normal attack: the same numbers for every fighter.

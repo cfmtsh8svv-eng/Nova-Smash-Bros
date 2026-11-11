@@ -10,7 +10,7 @@ import { CONFIG } from './config.js';
 import { advance, createClock, freeze } from './clock.js';
 import { step } from './match.js';
 
-export const HIT_PAUSE_MS = { normal: 30, strong: 85, ko: 120 };
+export const HIT_PAUSE_MS = CONFIG.match.hitPauseMs;
 
 // getInputs(state) returns { slot: input } for the next step.
 // onEvent(event, state) is called for everything that happens.

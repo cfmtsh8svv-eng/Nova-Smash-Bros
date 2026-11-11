@@ -330,7 +330,7 @@ export class Rooms {
     for (const conn of this.connections) {
       if (conn.role === null && now - conn.openedAt > LIMITS.idleSocketMs) {
         try {
-          conn.ws.close(1008, 'nothing to do');
+          conn.ws.close(4003, 'idle'); // 4003: the page stays disconnected until it has something to say
         } catch { /* already closed */ }
       }
     }
@@ -392,6 +392,7 @@ const NEW_HANDLERS = {
     // learns whether a room exists.
     const failed = (code) => {
       conn.failedJoins += 1;
+      this.limiter.allow(`join:${conn.address}`, LIMITS.failedJoinsPerMinutePerAddress, this.now());
       this.fail(conn, code);
       if (conn.failedJoins >= LIMITS.failedJoinsPerSocket) {
         try {
@@ -399,7 +400,8 @@ const NEW_HANDLERS = {
         } catch { /* already closed */ }
       }
     };
-    if (!this.limiter.allow(`join:${conn.address}`, LIMITS.joinsPerMinutePerAddress, this.now())) return this.fail(conn, 'busy');
+    // Only failed attempts count: a phone that reconnects with a good token is never slowed down.
+    if (this.limiter.isOver(`join:${conn.address}`, LIMITS.failedJoinsPerMinutePerAddress, this.now())) return this.fail(conn, 'busy');
     const session = verifyToken(msg.token, this.config.sessionSecret, this.now());
     if (!session) return failed('bad_token');
     const room = isRoomCode(msg.room) ? this.rooms.get(msg.room) : null;
@@ -578,7 +580,9 @@ const HOST_HANDLERS = {
     // Optional: which slots the keyboard players sit in, so no phone is given one of them mid-match.
     const guestSlots = msg.guestSlots === undefined ? [] : msg.guestSlots;
     if (!Array.isArray(guestSlots) || guestSlots.length > msg.guests || new Set(guestSlots).size !== guestSlots.length
-      || !guestSlots.every((s) => isInt(s, 0, 3) && !room.slots[s])) return this.strike(conn);
+      || !guestSlots.every((s) => isInt(s, 0, 3))) return this.strike(conn);
+    // A phone joined in the very moment Start was pressed and took a keyboard player's slot.
+    if (guestSlots.some((s) => room.slots[s])) return refuse('A player joined just now. Press Start again.');
     room.lastResult = null;
     room.match = { id: randomUUID(), stage: msg.stage, lives: msg.lives, slots: [...msg.slots], guests: msg.guests, guestSlots: [...guestSlots], startedAt: this.now(), players: new Map(msg.slots.map((i) => [i, room.slots[i].lower])) };
     room.phase = 'match';
@@ -616,7 +620,7 @@ const HOST_HANDLERS = {
       this.data.recordMatch(scored.matchRow, scored.updates);
       stored = true;
       await Promise.race([this.data.flush().catch(() => {}), new Promise((r) => setTimeout(r, 2500))]);
-      if (this.data.pending > 0) note = 'The scores are still being written to the Google Sheet. Nothing is lost.';
+      if (this.data.pending > 0) note = 'The scores are still being written to the Google Sheet.';
     } else {
       note = 'Practice match: points need at least two logged-in players.';
       for (const line of scored.lines) Object.assign(line, { totalPoints: (line.totalPoints || 0) - line.points, points: 0, achievements: [] });

@@ -27,6 +27,7 @@ export class DataService {
     this.boardRetryAt = 0;
     this.boardStale = false;
     this.writes = 0; // counts successful writes, to notice a read that was overtaken
+    this.reachable = null; // did the last call to the store work? (null = not tried yet)
   }
 
   // Returns the player row or null. Throws StoreError('unavailable') only if the
@@ -34,15 +35,37 @@ export class DataService {
   async getPlayer(lower) {
     const cached = this.players.get(lower);
     if (cached) return cached;
-    const row = await this.store.getPlayer(lower);
+    const row = await this.watch(this.store.getPlayer(lower));
     if (row) this.players.set(lower, row);
     return row;
   }
 
   async createPlayer(player) {
-    const row = await this.store.createPlayer(player);
+    const row = await this.watch(this.store.createPlayer(player));
     this.players.set(row.gamertag_lower, row);
     return row;
+  }
+
+  // Remembers whether the store answered, for the health check. A refusal such as
+  // "that gamertag is taken" is an answer: only "unavailable" means not reachable.
+  async watch(call) {
+    try {
+      const result = await call;
+      this.reachable = true;
+      return result;
+    } catch (err) {
+      this.reachable = !(err instanceof StoreError) || err.code !== 'unavailable';
+      throw err;
+    }
+  }
+
+  // Ask the store for something harmless, to find a wrong URL or secret at start rather
+  // than at the first registration.
+  async check() {
+    try {
+      await this.watch(this.store.listPlayers());
+    } catch { /* reported through this.reachable */ }
+    return this.reachable;
   }
 
   // Save a finished match. The cache is updated at once (so the results screen is
@@ -76,7 +99,7 @@ export class DataService {
     while (this.queue.length) {
       const job = this.queue[0];
       try {
-        await this.store.recordMatch(job.match, job.updates);
+        await this.watch(this.store.recordMatch(job.match, job.updates));
       } catch (err) {
         if (err instanceof StoreError && err.code === 'bad_request') {
           this.log(`Result ${job.match.match_id} was refused by the store and is dropped: ${err.message}`);
@@ -142,7 +165,7 @@ export class DataService {
     if (expired && now >= this.boardRetryAt) {
       if (!this.boardRead) {
         const version = this.writes;
-        this.boardRead = this.store.listPlayers().then((rows) => {
+        this.boardRead = this.watch(this.store.listPlayers()).then((rows) => {
           // A result was written while this read was on its way: the list may predate it, so it is not kept as fresh.
           this.board = { at: this.writes === version ? this.now() : 0, rows };
           this.boardStale = false;

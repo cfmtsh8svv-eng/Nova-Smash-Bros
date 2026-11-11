@@ -21,6 +21,12 @@ const store = config.useSheets ? new SheetsStore({ url: config.sheetsUrl, secret
 const app = createApp({ config, store, log: (line) => console.error(line) });
 const port = await app.listen(config.port, config.host);
 console.log(`NOVA Brawl is running: http://localhost:${port}  (store: ${store.kind})`);
+if (config.useSheets) {
+  app.data.check().then((ok) => {
+    if (ok) console.log('The Google Sheet answers.');
+    else console.error('WARNING: the Google Sheet does not answer. Check SHEETS_WEBAPP_URL, SHEETS_SHARED_SECRET and the deployment of the script (docs/SETUP_SHEETS.md).');
+  });
+}
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, async () => {

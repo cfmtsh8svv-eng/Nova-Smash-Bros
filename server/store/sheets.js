@@ -3,7 +3,9 @@
 // The shared secret proves to the script that the request comes from our server.
 import { StoreError } from './memory.js';
 
-const TIMEOUT_MS = 10_000;
+// Longer than the script waits for its lock (6 s) plus the write itself, so the server
+// does not give up on a request that the sheet is still going to carry out.
+const TIMEOUT_MS = 25_000;
 
 export class SheetsStore {
   constructor({ url, secret, fetchImpl = fetch }) {

@@ -61,7 +61,8 @@ function sameText(a, b) {
 // at the same moment cannot both take the same gamertag or lose each other's points.
 function withLock(work) {
   var lock = LockService.getScriptLock();
-  if (!lock.tryLock(15000)) return { ok: false, error: 'busy', message: 'The sheet is busy.' };
+  // Shorter than the server's patience (25 s), so the server always hears how it ended.
+  if (!lock.tryLock(6000)) return { ok: false, error: 'busy', message: 'The sheet is busy.' };
   try {
     return work();
   } finally {

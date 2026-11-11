@@ -429,7 +429,7 @@ test('too many connections from one address are refused, and a connection that n
   // Idle connections are cleared by the regular housekeeping.
   s.clock.now += LIMITS.idleSocketMs + 1000;
   s.app.rooms.sweep();
-  assert.equal(await open[0].closed, 1008);
+  assert.equal(await open[0].closed, 4003, 'closed with the code that tells the page to stay away until it has something to say');
   await sleep(100);
   assert.equal((await s.open()).ws.readyState, 1, 'there is room again');
 });
@@ -471,9 +471,64 @@ test('the list of keyboard slots is checked: no duplicates, no taken slots, not 
   const s = await startServer(t);
   const h = await s.host();
   await s.player(h, 'Ana', { fighter: 'finance_bro' });
-  for (const guestSlots of [[0], [1, 1], [1, 2, 3], [9], 'x', [1.5]]) {
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0], guests: 2, guestSlots: [0, 1] });
+  const taken = await h.next('error');
+  assert.equal(taken.code, 'bad_start', 'a slot a phone has just taken: a clear refusal the host page can show');
+  assert.match(taken.msg, /joined just now/);
+  for (const guestSlots of [[1, 1], [1, 2, 3], [9], 'x', [1.5]]) {
     h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0], guests: 2, guestSlots });
     assert.equal((await h.next('error')).code, 'bad_message', JSON.stringify(guestSlots));
   }
   assert.equal(s.app.rooms.rooms.get(h.code).phase, 'lobby');
+});
+
+// ---- from the final whole-repository review ----
+
+test('a phone that reconnects again and again with a good login is never told "busy"; only failed joins count', async (t) => {
+  const s = await startServer(t);
+  const h = await s.host();
+  const token = await s.register('Ana');
+  for (let i = 0; i < LIMITS.failedJoinsPerMinutePerAddress * 3; i++) {
+    const p = await s.open();
+    p.send({ t: 'join', room: h.code, token });
+    assert.equal((await p.next('joined')).slot, 0, `reconnect ${i + 1}`);
+    await p.close();
+  }
+  // Failed attempts from the same address do run into the limit ...
+  let busy = false;
+  for (let i = 0; i < LIMITS.failedJoinsPerMinutePerAddress + 5 && !busy; i += 5) {
+    const c = await s.open();
+    for (let k = 0; k < 5; k++) c.send({ t: 'join', room: 'QQQQ', token });
+    await c.settle();
+    busy = c.inbox.some((m) => m.code === 'busy');
+  }
+  assert.equal(busy, true);
+  // ... and a minute later everybody can join again.
+  s.clock.now += 61_000;
+  const again = await s.open();
+  again.send({ t: 'join', room: h.code, token });
+  assert.equal((await again.next('joined')).slot, 0);
+});
+
+test('a result is shown at once and confirmed as saved when a slow sheet has finished writing', async (t) => {
+  class SlowStore extends MemoryStore {
+    async recordMatch(match, updates) {
+      await sleep(2900); // longer than the server waits before it answers the host
+      return super.recordMatch(match, updates);
+    }
+  }
+  const s = await startServer(t, { store: new SlowStore() });
+  const h = await s.host();
+  await s.player(h, 'Ana', { fighter: 'finance_bro' });
+  await s.player(h, 'Max', { fighter: 'house_dj' });
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+  const { matchId } = await h.next('match_started');
+  s.clock.now += 90_000;
+  h.send({ t: 'match_result', matchId, result: sampleResult() });
+  const first = await h.next('result_saved', { timeout: 4000 });
+  assert.match(first.note, /still being written/);
+  assert.deepEqual(first.players.map((p) => p.points), [130, 64]);
+  const second = await h.next('result_saved', { timeout: 4000 });
+  assert.equal(second.note, '', 'the note is gone once the sheet has the result');
+  assert.equal(s.store.matches.size, 1);
 });

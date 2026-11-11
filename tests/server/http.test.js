@@ -11,7 +11,12 @@ test('the health check answers at /healthz', async (t) => {
   const s = await startServer(t);
   const res = await s.api('/healthz');
   assert.equal(res.status, 200);
-  assert.deepEqual(res.data, { ok: true, store: 'memory', rooms: 0, pendingResults: 0 });
+  assert.deepEqual(res.data, { ok: true, store: 'memory', storeReachable: null, rooms: 0, pendingResults: 0 }, 'nothing has asked the store yet');
+  await s.register('Ana');
+  assert.equal((await s.api('/healthz')).data.storeReachable, true);
+  s.store.failing = true;
+  await s.api('/api/login', { gamertag: 'Nobody', pin: '1234' });
+  assert.equal((await s.api('/healthz')).data.storeReachable, false, 'the health check shows when the store stopped answering');
 });
 
 test('every kind of answer carries the security headers', async (t) => {

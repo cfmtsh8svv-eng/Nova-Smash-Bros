@@ -167,7 +167,7 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
     const route = url.pathname;
     const address = clientAddress(req, config.trustProxy);
 
-    if (route === '/healthz') return json(res, 200, { ok: true, store: store.kind, rooms: rooms.rooms.size, pendingResults: data.pending });
+    if (route === '/healthz') return json(res, 200, { ok: true, store: store.kind, storeReachable: data.reachable, rooms: rooms.rooms.size, pendingResults: data.pending });
 
     if (route.startsWith('/api/')) {
       if (!limiter.allow(`api:${address}`, LIMITS.apiPerMinutePerAddress, now())) return json(res, 429, { error: 'Too many requests. Wait a moment.' }, { 'Retry-After': '30' });
@@ -198,7 +198,10 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
     });
   });
   server.requestTimeout = 15_000;
-  server.headersTimeout = 10_000;
+  // Idle connections are kept a little longer than the proxy in front of us keeps them,
+  // so the proxy never sends a request down a connection we are just closing (a 502).
+  server.keepAliveTimeout = 61_000;
+  server.headersTimeout = 62_000;
 
   // ---- WebSocket ----
   // maxPayload makes the ws library itself drop anything larger before we see it.

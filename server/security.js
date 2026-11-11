@@ -53,6 +53,12 @@ export class RateLimiter {
     return entry.count <= limit;
   }
 
+  // True if this key has already used up `limit` in the current window (nothing is counted).
+  isOver(key, limit, now = Date.now()) {
+    const entry = this.hits.get(key);
+    return Boolean(entry) && now - entry.start < this.windowMs && entry.count >= limit;
+  }
+
   sweep(now = Date.now()) {
     for (const [key, entry] of this.hits) if (now - entry.start >= (entry.keepMs || this.windowMs)) this.hits.delete(key);
   }

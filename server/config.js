@@ -14,13 +14,13 @@ export const LIMITS = {
   maxRooms: 200,
   roomsPerAddress: 12, // open at the same time (a lecture hall can share one address)
   roomsPerMinutePerAddress: 10,
-  socketsPerAddress: 150,
+  socketsPerAddress: 400,
   maxSockets: 3000,
   idleSocketMs: 60_000, // a connection that never opens or joins a room is closed
-  joinsPerMinutePerAddress: 60, // also stops guessing room codes
+  failedJoinsPerMinutePerAddress: 40, // stops guessing room codes; joins that succeed do not count
   failedJoinsPerSocket: 10,
   registrationsPerMinutePerAddress: 40,
-  resultsPerHourPerPlayer: 40, // more than that in an hour no longer counts for the leaderboard
+  resultsPerHourPerPlayer: 120, // more than that in an hour no longer counts for the leaderboard
   maxQueuedResults: 200,
   // A whole lecture hall can share one address (campus Wi-Fi), so these are roomy.
   // Guessing PINs is stopped by the lock on the gamertag, not by this.

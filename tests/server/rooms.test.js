@@ -393,7 +393,7 @@ test('fighter picks and votes are validated', async (t) => {
   const s = await startServer(t);
   const h = await s.host();
   const a = await s.player(h, 'Ana');
-  for (const bad of [{ fighter: 'mario', ready: true }, { fighter: 5, ready: true }, { fighter: 'house_dj' }, { fighter: 'house_dj', ready: 'yes' }, {}]) {
+  for (const bad of [{ fighter: 'not_a_fighter', ready: true }, { fighter: 5, ready: true }, { fighter: 'house_dj' }, { fighter: 'house_dj', ready: 'yes' }, {}]) {
     a.send({ t: 'pick', ...bad });
     assert.equal((await a.next('error')).code, 'bad_message');
   }

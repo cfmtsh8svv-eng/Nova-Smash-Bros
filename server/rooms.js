@@ -615,7 +615,7 @@ const HOST_HANDLERS = {
       for (const row of roster.values()) this.limiter.count(`results:${hour}:${row.gamertag_lower}`, this.now());
       this.data.recordMatch(scored.matchRow, scored.updates);
       stored = true;
-      await Promise.race([this.data.flush().catch(() => {}), new Promise((r) => setTimeout(r, 1500))]);
+      await Promise.race([this.data.flush().catch(() => {}), new Promise((r) => setTimeout(r, 2500))]);
       if (this.data.pending > 0) note = 'The scores are still being written to the Google Sheet. Nothing is lost.';
     } else {
       note = 'Practice match: points need at least two logged-in players.';
@@ -630,6 +630,15 @@ const HOST_HANDLERS = {
     if (this.rooms.get(room.code) === room) {
       room.lastResult = saved;
       this.send(room.host, saved);
+    }
+    // If the write was still on its way, tell the host again once it is done.
+    if (stored && note) {
+      this.data.flush().then((written) => {
+        if (!written || room.lastResult !== saved || this.rooms.get(room.code) !== room) return;
+        saved.note = '';
+        saved.leaderboard = this.data.leaderboardNow().players;
+        this.send(room.host, saved);
+      }).catch(() => {});
     }
   },
 

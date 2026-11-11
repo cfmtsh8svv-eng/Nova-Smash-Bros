@@ -64,7 +64,7 @@ for (const [name, mutate, reason] of [
   ['more damage dealt than anyone took', (r) => { r.players[0].damageDealt = 5000; }, /dealt/],
   ['more damage taken than three lives allow', (r) => { r.players[1].damageTaken = 2000; r.players[0].damageDealt = 2000; }, /more damage taken than is possible/i],
   ['an end percentage far above 200', (r) => { r.players[0].endPercent = 900; }, /Damage/],
-  ['an unknown fighter', (r) => { r.players[0].fighterId = 'mario'; }, /fighter/],
+  ['an unknown fighter', (r) => { r.players[0].fighterId = 'not_a_fighter'; }, /fighter/],
   ['a player entry that is not an object', (r) => { r.players[1] = 'p2'; }, /malformed/],
   ['players that are not a list', (r) => { r.players = { 0: {}, 1: {} }; }, /player list/],
 ]) {

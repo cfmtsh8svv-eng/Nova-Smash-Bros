@@ -184,6 +184,19 @@ test('host page, an iPhone and an Android phone: register, pick, ready, start, p
   await press(iphone, 'left', 400);
   assert.ok((await fighter(host, 0)).x < beforeRejoin - 30, 'Ana is back in control after the reload');
 
+  // --- a thumb that stays on a direction through a KO keeps working after the respawn
+  const right = await iphone.locator('.key[data-b="right"]').boundingBox();
+  const held = { pointerId: 11, pointerType: 'touch', isPrimary: true, bubbles: true, clientX: right.x + right.width / 2, clientY: right.y + right.height / 2 };
+  await iphone.dispatchEvent('.key[data-b="right"]', 'pointerdown', held);
+  await host.evaluate(() => { window.novaBrawl.state.fighters[0].x = -1000; });
+  await iphone.waitForFunction(() => !document.getElementById('overlay').hidden);
+  assert.match(await iphone.textContent('#overlayText'), /2 lives left/);
+  await host.waitForFunction(() => window.novaBrawl.state.fighters[0].state === 'alive', null, { timeout: 8000 });
+  await iphone.waitForFunction(() => document.getElementById('overlay').hidden);
+  await host.waitForFunction(() => window.novaBrawl.state.fighters[0].x > 700, null, { timeout: 5000 }); // respawns at 640 and walks on
+  await iphone.dispatchEvent('.key[data-b="right"]', 'pointerup', held);
+  assert.equal(await iphone.textContent('#padHearts'), '♥♥♡');
+
   // --- pause is only on the big screen; the phones are told
   await host.keyboard.press('Escape');
   await host.waitForSelector('#pause:not([hidden])');

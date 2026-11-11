@@ -7,6 +7,7 @@ export function createLink({ onOpen = () => {}, onMessage = () => {}, onState = 
   let pingTimer = null;
   let pingSent = 0;
   let pingN = 0;
+  let lastPong = 0;
   let closedByUs = false;
   const link = { connected: false, rttMs: null, send, close, reconnectNow };
 
@@ -29,7 +30,19 @@ export function createLink({ onOpen = () => {}, onMessage = () => {}, onState = 
       onState(true);
       onOpen();
       clearInterval(pingTimer);
+      lastPong = performance.now();
       pingTimer = setInterval(() => {
+        // No answer to three pings in a row: the connection is dead even though it looks
+        // open (the phone left the Wi-Fi, a tunnel swallowed the packets). Start over.
+        if (performance.now() - lastPong > 6500) {
+          link.rttMs = null;
+          try {
+            mine.close();
+          } catch { /* already closing */ }
+          if (ws === mine) mine.onclose({ code: 1006 });
+          return;
+        }
+        if (performance.now() - lastPong > 3000) link.rttMs = null; // overdue: show it as a bad connection
         pingN = (pingN + 1) % 1e6;
         pingSent = performance.now();
         send({ t: 'ping', n: pingN });
@@ -45,6 +58,7 @@ export function createLink({ onOpen = () => {}, onMessage = () => {}, onState = 
       }
       if (!msg || typeof msg.t !== 'string') return;
       if (msg.t === 'pong') {
+        lastPong = performance.now();
         if (msg.n === pingN) link.rttMs = Math.round(performance.now() - pingSent);
         return;
       }
@@ -56,6 +70,7 @@ export function createLink({ onOpen = () => {}, onMessage = () => {}, onState = 
     };
     mine.onclose = (event) => {
       if (ws !== mine) return;
+      ws = null;
       clearInterval(pingTimer);
       const was = link.connected;
       link.connected = false;

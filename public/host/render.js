@@ -607,6 +607,7 @@ export function createRenderer(canvas) {
   // Top right: the hazard's name, then a large 3, 2, 1. Text only.
   function drawHazardText(state, view) {
     const hz = state.hazard;
+    if (state.phase !== 'fight') return; // hazards stop with the final KO: no frozen countdown
     ctx.textAlign = 'right';
     ctx.textBaseline = 'alphabetic';
     if (hz.phase === 'warn') {
@@ -639,8 +640,14 @@ export function createRenderer(canvas) {
       ctx.translate(SCREEN.w / 2, b.y);
       ctx.scale(pop, pop);
       ctx.globalAlpha = Math.min(1, b.life / 12, age / 3 + 0.3);
-      ctx.font = `${b.size}px ${DISPLAY}`;
-      outlined(ctx, b.text, 0, 0, b.color, Math.max(6, b.size / 9));
+      // A long line (a 12-letter gamertag "graduates with honours!") is made smaller until it fits.
+      let size = b.size;
+      ctx.font = `${size}px ${DISPLAY}`;
+      while (ctx.measureText(b.text).width > SCREEN.w - 120 && size > 20) {
+        size -= 2;
+        ctx.font = `${size}px ${DISPLAY}`;
+      }
+      outlined(ctx, b.text, 0, 0, b.color, Math.max(6, size / 9));
       if (b.sub) {
         ctx.font = `${Math.round(b.size * 0.36)}px ${DISPLAY}`;
         outlined(ctx, b.sub, 0, b.size * 0.78, '#f6c343', 7);

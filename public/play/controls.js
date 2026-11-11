@@ -17,12 +17,13 @@ export const STICK = {
 
 export function createControls({ root, dpad, stickZone, ring, knob, onChange }) {
   let mode = 'dpad';
+  let enabled = true; // false while an overlay covers the pad: fingers are remembered, nothing is sent
   let state = neutralInput();
   const pointers = new Map(); // pointerId -> { kind: 'key' | 'stick', buttons: [...], group, ox, oy }
 
   function publish() {
     const next = neutralInput();
-    for (const p of pointers.values()) for (const b of p.buttons) next[b] = true;
+    if (enabled) for (const p of pointers.values()) for (const b of p.buttons) next[b] = true;
     let changed = false;
     for (const key of Object.keys(next)) if (next[key] !== state[key]) changed = true;
     state = next;
@@ -59,6 +60,9 @@ export function createControls({ root, dpad, stickZone, ring, knob, onChange }) 
     const key = event.target.closest ? event.target.closest('.key') : null;
     if (key && root.contains(key)) {
       pointers.set(event.pointerId, { kind: 'key', buttons: [key.dataset.b], group: key.parentElement === dpad ? 'dpad' : 'action' });
+    } else if (mode === 'dpad' && dpad.contains(event.target)) {
+      // The thumb landed between the arrows: nothing yet, but rolling onto an arrow will count.
+      pointers.set(event.pointerId, { kind: 'key', buttons: [], group: 'dpad' });
     } else if (mode === 'stick' && stickZone.contains(event.target)) {
       // The joystick appears where the thumb lands. Only one finger steers.
       if ([...pointers.values()].some((p) => p.kind === 'stick')) return;
@@ -126,6 +130,12 @@ export function createControls({ root, dpad, stickZone, ring, knob, onChange }) 
   return {
     get state() { return { ...state }; },
     get mode() { return mode; },
+    // Mute or unmute the pad without forgetting which fingers are down. A thumb that
+    // stays on "right" through a KO keeps working when the fighter is back.
+    setEnabled(value) {
+      enabled = Boolean(value);
+      publish();
+    },
     setMode(next) {
       mode = next === 'stick' ? 'stick' : 'dpad';
       dpad.hidden = mode !== 'dpad';

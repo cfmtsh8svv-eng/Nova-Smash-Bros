@@ -103,7 +103,9 @@ input.bad { border-color: var(--red); }
 .rotate { position: absolute; inset: 0; background: var(--night); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 18px; z-index: 6; font-family: var(--display); font-size: 20px; text-align: center; padding: 20px; }
 .phoneIcon { width: 60px; height: 104px; border: 5px solid var(--ink); border-radius: 12px; animation: turn 2s ease-in-out infinite; }
 @keyframes turn { 0%, 20% { transform: rotate(0); } 60%, 100% { transform: rotate(90deg); } }
-@media (orientation: portrait) { .pad .rotate { display: flex; } }
+@media (orientation: portrait) { .pad:not(.upright) .rotate { display: flex; } }
+.rotate .hint { font-family: var(--body); font-size: 14px; }
+.rotate button.ghost { font-size: 15px; padding: 8px 18px; }
 
 /* results */
 .place { font-family: var(--display); font-weight: 400; font-size: clamp(40px, 13vw, 76px); color: var(--yellow); text-shadow: 0 4px 0 var(--dark); }

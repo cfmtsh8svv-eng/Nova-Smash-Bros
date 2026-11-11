@@ -34,6 +34,7 @@ const lobby = {
 let screen = 'title';
 let match = null; // { id, players, stageId } while a match is running or its results are shown
 let wantRoom = false;
+let creatingRoom = false;
 
 const game = createGame({
   canvas: $('stage'),
@@ -71,11 +72,19 @@ const link = createLink({
   onOpen() {
     $('offline').hidden = true;
     if (lobby.room) link.send({ t: 'host_resume', code: lobby.room.code, hostKey: lobby.room.hostKey });
-    else if (wantRoom) link.send({ t: 'host_create' });
+    else if (wantRoom) creatingRoom = link.send({ t: 'host_create' });
   },
   onState(connected, code) {
     $('offline').textContent = code === 4002 ? 'This room was opened in another tab. This tab is no longer used.' : 'Connection lost, reconnecting…';
     $('offline').hidden = connected || (screen === 'title' && code !== 4002);
+    if (code === 4002) {
+      // The other tab has the room now: nothing may keep running here.
+      game.stop();
+      match = null;
+      pendingStart = null;
+      lobby.room = null;
+      show('title');
+    }
   },
   onMessage(msg) {
     const handler = MESSAGES[msg.t];
@@ -93,16 +102,35 @@ const MESSAGES = {
     const local = /^(localhost|127\.|\[)/.test(location.host);
     $('netNote').hidden = !local;
     $('netNote').textContent = local ? 'Phones cannot reach "localhost". Open this page through the computer\'s network address or the public URL.' : '';
-    if (msg.resumed && msg.phase === 'match' && !game.running) {
-      // The page was reloaded in the middle of a match: that match is gone.
-      link.send({ t: 'match_abort', matchId: msg.matchId });
-      toast('The page was reloaded, so the running match was ended.');
-    }
-    if (!game.running && screen !== 'results') {
-      show('lobby');
-      lobbyPhase();
-    } else if (game.running && match) {
-      matchPhase(); // phones that joined while we were away get the right screen
+    creatingRoom = false;
+    if (msg.resumed && msg.phase === 'match') {
+      if (pendingStart) {
+        // The connection dropped just after "Start": the server did start the match. Carry on.
+        beginMatch(msg.matchId);
+      } else if (match && match.id === msg.matchId && match.result && !match.saved) {
+        // The match ended while we were offline: send the result now.
+        submitResult();
+      } else if (match && match.id === msg.matchId) {
+        matchPhase(game.paused); // still playing (or loading): phones get the right screen again
+      } else {
+        // The page was reloaded in the middle of a match: that match is gone.
+        link.send({ t: 'match_abort', matchId: msg.matchId });
+        toast('The page was reloaded, so the running match was ended.');
+        show('lobby');
+        lobbyPhase();
+      }
+    } else {
+      if (pendingStart) {
+        // "Start" never reached the server. Back to the lobby, where it can be pressed again.
+        pendingStart = null;
+        toast('The connection dropped before the match could start. Press Start again.');
+      }
+      if (match && match.result && !match.saved && screen === 'results') {
+        $('resultNote').textContent = 'The connection was lost when the match ended, so this result could not be saved.';
+      } else if (screen !== 'results' && !game.running) {
+        show('lobby');
+        lobbyPhase();
+      }
     }
     refreshBoard();
   },
@@ -123,8 +151,8 @@ const MESSAGES = {
       if (old && old.connected !== p.connected) game.setConnected(p.slot);
     }
     for (const slot of lobby.stageVotes.keys()) if (!msg.players.some((p) => p.slot === slot)) lobby.stageVotes.delete(slot);
-    // Keyboard players only fit into the slots that are left.
-    while (lobby.guests.length && lobby.guests.length + msg.players.length > 4) lobby.guests.pop();
+    // Keyboard players only fit into the slots that are left (decided in the lobby, not mid-match).
+    while (!match && lobby.guests.length && lobby.guests.length + msg.players.length > 4) lobby.guests.pop();
     renderLobby();
   },
 
@@ -359,8 +387,13 @@ function requestStart() {
   const stageId = lobby.stage === 'vote' ? tallyVote(STAGE_IDS, [...lobby.stageVotes.values()], Math.random) : lobby.stage;
   pendingStart = { stageId, players: all, settings: { lives: lobby.lives, items: lobby.items, hazards: lobby.hazards } };
   audio.unlock();
+  const sent = link.send({ t: 'match_start', stage: stageId, lives: lobby.lives, slots: phones.map((p) => p.slot), guests: keys.length, guestSlots: keys.map((k) => k.slot) });
+  if (!sent) {
+    pendingStart = null;
+    toast('No connection to the server right now. Try again in a moment.');
+    return;
+  }
   show('loading');
-  link.send({ t: 'match_start', stage: stageId, lives: lobby.lives, slots: phones.map((p) => p.slot), guests: keys.length });
 }
 
 function matchPhase(paused = false) {
@@ -400,7 +433,9 @@ function quitMatch() {
 }
 
 window.addEventListener('keydown', (event) => {
-  if (event.code === 'Escape' || (event.code === 'KeyP' && !(game.running && lobby.guests.some((g) => g.keys === 1)))) {
+  // P pauses too, unless the second keyboard player is in this match: then P is their special.
+  const pIsTaken = Boolean(match && match.players.some((p) => p.keys === 1));
+  if (event.code === 'Escape' || (event.code === 'KeyP' && !pIsTaken)) {
     if (screen === 'match') setPaused(true);
     else if (screen === 'pause') setPaused(false);
   }
@@ -446,13 +481,21 @@ function showResults(result) {
   }));
   fillBoard($('resultBoard'), null);
 
+  submitResult();
+}
+
+// Send the result to the server and each phone's own line to the phones. Called again
+// after a reconnect if the match ended while the connection was down.
+function submitResult() {
+  const result = match.result;
   // The phones get their own line at once; points and achievements follow when the server has answered.
   sendResultPhases(result, null);
-  link.send({ t: 'match_result', matchId: match.id, result });
-  // If the server does not answer (connection lost), say so instead of waiting forever.
+  const sent = link.send({ t: 'match_result', matchId: match.id, result });
+  if (!sent) $('resultNote').textContent = 'No connection right now. The result is sent as soon as it is back.';
+  // If the server does not answer, say so instead of waiting forever.
   setTimeout(() => {
     if (match && match.result === result && !match.saved && $('resultNote').textContent === 'Saving the result…') {
-      $('resultNote').textContent = 'The server has not confirmed the result yet. It is saved as soon as the connection is back.';
+      $('resultNote').textContent = 'The server has not confirmed the result yet. It is sent again when the connection is back.';
     }
   }, 6000);
 }
@@ -508,7 +551,9 @@ $('openRoom').addEventListener('click', () => {
   audio.play('go');
   wantRoom = true;
   if (lobby.room) show('lobby');
-  else if (!link.send({ t: 'host_create' })) toast('Connecting to the server…');
+  else if (creatingRoom) return; // a second click while the first room is on its way
+  else if (link.send({ t: 'host_create' })) creatingRoom = true;
+  else toast('Connecting to the server…');
 });
 
 // A reload keeps the room: the code on the wall and the players stay valid.

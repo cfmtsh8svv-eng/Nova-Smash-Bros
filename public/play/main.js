@@ -33,7 +33,10 @@ const feedback = createFeedback($('flash'));
 
 function show(name) {
   for (const id of SCREENS) $(id).hidden = id !== name;
-  if (name !== 'pad') controls.releaseAll();
+  if (name !== 'pad') {
+    controls.releaseAll();
+    hideHazard(); // a countdown from the last match must not be there in the next one
+  }
   if (name === 'pad') keepAwake();
 }
 
@@ -54,14 +57,14 @@ const link = createLink({
     $('offline').hidden = true;
     me.joined = false;
     me.joining = false;
-    tryJoin();
+    if (!me.replaced) tryJoin(); // a tab that was replaced by a newer one stays out until asked
   },
   onState(connected) {
     if (!connected) {
       me.joined = false;
       $('offline').textContent = 'Connection lost, reconnecting…';
       $('offline').hidden = !me.token || $('auth').hidden === false;
-      controls.releaseAll();
+      controls.setEnabled(false); // nothing is sent while offline; fingers that are down are remembered
     }
   },
   onMessage(msg) {
@@ -85,6 +88,7 @@ const MESSAGES = {
   joined(msg) {
     me.joined = true;
     me.joining = false;
+    me.replaced = false;
     me.slot = msg.slot;
     me.gamertag = msg.gamertag;
     me.status = null;
@@ -115,13 +119,20 @@ const MESSAGES = {
         me.ready = false; // a new round: ready up again ...
         me.stageVote = null; // ... and vote again (the host counts from zero)
       }
+      me.status = null; // nothing of the last match (damage, "You're out!") carries over
       $('stageVote').hidden = !msg.vote;
       if (msg.vote && Array.isArray(msg.stages)) buildStageVote(msg.stages);
       showSelect();
     } else if (msg.name === 'match') {
       if (Array.isArray(msg.slots) && msg.slots.includes(me.slot)) {
         me.lives = [1, 2, 3].includes(msg.lives) ? msg.lives : 3;
-        buildHazardVote(Array.isArray(msg.hazards) ? msg.hazards : []);
+        // Only rebuilt when the list changes, so a vote stays highlighted through a pause.
+        const hazards = JSON.stringify(Array.isArray(msg.hazards) ? msg.hazards : []);
+        if (hazards !== me.hazards) {
+          me.hazards = hazards;
+          buildHazardVote(JSON.parse(hazards));
+        }
+        if ($('pad').hidden) hideHazard();
         show('pad');
         updateOverlay(Boolean(msg.paused));
       } else {
@@ -130,6 +141,12 @@ const MESSAGES = {
     } else if (msg.name === 'results') {
       showResults(msg);
     }
+  },
+
+  // The server's word on this player's own slot (sent when a match ends or is cancelled).
+  slot(msg) {
+    me.ready = Boolean(msg.ready);
+    if (!$('select').hidden) showSelect();
   },
 
   status(msg) {
@@ -157,7 +174,9 @@ const MESSAGES = {
     feedback.fire(msg);
     if (msg.kind === 'ko' || msg.kind === 'out') {
       me.koTitle = String(msg.title || 'KO!');
-      me.koText = String(msg.text || '');
+      // The line repeats the title ("LAUNCHED! 2 lives left."): on the overlay the title is shown once.
+      const line = String(msg.text || '');
+      me.koText = line.startsWith(me.koTitle) ? line.slice(me.koTitle.length).trim() : line;
     }
     // A KO is shown big on the overlay; everything else as a line at the bottom.
     else if (msg.text) showMessage(String(msg.text));
@@ -172,14 +191,17 @@ const MESSAGES = {
   closed(msg) {
     me.joined = false;
     me.room = null;
+    $('offline').hidden = true;
     notice(String(msg.msg || 'The room was closed.'), 'Enter another code', () => showAuth());
   },
 
   signed_out(msg) {
     me.joined = false;
     if (msg.code === 'replaced') {
-      // The same player was opened in another tab: this one just steps aside.
-      return notice(String(msg.msg), 'Use this one instead', () => { notice('Joining…'); tryJoin(); });
+      // The same player was opened in another tab: this one steps aside and stays there
+      // (it does not rejoin by itself, or the two tabs would throw each other out for ever).
+      me.replaced = true;
+      return notice(String(msg.msg), 'Use this one instead', () => { me.replaced = false; notice('Joining…'); tryJoin(); });
     }
     forgetLogin();
     return notice(String(msg.msg || 'You were signed out.'), 'Log in again', () => showAuth('login'));
@@ -228,7 +250,6 @@ function showAuth(mode = authMode) {
   $('tabLogin').setAttribute('aria-selected', String(mode === 'login'));
   $('pin2Row').hidden = mode !== 'register';
   $('authSubmit').textContent = mode === 'register' ? 'Create player' : 'Log in';
-  $('pinInput').autocomplete = mode === 'register' ? 'new-password' : 'current-password';
   // The room code is only asked for when the QR link did not bring one.
   const needRoom = !me.room;
   $('roomInput').hidden = !needRoom;
@@ -244,6 +265,7 @@ function showAuth(mode = authMode) {
     $('authSubmit').textContent = 'Join the room';
   }
   clearErrors();
+  $('offline').hidden = true;
   show('auth');
 }
 
@@ -324,13 +346,7 @@ function buildCarousel() {
   carousel.addEventListener('scroll', () => {
     clearTimeout(settle);
     settle = setTimeout(() => {
-      const mid = carousel.scrollLeft + carousel.clientWidth / 2;
-      let best = 0;
-      let bestDistance = Infinity;
-      for (const card of carousel.children) {
-        const d = Math.abs(card.offsetLeft + card.offsetWidth / 2 - mid);
-        if (d < bestDistance) { bestDistance = d; best = Number(card.dataset.index); }
-      }
+      const best = centredFighter();
       if (best !== me.fighter && !me.ready) {
         me.fighter = best;
         markCurrent();
@@ -363,7 +379,22 @@ function showSelect() {
   $('selectHint').textContent = me.ready ? `${FIGHTERS[me.fighter].name} is in. Waiting for the host to start…` : 'Swipe to choose your fighter';
 }
 
+// The card that is in the middle of the carousel right now.
+function centredFighter() {
+  const carousel = $('carousel');
+  const mid = carousel.scrollLeft + carousel.clientWidth / 2;
+  let best = me.fighter;
+  let bestDistance = Infinity;
+  for (const card of carousel.children) {
+    const d = Math.abs(card.offsetLeft + card.offsetWidth / 2 - mid);
+    if (d < bestDistance) { bestDistance = d; best = Number(card.dataset.index); }
+  }
+  return best;
+}
+
 function toggleReady() {
+  // Ready right after a swipe takes the fighter that is on screen, not the one from before.
+  if (!me.ready) me.fighter = centredFighter();
   me.ready = !me.ready;
   link.send({ t: 'pick', fighter: FIGHTERS[me.fighter].id, ready: me.ready });
   feedback.sound(me.ready ? 'ready' : 'tap');
@@ -428,7 +459,7 @@ function updateOverlay(paused) {
   $('overlayTitle').textContent = title;
   $('overlayText').textContent = text;
   $('hazardVote').hidden = state !== 'out' || $('hazardVote').children.length === 0;
-  if (title) controls.releaseAll();
+  controls.setEnabled(!title && me.joined);
 }
 
 function showHazard(name, count) {
@@ -456,6 +487,8 @@ function showMessage(text) {
 function drawCooldown() {
   requestAnimationFrame(drawCooldown);
   if ($('pad').hidden) return;
+  const paused = Boolean(me.phase && me.phase.paused);
+  if (paused) me.cd.at = performance.now(); // the strip stands still while the match is paused
   const left = Math.max(0, me.cd.left - ((performance.now() - me.cd.at) / 1000) * 60);
   $('cooldown').style.transform = `scaleX(${1 - Math.min(1, left / me.cd.max)})`;
   $('cooldown').parentElement.classList.toggle('ready', left <= 0);
@@ -510,6 +543,8 @@ $('authForm').addEventListener('submit', submitAuth);
 $('tabRegister').addEventListener('click', () => showAuth('register'));
 $('tabLogin').addEventListener('click', () => showAuth('login'));
 $('ready').addEventListener('click', toggleReady);
+// With the phone's rotation lock on, turning it does nothing: let the player carry on upright.
+$('rotateSkip').addEventListener('click', () => $('pad').classList.add('upright'));
 $('modeToggle').addEventListener('click', () => setMode(controls.mode === 'stick' ? 'dpad' : 'stick'));
 $('leave').addEventListener('click', () => { link.send({ t: 'leave' }); });
 // "Log out" also makes the stored login useless everywhere, for a phone that is passed on.

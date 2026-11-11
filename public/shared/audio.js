@@ -79,7 +79,7 @@ export function createAudio({ music = 0.45, effects = 0.8 } = {}) {
         const data = noiseBuffer.getChannelData(0);
         for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
       }
-      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      if (ctx.state !== 'running') ctx.resume().catch(() => {}); // 'suspended', or 'interrupted' after a call on an iPhone
       if (track && !timer) startSequencer();
       return true;
     } catch {

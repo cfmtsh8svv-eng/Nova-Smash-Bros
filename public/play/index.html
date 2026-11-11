@@ -29,12 +29,12 @@
       <p class="error" id="tagError" role="alert"></p>
 
       <label for="pinInput">4-digit PIN</label>
-      <input id="pinInput" name="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="current-password" placeholder="••••">
+      <input id="pinInput" name="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="••••">
       <p class="error" id="pinError" role="alert"></p>
 
       <div id="pin2Row">
         <label for="pin2Input">PIN again</label>
-        <input id="pin2Input" name="pin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password" placeholder="••••">
+        <input id="pin2Input" name="pin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="••••">
         <p class="error" id="pin2Error" role="alert"></p>
       </div>
 
@@ -99,7 +99,7 @@
       <p id="overlayText"></p>
       <div id="hazardVote" class="voteButtons" hidden></div>
     </div>
-    <div id="rotate" class="rotate"><div class="phoneIcon"></div><p>Turn your phone sideways</p></div>
+    <div id="rotate" class="rotate"><div class="phoneIcon"></div><p>Turn your phone sideways</p><p class="hint">Nothing happens? Switch off the rotation lock, or</p><button id="rotateSkip" class="ghost">play upright</button></div>
   </section>
 
   <!-- Results -->

@@ -84,7 +84,7 @@ The server reads four environment variables:
 - **On Render:** Dashboard → your service → **Environment** → add the four variables → **Save changes**. Render restarts the service.
 - **On the Mac mini or your laptop:** copy `.env.example` to `.env` in the project folder and fill in the four values. `.env` is git-ignored; never commit it.
 
-If only some of the four are set, the server stops at start with a message saying which one is missing. That is on purpose: a half-configured server would lock players out later.
+The two `SHEETS_` values belong together: with only one of them the server stops at start and says so. With both set, it also insists on `PIN_PEPPER` and `SESSION_SECRET` (at least 16 characters each) and names the one that is missing. That is on purpose: a half-configured server would lock players out later. With neither `SHEETS_` value it starts with the in-memory store.
 
 ## 8. Check that it works
 

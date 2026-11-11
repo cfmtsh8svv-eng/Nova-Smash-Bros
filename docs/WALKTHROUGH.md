@@ -59,9 +59,10 @@ In a **Google Sheet** with two tabs:
 
 Only the server reaches the sheet, through a small script that lives inside the sheet (`apps-script/Code.gs`). Browsers never talk to the sheet.
 
-Three more things are stored, in other places:
+A few more things are stored, in other places:
 
 - **On the phone** (the browser's local storage): the login token, the gamertag, and the chosen control mode. That is what logs a returning player in automatically.
+- **In the host page's tab** (session storage): the room code and the room's secret key, so a reload of the page keeps the room. It is gone when the tab is closed.
 - **In the server's memory**, only while it runs: the open rooms, results that are waiting to be written, wrong-PIN counters. These are lost on a restart.
 - **Nowhere:** the match itself. It exists only in the host page while it is played.
 
@@ -74,7 +75,7 @@ There is no database. That was a team decision: a sheet is something everyone ca
 - **The rules:** knockback, the 200 % burnout, every blast zone, respawn and invincibility, lives, how a match ends, jumping, aiming, each of the eight specials inside and outside its range, each item, each hazard with its safe platform, the vote, and that slow motion never changes a result.
 - **The server:** every way a registration or login is refused, the lockout, tampered and expired tokens, who may start a match and submit a result, implausible results, malformed, oversized and unknown messages, reconnects, and what happens when the sheet is down.
 - **End to end:** a real server, one host and four controllers over real WebSockets play a whole match with the real rules; the result arrives in the store and on the leaderboard.
-- **In a real browser** (`npm run test:browser`): the host page plus an emulated iPhone and an emulated Android phone register, pick, ready up, start and play; the fighters on the big screen follow the phones and no page logs an error.
+- **In a real browser** (`npm run test:browser`): the host page plus an emulated iPhone and an emulated Android phone register, pick, ready up, start and play; the fighters on the big screen follow the phones and no page logs an error. A second test plays a whole evening (stage vote, a keyboard player, a hazard announcement, an elimination with the hazard vote, results, a second match, removing a player, logging out). A third cuts the host's connection at the worst moments (around Start, in mid-match, when the match ends).
 
 **Not covered:**
 
@@ -129,7 +130,7 @@ Everything that decides the outcome of a match: how fighters move, when an attac
 ### The idea: a function, not a program
 
 ```
-createMatch(stage, players, settings, seed)   →  the match state (one plain object)
+createMatch({ stageId, players, settings, seed })   →  the match state (one plain object)
 step(state, inputs)                            →  advances it by 1/60 second, returns events
 ```
 
@@ -145,7 +146,7 @@ Nothing in here touches the screen, the network or the clock. Even chance comes 
 
 1. For every fighter: read the input, turn it into speed (`physics.js`), start an attack or special if a button was pressed.
 2. Move every fighter and sort out the platforms: land on them, bump into the ground's side wall.
-3. Work out which attacks hit (`attacks.js`, `specials.js`). All hits of a step are collected first and applied together, so two players who hit each other at the same moment both get hit.
+3. Work out which attacks hit (`attacks.js`, `specials.js`). The normal attacks of a step are collected first and applied together, so two players who hit each other at the same moment both get hit. (A special takes effect at once, in player order.)
 4. Move what flies (ball, book, mini tram), update items and the hazard.
 5. Check who left the screen (a KO), and whether only one player is left.
 
@@ -153,7 +154,7 @@ Nothing in here touches the screen, the network or the clock. Even chance comes 
 
 | File | What is in it |
 |---|---|
-| `config.js` | **Every tuning value**: gravity, jump height, attack damage, each special's numbers, item and hazard values. Change a number here to change the feel. |
+| `config.js` | **The tuning values of the rules**: gravity, jump height, attack damage, each special's numbers, item and hazard values. Change a number here to change the feel. |
 | `fighters.js`, `stages.js` | The eight fighters (names, attack names, phone messages) and the three stages (platforms, start positions, which hazards) |
 | `physics.js` | Running, jumping, gravity, platforms |
 | `combat.js` | What a hit does: damage, knockback, KO |
@@ -176,7 +177,7 @@ More damage means a faster launch. A heavier fighter is launched more slowly. Af
 
 **The input buffer.** Messages from a phone arrive at any moment, but the game only looks once per step. Without care, a quick tap that starts and ends between two steps would be lost. `InputBuffer` remembers "this button went down since the last step" and reports it once. If two presses arrive bunched together after a network hiccup, it plays them back on two steps instead of merging them.
 
-**Slow motion that cannot change the result.** The final KO runs in slow motion for two seconds, and strong hits freeze the game for a moment. Both are done in `loop.js` by changing *when* the next step is taken, never *what* a step does. A step is always 1/60 second of game time. A test plays whole matches with and without these effects and checks that every event happens on the same step.
+**Slow motion that cannot change the result.** The final KO runs in slow motion for two seconds, and every hit freezes the game for a moment (a strong one a little longer). Both are done in `loop.js` by changing *when* the next step is taken, never *what* a step does. A step is always 1/60 second of game time. A test plays whole matches with and without these effects and checks that every event happens on the same step.
 
 ### Why it was built this way
 
@@ -288,7 +289,7 @@ The script in the sheet (`Code.gs`) is the last guard before a cell is written. 
 
 **Drawing order**, back to front: the stage (one prepared picture), hazards behind the fighters, items, fighters, things that fly, hazards in front (train, wave, crowd), effects, name tags, and last the display on top: player cards top left, hazard countdown top right, big texts in the middle.
 
-**The lobby** shows the QR code, the four slots and the settings. A new player's card pops in with a flash in their colour; until they tap Ready it shows a grey silhouette.
+**The lobby** shows the QR code, the four slots and the settings. A new player's card pops in with a flash in their colour; until they have chosen a fighter it shows a grey silhouette.
 
 ### The phone page (`public/play/`)
 
@@ -362,7 +363,7 @@ What is deliberately **not** protected, and why: see the next section.
 | Command | What runs |
 |---|---|
 | `npm test` | `tests/game/` (the rules) and `tests/server/` (the server, including the end-to-end match) |
-| `npm run test:browser` | `tests/browser/smoke.test.js` in a real browser |
+| `npm run test:browser` | The three files in `tests/browser/` in a real browser: `smoke` (join and play), `flow` (a whole evening), `regressions` (connection drops) |
 | `npm audit --audit-level=high` | Known problems in dependencies |
 
 All three run in GitHub Actions on every push and pull request.
@@ -371,7 +372,7 @@ How the tests are organised:
 
 - `rules`, `movement`, `specials`, `items`, `hazards`, `input`, `view`: one file per area of the rules.
 - `exact.test.js` (rules) and `strict.test.js` (server): tests that use the **literal numbers from the spec** instead of reading them from the code, so changing a rule by accident fails a test.
-- `regressions.test.js` (both): one test for each defect the reviewers found. Each failed before its fix.
+- `regressions.test.js` (rules, server, browser): tests for the defects the reviewers found. In the rules and the server there is one for each defect, and each failed before its fix. In the client, the defects a browser test can reach are covered (connection drops, a held button through a KO); the rest was checked by hand.
 - `accounts`, `rooms`, `reconnect`, `results`, `outage`, `http`, `e2e`: the server by topic.
 
 Tests use Node's built-in test runner. There is no test framework to learn.
@@ -406,7 +407,7 @@ Say these plainly when asked; they are choices, not accidents.
 |---|---|
 | **Results nobody can fake** | Run the rules on the server too. Because the rules are pure and repeatable, the server could replay a match from the recorded inputs and check the result, or run the match itself. |
 | **More players or many rooms** | Replace the sheet with a real database, and keep rooms in a shared store so several servers can run. Only `server/store/` and `server/data.js` would change, because everything goes through one interface. |
-| **Demo mode** | Add a lobby toggle that sets three values in the settings object (1 life, hazards every 15 s, a 120 s time cap). The time-cap rule already exists and is tested. |
+| **Demo mode** | Add a lobby toggle that sets three values in the settings object (1 life, hazards every 15 s, a 120 s time cap). The time-cap rule already exists in the rules and is tested. Two more places must then learn about it: the host has to send the cap with the start, and the server's result check has to accept a match that ended at the cap (today it refuses those on purpose). |
 | **A ninth fighter** | Add its looks in `public/shared/art/characters.js`, its numbers in `config.js`, its texts in `fighters.js` and one function for its special in `specials.js`. |
 | **A new stage** | Add platforms and hazards in `src/game/stages.js` and a drawing function in `art/stages.js`. |
 | **A new hazard or item** | One entry in `hazards.js` or `items.js`, numbers in `config.js`, one test for its safe platform. |
@@ -475,6 +476,6 @@ The fighter stands still and can still be hit. The phone reconnects by itself, s
 
 ## 11. How it was built
 
-The team decided the game in a planning session (the option rounds are in `design/options/`, the decisions in `DECISIONS.md`, the result in `GAME_SPEC.md`). The code was then written with Claude in one session, in three packages: rules, server, client. After each package, independent reviewer agents that had not written the code checked it against the spec, hunted for bugs, checked security, and tried to break the tests. Every finding was reproduced before it was fixed, and each fixed defect has a regression test. Decisions made along the way are listed in `DECISIONS.md` (D-098 onwards) for the team to confirm.
+The team decided the game in a planning session (the option rounds are in `design/options/`, the decisions in `DECISIONS.md`, the result in `GAME_SPEC.md`). The code was then written with Claude in one session, in three packages: rules, server, client. After each package, independent reviewer agents that had not written the code checked it against the spec, hunted for bugs, checked security, and tried to break the tests. Every finding was reproduced before it was fixed. Each fixed defect in the rules and the server has a regression test; the client fixes are covered where a browser test can reach them. Decisions made along the way are listed in `DECISIONS.md` (D-098 onwards) for the team to confirm.
 
-Every commit names Claude as co-author, so the history is honest about how the code was written. The tasks in `TEAM_TASKS.md` are there so that each member changes and explains their own part.
+Every commit of the build names Claude as co-author, so the history is honest about how the code was written. The tasks in `TEAM_TASKS.md` are there so that each member changes and explains their own part.

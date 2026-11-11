@@ -27,7 +27,7 @@ Rule from [`AGENTS.md`](../AGENTS.md): never change a test just to make it pass.
 
 | # | Task | Where | Test to add or change |
 |---|---|---|---|
-| S1 | **A new achievement: "Marathon"** for finishing a match that lasted five minutes or longer. | `ACHIEVEMENTS` and `newAchievements` in `server/results.js` (the duration is in the checked result; pass it in) | In `tests/server/results.test.js`: earned at 300 s, not at 299 s, not earned twice. Update the "eight achievements" test to nine |
+| S1 | **A new achievement: "Marathon"** for finishing a match that lasted five minutes or longer. | `ACHIEVEMENTS` and `newAchievements` in `server/results.js` (the duration is in the checked result; pass it in) | In `tests/server/results.test.js`: earned at 300 s, not at 299 s, not earned twice. Update the two tests that count eight achievements (in `results.test.js` and `http.test.js`) to nine |
 | S2 | **Friendlier lockout message.** Show the remaining time in minutes *and* seconds when less than two minutes are left ("Try again in 1 min 20 s"). | `lockedReply` in `server/app.js` | In `tests/server/accounts.test.js`: move the clock to 80 s before the lock ends and check the text |
 | S3 | **Show wins on the leaderboard.** The API already returns `wins`; add it to the text the host page shows, and add a test that the API returns it for every row. | `fillBoard` in `public/host/main.js`, `tests/server/strict.test.js` | A test on `/api/leaderboard` that every row has `rank`, `gamertag`, `points`, `wins`, `matches` and nothing else |
 
@@ -35,7 +35,7 @@ Rule from [`AGENTS.md`](../AGENTS.md): never change a test just to make it pass.
 
 | # | Task | Where | Test to add or change |
 |---|---|---|---|
-| C1 | **Choose the default control mode.** After playtesting with real phones, decide between D-pad and joystick as the default for new players, and write the decision into `docs/DECISIONS.md`. | The last lines of `public/play/main.js` (`setMode(...)`) | In `tests/browser/smoke.test.js`: a fresh phone starts in the chosen mode |
+| C1 | **Choose the default control mode.** After playtesting with real phones, decide between D-pad and joystick as the default for new players, and write the decision into `docs/DECISIONS.md`. | Near the end of `public/play/main.js`, the line that calls `setMode(...)` | In `tests/browser/smoke.test.js`: a fresh phone starts in the chosen mode |
 | C2 | **Tune the joystick.** Try the dead zone and the up/down thresholds on a real phone until looking up does not happen by accident while running. | `STICK` in `public/play/controls.js` | In the smoke test: a small drag inside the dead zone does not move the fighter |
 | C3 | **A copy pass on the phone.** Read every message a player can see on the phone and make each one shorter or clearer where you can (keep the meaning; errors must still say what to do). | Texts in `public/play/main.js` and `public/play/index.html`; error texts in `server/rooms.js` and `server/app.js` belong to the server owner, so agree on those together | Update the texts the smoke test checks (for example "Room not found", "too short") |
 
@@ -43,4 +43,4 @@ Rule from [`AGENTS.md`](../AGENTS.md): never change a test just to make it pass.
 
 - Play five matches on real phones and write down what felt wrong. Each note is either a tuning value (see G1, C2) or a row for `docs/DECISIONS.md`.
 - Read your section of [`WALKTHROUGH.md`](WALKTHROUGH.md) out loud once. If a sentence is hard to say, rewrite it in your own words and commit that.
-- Demo mode is described in [`DEMO.md`](DEMO.md). It is a good bigger task if there is time: the settings it needs already exist.
+- Demo mode is described in [`DEMO.md`](DEMO.md). It is a good bigger task if there is time: the settings and the time-cap rule already exist; the lobby toggle, sending the cap to the server and letting the server accept a time-capped result are what is left.

@@ -20,6 +20,7 @@ The presentation slot is short. A normal match runs until one player is left and
 
 ## Notes for whoever builds it
 
-- Match settings already live in one settings object (lives, hazard interval, time cap). Demo mode should only set those values, not add new rules elsewhere.
+- Match settings already live in one settings object (lives, hazard interval, time cap), and the time-cap rule exists in `src/game/match.js` with a test. In the rules, demo mode only has to set those values.
+- Outside the rules three small things are needed: a toggle in the lobby (`public/host/main.js`), the cap in the `match_start` message, and the server's result check (`server/results.js`) accepting a match that ended at the cap. Today it refuses those on purpose, because the normal game has no time limit.
 - Tests to add: the match ends at 120 s; lowest damage wins; the tie-break; a normal match is unaffected.
 - Open the deployed URL two minutes before presenting, because the free host sleeps when idle.

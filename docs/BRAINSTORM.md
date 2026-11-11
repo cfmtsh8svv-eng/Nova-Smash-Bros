@@ -1,5 +1,7 @@
 # NOVA Brawl: Brainstorm
 
+> **Historical (2026-11-03).** Ideas from the first concept phase. What was built is in [`GAME_SPEC.md`](GAME_SPEC.md) and the decisions are in [`DECISIONS.md`](DECISIONS.md): accounts, leaderboard, achievements and pause rules were decided there (D-054, D-067, D-069, D-070). References below to requirement numbers and open questions point to an older plan that no longer exists.
+
 Ideas we want to remember but have **not committed to yet**. Nothing in this file is in scope until it has a decision in [`DECISIONS.md`](DECISIONS.md) and a requirement in [`SPECS.md`](SPECS.md). Several ideas are shown visually in the [mock-up](../mockup/index.html).
 
 **Status tags:** `idea` · `open decision O-xx` (waiting for a team decision) · `in specs F-xx` (already planned) · `dropped`

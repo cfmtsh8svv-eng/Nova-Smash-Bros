@@ -35,8 +35,8 @@ host page  --result-->  server  --https-->  Apps Script web app  -->  Google She
 | Value | Where |
 |---|---|
 | 1280 x 720 playing field, 60 steps per second | `src/game/config.js` |
-| All tuning values (physics, attacks, specials, items, hazards) | `src/game/config.js` |
-| All server limits (sizes, rates, timeouts) | `server/config.js` |
+| The tuning values of the rules (physics, attacks, specials, items, hazards) | `src/game/config.js` |
+| The server's limits (sizes, rates, hold times) | `server/config.js` |
 | Joystick dead zone and thresholds | `public/play/controls.js` |
 
 ## Commands

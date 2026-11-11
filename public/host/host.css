@@ -36,13 +36,13 @@ button.plain { background: transparent; box-shadow: none; color: var(--mute); }
 .codeline b { font-weight: 400; color: var(--yellow); letter-spacing: 0.18em; font-size: 3.6cqw; }
 
 .slots { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.1cqw; width: 100%; }
-.slot { --p: #5b5670; position: relative; display: grid; grid-template-columns: 9cqw 1fr; align-items: center; gap: 0.6cqw; height: 11.5cqw; background: rgba(22, 18, 42, 0.86); border: 0.3cqw solid var(--p); border-radius: 1.2cqw; padding: 0.6cqw 0.9cqw; overflow: hidden; }
+.slot { --p: #5b5670; position: relative; display: grid; grid-template-columns: 7cqw minmax(0, 1fr); align-items: center; gap: 0.5cqw; height: 12.5cqw; background: rgba(22, 18, 42, 0.86); border: 0.3cqw solid var(--p); border-radius: 1.2cqw; padding: 0.6cqw 0.9cqw; overflow: hidden; }
 .slot.empty { border-style: dashed; opacity: 0.6; }
-.slot canvas { width: 9cqw; height: auto; image-rendering: pixelated; }
-.slot .tag { display: inline-block; background: var(--p); color: #fff; font-weight: 800; font-size: 1.25cqw; padding: 0.05em 0.8em; border-radius: 99px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot canvas { width: 7cqw; height: auto; image-rendering: pixelated; }
+.slot .tag { display: block; width: fit-content; background: var(--p); color: #fff; font-weight: 800; font-size: 1cqw; padding: 0.05em 0.7em; border-radius: 99px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slot.p4 .tag { color: var(--dark); }
-.slot .fighter { font-family: var(--display); font-size: 1.15cqw; line-height: 1.15; margin-top: 0.4cqw; }
-.slot .state { font-size: 1.05cqw; color: var(--mute); margin-top: 0.2cqw; }
+.slot .fighter { font-family: var(--display); font-size: 1.05cqw; line-height: 1.15; margin-top: 0.4cqw; }
+.slot .state { font-size: 0.95cqw; line-height: 1.25; color: var(--mute); margin-top: 0.2cqw; }
 .slot .state.ready { color: var(--green); }
 .slot .state.away { color: var(--yellow); }
 .slot .pickers { display: flex; gap: 0.4cqw; margin-top: 0.3cqw; }

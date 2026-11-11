@@ -214,7 +214,7 @@ function renderSlot(index) {
   } else if (guest) {
     const fighter = FIGHTERS[guest.fighter];
     info.append(el('span', 'tag', `P${index + 1} · ${KEYMAPS[guest.keys].name}`));
-    paintSprite(picture, fighter.id).catch(() => {});
+    paintSprite(picture, fighter.id, { mainColour: guestIsDuplicate(index, fighter.id) ? PLAYER_COLORS[index] : null }).catch(() => {});
     info.append(el('div', 'fighter', fighter.name));
     const pickers = el('div', 'pickers');
     for (const [label, step] of [['◀', -1], ['▶', 1]]) {
@@ -237,9 +237,13 @@ function renderSlot(index) {
   return card;
 }
 
-// The later player with the same fighter wears the player colour.
+// The later player with the same fighter wears the player colour (lower slots come first).
 function isDuplicate(player) {
   return lobby.roster.some((p) => p.slot < player.slot && p.fighter === player.fighter);
+}
+function guestIsDuplicate(slot, fighterId) {
+  const { all } = lineup();
+  return all.some((p) => p.slot < slot && p.fighterId === fighterId) || lobby.roster.some((p) => p.slot < slot && p.fighter === fighterId);
 }
 
 function renderLobby() {

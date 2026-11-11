@@ -156,7 +156,8 @@ const MESSAGES = {
       me.koTitle = String(msg.title || 'KO!');
       me.koText = String(msg.text || '');
     }
-    if (msg.text) showMessage(String(msg.text));
+    // A KO is shown big on the overlay; everything else as a line at the bottom.
+    else if (msg.text) showMessage(String(msg.text));
     return undefined;
   },
 

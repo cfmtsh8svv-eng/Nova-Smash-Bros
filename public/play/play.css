@@ -120,14 +120,19 @@ input.bad { border-color: var(--red); }
 .offline { position: fixed; left: 50%; top: max(8px, env(safe-area-inset-top)); transform: translateX(-50%); background: var(--dark); border: 3px solid var(--red); border-radius: 12px; padding: 4px 14px; font-size: 14px; z-index: 10; white-space: nowrap; }
 
 @media (orientation: landscape) and (max-height: 500px) {
-  #select { flex-direction: row; flex-wrap: wrap; justify-content: center; align-content: flex-start; }
-  #select .bar { flex-basis: 100%; }
-  .carousel { height: 62vh; flex: none; padding: 2px 30vw; }
-  .card { flex-basis: 40vw; flex-direction: row; flex-wrap: wrap; justify-content: center; align-content: center; }
-  .card canvas { height: 30vh; }
-  .card h3 { flex-basis: 55%; text-align: left; }
+  /* Fighter select on a phone held sideways: the picture sits beside the text. */
+  #select { gap: 4px; padding-top: 6px; padding-bottom: 6px; }
+  #select .bar { position: absolute; top: 6px; left: 12px; right: 12px; width: auto; z-index: 1; pointer-events: none; }
+  #select .bar > * { pointer-events: auto; }
+  .carousel { padding: 2px 24vw; }
+  .card { flex-basis: 52vw; max-width: none; display: grid; grid-template-columns: auto minmax(0, 1fr); align-content: center; align-items: center; column-gap: 12px; row-gap: 3px; padding: 8px 14px; }
+  .card canvas { grid-row: 1 / span 4; height: min(38vh, 140px); align-self: center; }
+  .card h3 { text-align: left; font-size: 17px; }
+  .card dl { font-size: 12.5px; }
   .card .about { display: none; }
-  #selectHint { flex-basis: 100%; }
+  .bars { font-size: 12px; }
+  #ready { font-size: 18px; padding: 8px 22px; }
+  #selectHint { font-size: 12px; }
   .screen.scroll { justify-content: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) {

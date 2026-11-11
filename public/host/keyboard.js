@@ -4,8 +4,8 @@
 import { neutralInput } from '/game/input.js';
 
 export const KEYMAPS = [
-  { name: 'KEY 1', hint: 'W A S D to move · F attack · G jump · H special', keys: { KeyA: 'left', KeyD: 'right', KeyW: 'up', KeyS: 'down', KeyF: 'attack', KeyG: 'jump', KeyH: 'special' } },
-  { name: 'KEY 2', hint: 'Arrow keys to move · I attack · O jump · P special', keys: { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', KeyI: 'attack', KeyO: 'jump', KeyP: 'special' } },
+  { name: 'KEY 1', hint: 'W A S D · F attack · G jump · H special', keys: { KeyA: 'left', KeyD: 'right', KeyW: 'up', KeyS: 'down', KeyF: 'attack', KeyG: 'jump', KeyH: 'special' } },
+  { name: 'KEY 2', hint: 'Arrows · I attack · O jump · P special', keys: { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', KeyI: 'attack', KeyO: 'jump', KeyP: 'special' } },
 ];
 
 export function createKeyboard() {

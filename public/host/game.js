@@ -1,6 +1,6 @@
 // Runs one match on the host page: feeds the inputs into the rules, turns what
 // happens into pictures, sounds and phone messages, and reports the result.
-import { CONFIG, PLAYER_COLORS } from '/game/config.js';
+import { CONFIG, PLAYER_COLORS, SCREEN } from '/game/config.js';
 import { createMatch, phoneStatus } from '/game/match.js';
 import { createLoop } from '/game/loop.js';
 import { InputBuffer } from '/game/input.js';
@@ -127,8 +127,13 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
       audio.setMusic(null);
       fx.addFlash(0.9);
       fx.addShake(22);
+      fx.banners = []; // the big moment stands alone, without the ordinary KO text behind it
       fx.banner(e.text, { size: 140, color: '#f6c343', y: 300, life: 150 });
-      cameraGoal = { x: Math.max(360, Math.min(920, e.x)), y: Math.max(210, Math.min(510, e.y)), zoom: 1.75 };
+      // Zoom in on the hit, but never so far to the side that the edge of the stage shows.
+      const zoom = 1.6;
+      const halfW = SCREEN.w / 2 / zoom;
+      const halfH = SCREEN.h / 2 / zoom;
+      cameraGoal = { x: Math.max(halfW, Math.min(SCREEN.w - halfW, e.x)), y: Math.max(halfH, Math.min(SCREEN.h - halfH, e.y)), zoom };
       loop.winnerText = e.winnerText;
     },
     matchEnd(e) {

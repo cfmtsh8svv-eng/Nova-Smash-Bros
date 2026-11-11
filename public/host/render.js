@@ -508,10 +508,17 @@ export function createRenderer(canvas) {
       ctx.textBaseline = 'alphabetic';
       ctx.textAlign = 'left';
       ctx.fillStyle = color;
-      ctx.font = `800 14px ${BODY}`;
-      let name = f.name;
-      while (ctx.measureText(name).width > 78 && name.length > 3) name = name.slice(0, -1);
-      ctx.fillText(name, x + 11, y + 20);
+      // The name gets the room that the damage number leaves; a long gamertag is written smaller, never cut off.
+      const shown = out ? 'OUT' : `${Math.floor(f.state === 'dead' ? 0 : f.percent)}%`;
+      ctx.font = `${out ? 22 : 28}px ${DISPLAY}`;
+      const room = w - ctx.measureText(shown).width - 28;
+      let size = 14;
+      ctx.font = `800 ${size}px ${BODY}`;
+      while (ctx.measureText(f.name).width > room && size > 7) {
+        size -= 0.5;
+        ctx.font = `800 ${size}px ${BODY}`;
+      }
+      ctx.fillText(f.name, x + 11, y + 20);
       ctx.font = `800 14px ${BODY}`;
       ctx.fillText(hearts(f.lives, lives), x + 11, y + 38);
       ctx.textAlign = 'right';

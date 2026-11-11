@@ -8,7 +8,7 @@ Build NOVA Brawl completely, in this one session, from the spec in this reposito
 
 ## What this is and who it is for
 
-NOVA Brawl is a university team project for an introductory programming course. It is a browser party fighter: a laptop shows the game, and 2 to 4 players use their phones as controllers. It is graded by teaching staff who will open the public URL, watch a live demo with real phones (iPhones and Android phones), and then open the repository and ask any team member to explain any part of it. The three team members are beginners. So the code has to be something they can read and explain: plain JavaScript, small modules with one job each, clear names, a short comment at the top of each file saying what it is for, and no clever abstractions. A simple design that works beats a sophisticated one.
+NOVA Brawl is a university team project for an introductory programming course. It is a browser party fighter: a laptop shows the game, and 2 to 4 players use their phones as controllers. It is graded by teaching staff who will open the public URL, watch a live demo with real phones (iPhones and Android phones), and then open the repository and ask any team member to explain any part of it. **Quality and function come first.** The game has to feel good and hold up in a live demo with real phones on an unknown network: responsive controls, stable frame rate, no crashes, no stuck states. Choose the design that works best, even where it is more involved: proper netcode handling (input buffering, latency smoothing, clean reconnects), a robust state machine for rooms and matches, well-tuned physics and hit detection, polished animation and feedback. Do not simplify a system to make the code easier to read if that makes the game worse. The team does not need to follow every line; they rely on `docs/WALKTHROUGH.md` to explain how it is built, so make that document good.
 
 ## Read first
 
@@ -36,7 +36,7 @@ Everything in `docs/GAME_SPEC.md`. **Do not build demo mode**: it comes later an
 
 **Docs the graders and the team need.**
 - `README.md`: the deployed URL, the three members with student numbers (already in the file, keep them), exact commands to run the app and the tests locally, how to play.
-- `docs/WALKTHROUGH.md`: for each part of the system, what it does, why it was built that way, its limits, and how it could change. Include direct answers to: where is the data stored, what do the tests cover and not cover, what happens if Google Sheets is unavailable, why does the host page run the simulation, how are PINs protected. Write it so a beginner can say it out loud.
+- `docs/WALKTHROUGH.md`: for each part of the system, what it does, why it was built that way, its limits, and how it could change. Include direct answers to: where is the data stored, what do the tests cover and not cover, what happens if Google Sheets is unavailable, why does the host page run the simulation, how are PINs protected. Write it so a beginner can say it out loud, even where the code behind it is complex: explain the idea, not the lines.
 - `docs/DEPLOY.md`: Render (free web service, `render.yaml` in the repo, health check at `/healthz`) and the Mac mini backup with Tailscale Funnel.
 - `docs/TEAM_TASKS.md`: six to nine small, real follow-up tasks (tuning values, a new award, copy changes, one more test each) split across the three members, so each of them commits code of their own before the deadline.
 - `AGENTS.md` with the run and test commands, the branch rule, the secrets rule and "never edit tests to make them pass"; `CLAUDE.md` that points to it.
@@ -53,7 +53,7 @@ Build in three packages, in this order: game logic, then server, then client. Af
 3. **Security reviewer** (server and client packages): checks input validation, access control, secrets, the sheet integration and the HTTP headers against §8.
 4. **Test reviewer:** checks that the tests would actually fail if the behaviour were wrong, that rejected actions and edge cases are covered, and that no test was weakened to pass.
 
-Treat their findings as claims to verify, not as facts: reproduce each one, fix the real ones, and say which you rejected and why. After the last package, run one final review over the whole repository with fresh reviewers, including a **beginner-readability reviewer** who reads the code as a first-year student would and flags anything they could not explain in the walkthrough.
+Treat their findings as claims to verify, not as facts: reproduce each one, fix the real ones, and say which you rejected and why. After the last package, run one final review over the whole repository with fresh reviewers, including a **game-feel and robustness reviewer** who plays the running game in a browser with emulated phones, under throttled network and with a phone dropping and rejoining mid-match, and reports anything that stutters, desyncs, gets stuck or feels unresponsive.
 
 ## Verification
 

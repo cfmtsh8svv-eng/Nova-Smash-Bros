@@ -36,7 +36,7 @@ Laptop (host page, runs game) ───┘    (static files, rooms, relay, accou
 |---|---|---|
 | Server | Node.js 22, one process: static files + WebSocket + small JSON API | Works on every network (plain HTTPS/WSS on 443). Holds the secrets. |
 | Runtime dependencies | `ws`, `qrcode`, exact versions pinned | Security criterion: minimal and pinned |
-| Client | Plain JavaScript ES modules, Canvas 2D, no framework, no bundler | Every member can read it. Nothing to build. |
+| Client | JavaScript ES modules, Canvas 2D, no framework | Quality and function come before simplicity; few moving parts to break in the demo |
 | Simulation | Runs in the **host page** at a fixed 60 Hz. The server only relays inputs and events. | Smooth rendering, tiny server |
 | Game logic | Pure modules in `src/game/` with no DOM access | Runs headless in Node for tests |
 | Storage | **Google Sheet** through an Apps Script web app. No database. | Team decision |

@@ -114,6 +114,7 @@ Decided by the team in the grilling session before the build. Full detail: [`GAM
 | D-094 | Build process | Built with Claude Fable only, with independent reviewer agents after each package | | Team request | Team | Decided |
 | D-095 | Aiming | Attack and Special go **where the fighter looks**: left, right, or up while up is held | Left and right only | Hit someone jumping over you | Team | Decided |
 | D-096 | Demo mode | **Built later.** Everything agreed is kept in `DEMO.md`; the first build is the full game without it. | Build it now (D-046) | Team decision | Team | Decided |
+| D-097 | Code priorities | **Quality and function before simplicity.** The code may be complex; the walkthrough document explains it. | Beginner-readable code first | Team decision | Team | Decided |
 
 ### Proposals made by Claude while writing the docs
 

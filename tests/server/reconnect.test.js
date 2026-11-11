@@ -209,3 +209,32 @@ test('rooms nobody uses for hours are removed', async (t) => {
   assert.equal(s.app.rooms.rooms.size, 0);
   assert.match((await a.next('closed')).msg, /nothing happened/);
 });
+
+test('a host page that goes silent without closing is reported to the phones after five seconds, and again when it is back', async (t) => {
+  const s = await startServer(t);
+  const h = await s.host();
+  const a = await s.player(h, 'Ana');
+  a.drain();
+  s.clock.now += LIMITS.hostQuietMs - 500;
+  s.app.rooms.checkHosts();
+  await a.settle();
+  assert.equal(a.inbox.some((m) => m.t === 'host'), false, 'not yet');
+  s.clock.now += 1000;
+  s.app.rooms.checkHosts();
+  s.app.rooms.checkHosts(); // said once, not on every check
+  assert.deepEqual(await a.next('host'), { t: 'host', connected: false });
+  await a.settle();
+  assert.equal(a.inbox.some((m) => m.t === 'host'), false);
+  // a phone that joins in the meantime is told the same
+  const token = await s.register('Bea');
+  const b = await s.open();
+  b.send({ t: 'join', room: h.code, token });
+  assert.equal((await b.next('joined')).hostConnected, false);
+  // any sign of life from the host (its ping is enough) clears it
+  h.send({ t: 'ping', n: 1 });
+  assert.deepEqual(await a.next('host'), { t: 'host', connected: true });
+  assert.deepEqual(await b.next('host'), { t: 'host', connected: true });
+  s.app.rooms.checkHosts();
+  await a.settle();
+  assert.equal(a.inbox.some((m) => m.t === 'host'), false, 'a host that is heard is left alone');
+});

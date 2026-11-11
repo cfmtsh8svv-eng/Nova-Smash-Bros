@@ -274,10 +274,13 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
     guard.sweep(now());
   }, 60_000);
   housekeeping.unref();
+  const hostWatch = setInterval(() => rooms.checkHosts(), 1000);
+  hostWatch.unref();
 
   function close() {
     clearInterval(heartbeat);
     clearInterval(housekeeping);
+    clearInterval(hostWatch);
     data.stop();
     rooms.closeAll();
     for (const ws of wss.clients) ws.terminate();

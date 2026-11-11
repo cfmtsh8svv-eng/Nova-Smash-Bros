@@ -163,6 +163,11 @@ export class Rooms {
         return this.strike(conn);
       }
       if (!isPlainObject(msg) || typeof msg.t !== 'string') return this.strike(conn);
+      conn.lastHeard = this.now();
+      if (conn.role === 'host' && conn.room && conn.room.host === conn && conn.room.hostQuiet) {
+        conn.room.hostQuiet = false; // it is back
+        this.toPhones(conn.room, { t: 'host', connected: true });
+      }
       if (msg.t === 'ping') return this.send(conn, { t: 'pong', n: isInt(msg.n, 0, 1e9) ? msg.n : 0 });
       if (conn.room) conn.room.lastActive = this.now(); // any message keeps the room alive
       const table = conn.role === 'host' ? HOST_HANDLERS : conn.role === 'phone' ? PHONE_HANDLERS : NEW_HANDLERS;
@@ -188,6 +193,7 @@ export class Rooms {
     if (!room) return;
     if (conn.role === 'host' && room.host === conn) {
       room.host = null;
+      room.hostQuiet = false;
       this.toPhones(room, { t: 'host', connected: false });
       room.hostTimer = setTimeout(() => this.destroyRoom(room, 'The host left, so the room was closed.'), LIMITS.hostHoldMs);
       room.hostTimer.unref?.();
@@ -321,6 +327,19 @@ export class Rooms {
     }, 50).unref?.();
   }
 
+  // A host page that is still connected but has not said anything for a while has most
+  // likely lost its network. The socket itself only gives up much later, so the phones
+  // are told now: their buttons do nothing until the big screen is back.
+  checkHosts() {
+    const now = this.now();
+    for (const room of this.rooms.values()) {
+      if (room.host && !room.hostQuiet && now - (room.host.lastHeard ?? now) > LIMITS.hostQuietMs) {
+        room.hostQuiet = true;
+        this.toPhones(room, { t: 'host', connected: false });
+      }
+    }
+  }
+
   sweep() {
     const now = this.now();
     for (const room of [...this.rooms.values()]) {
@@ -382,6 +401,7 @@ const NEW_HANDLERS = {
     this.send(conn, { t: 'room', code: room.code, hostKey: room.hostKey, resumed: true, phase: room.phase, matchId: room.match ? room.match.id : null });
     this.sendRoster(room);
     if (room.lastResult) this.send(conn, room.lastResult);
+    room.hostQuiet = false;
     this.toPhones(room, { t: 'host', connected: true });
   },
 
@@ -448,7 +468,7 @@ const NEW_HANDLERS = {
     this.byGamertag.set(lower, conn);
     room.lastActive = this.now();
     this.send(conn, {
-      t: 'joined', room: room.code, slot: index, gamertag: player.gamertag, phase: room.phase, hostConnected: Boolean(room.host),
+      t: 'joined', room: room.code, slot: index, gamertag: player.gamertag, phase: room.phase, hostConnected: Boolean(room.host) && !room.hostQuiet,
       fighter: slot.fighter, ready: slot.ready,
       stats: { matches: player.matches, wins: player.wins, points: player.points }, achievements: player.achievements.filter((a) => !a.startsWith('won_')),
     });

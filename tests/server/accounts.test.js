@@ -37,6 +37,9 @@ for (const [name, gamertag, expected] of [
   ['with an accent', 'anaçai', /only letters/],
   ['with HTML', '<b>ana</b>', /only letters/],
   ['starting with =', '=SUM(A1)', /only letters/],
+  ['starting with = and otherwise only letters', '=abc', /only letters/],
+  ['made of a formula name', '=SUM', /only letters/],
+  ['ending with =', 'abc=', /only letters/],
   ['starting with +', '+1234', /only letters/],
   ['starting with @', '@ana', /only letters/],
   ['starting with -', '-ana', /only letters/],
@@ -88,8 +91,12 @@ test('the sheet never sees the PIN: only a salt and a hash are stored', async (t
   await reg(s, 'Secret1', '4821');
   await reg(s, 'Secret2', '4821');
   const [a, b] = [...s.store.players.values()];
-  assert.equal(JSON.stringify(a).includes('4821'), false);
+  assert.deepEqual(Object.keys(a).sort(), ['achievements', 'created_at', 'damage_dealt', 'damage_taken', 'falls', 'gamertag', 'gamertag_lower', 'kos', 'matches', 'pin_hash', 'points', 'salt', 'wins'], 'there is no PIN field');
   assert.match(a.pin_hash, /^[0-9a-f]{64}$/);
+  assert.match(a.salt, /^[0-9a-f]{32}$/);
+  // The hash is made with the server's secret pepper: without it, the same PIN and salt give another hash.
+  assert.equal(a.pin_hash, await hashPin('4821', a.salt, 'test-pepper-0123456789'));
+  assert.notEqual(a.pin_hash, await hashPin('4821', a.salt, ''));
   assert.notEqual(a.salt, b.salt, 'every player has their own salt');
   assert.notEqual(a.pin_hash, b.pin_hash, 'the same PIN gives different hashes');
 });

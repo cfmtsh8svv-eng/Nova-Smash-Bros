@@ -7,7 +7,8 @@ import { startServer } from '../helpers/server.js';
 import { botInput } from '../helpers/bot.js';
 import { createMatch, step, buildResult, phoneStatus } from '../../src/game/match.js';
 import { InputBuffer, encodeInput } from '../../src/game/input.js';
-import { matchPoints } from '../../src/game/scoring.js';
+// The points rule written out again here, on purpose: 100 / 60 / 40 / 20 for the place, plus 1 per 10 % damage dealt.
+const matchPoints = (place, damageDealt) => [100, 60, 40, 20][place - 1] + Math.floor(damageDealt / 10);
 
 const FRAME_MS = 1000 / 60;
 

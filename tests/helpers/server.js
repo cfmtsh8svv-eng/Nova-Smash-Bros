@@ -4,12 +4,17 @@ import WebSocket from 'ws';
 import { createApp } from '../../server/app.js';
 import { MemoryStore } from '../../server/store/memory.js';
 
+// Some tests replace the global timers with fake ones. The helpers keep the real ones,
+// so a message that never arrives makes the test fail after two seconds instead of hanging.
+const realSetTimeout = globalThis.setTimeout;
+const realClearTimeout = globalThis.clearTimeout;
+
 export const TEST_CONFIG = { port: 0, trustProxy: false, useSheets: false, pinPepper: 'test-pepper-0123456789', sessionSecret: 'test-session-secret-0123456789', warnings: [] };
 
 // Starts a server. `clock.now` can be moved forward by the test (lockouts, token expiry).
-export async function startServer(t, { store = new MemoryStore(), config = {} } = {}) {
+export async function startServer(t, { store = new MemoryStore(), config = {}, autoRetry = false } = {}) {
   const clock = { now: Date.now() };
-  const app = createApp({ config: { ...TEST_CONFIG, ...config }, store, now: () => clock.now, autoRetry: false });
+  const app = createApp({ config: { ...TEST_CONFIG, ...config }, store, now: () => clock.now, autoRetry });
   const port = await app.listen(0, '127.0.0.1');
   const sockets = [];
   t.after(async () => {
@@ -44,19 +49,19 @@ export async function startServer(t, { store = new MemoryStore(), config = {} } 
     const client = {
       ws, inbox,
       send: (msg) => ws.send(typeof msg === 'string' ? msg : JSON.stringify(msg)),
-      // Wait for the next message of this type (after `from` messages already seen).
+      // Wait for a message of this type that has not been taken yet (the oldest one first).
       next(type, { timeout = 2000, match = () => true } = {}) {
         return new Promise((res, rej) => {
           const look = () => {
             const i = inbox.findIndex((m) => m.t === type && match(m));
             if (i < 0) return false;
             const [msg] = inbox.splice(i, 1);
-            clearTimeout(timer);
+            realClearTimeout(timer);
             waiters.splice(waiters.indexOf(look), 1);
             res(msg);
             return true;
           };
-          const timer = setTimeout(() => {
+          const timer = realSetTimeout(() => {
             waiters.splice(waiters.indexOf(look), 1);
             rej(new Error(`no "${type}" message within ${timeout} ms; got: ${inbox.map((m) => m.t).join(', ') || 'nothing'}`));
           }, timeout);
@@ -75,7 +80,10 @@ export async function startServer(t, { store = new MemoryStore(), config = {} } 
         ws.once('close', () => res());
         ws.close();
       }),
-      closed: new Promise((res) => ws.once('close', (code) => res(code))),
+      // Resolves with the close code, or 'still open' after two seconds.
+      closed: Promise.race([new Promise((res) => ws.once('close', (code) => res(code))), new Promise((res) => realSetTimeout(() => res('still open'), 2000).unref())]),
+      // Forget everything received so far.
+      drain() { inbox.length = 0; },
     };
     ws.once('open', () => resolve(client));
     ws.once('error', reject);
@@ -127,4 +135,4 @@ export function sampleResult({ stage = 'campus', lives = 3, slots = [0, 1], dura
   };
 }
 
-export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+export const sleep = (ms) => new Promise((r) => realSetTimeout(r, ms));

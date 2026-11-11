@@ -24,6 +24,8 @@ test('every kind of answer carries the security headers', async (t) => {
     assert.match(csp, /script-src 'self'(;|$)/, 'scripts only from our own files: no inline scripts');
     assert.equal(/unsafe-inline|unsafe-eval/.test(csp), false);
     assert.match(csp, /frame-ancestors 'none'/);
+    assert.equal(csp, "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:; media-src 'self' data: blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
+    assert.equal(res.headers.get('x-frame-options'), 'DENY');
     assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
     assert.equal(res.headers.get('referrer-policy'), 'no-referrer');
     await res.arrayBuffer();
@@ -81,6 +83,7 @@ test('files outside the public folders cannot be read', async (t) => {
     '/../package.json', '/game/../../package.json', '/game/../../.env', '/%2e%2e/package.json', '/game/%2e%2e/%2e%2e/server/index.js',
     '/..%2f..%2fpackage.json', '/host/..\\..\\package.json', '/game/%00.js', '/server/index.js', '/.env', '/.env.example', '/package.json',
     '/tests/helpers/server.js', '/apps-script/Code.gs', '/.git/config', '/%', '/game/', '/host/.hidden.js',
+    '/game/..%2f..%2fpackage.json', '/host/..%2f..%2fserver%2findex.js', '/game/%2e%2e%2f%2e%2e%2fpackage.json', '/shared/..%2f..%2f.env.example',
   ]) {
     assert.equal(await raw(route), 404, route);
   }
@@ -88,6 +91,9 @@ test('files outside the public folders cannot be read', async (t) => {
   assert.equal(resolveFile('/game/config.js').endsWith(path.join('src', 'game', 'config.js')), true);
   assert.equal(resolveFile('/host/../../server/index.js'), null);
   assert.equal(resolveFile('/README.md'), null, 'unknown file types are never served');
+  assert.equal(resolveFile('/host/.hidden.js'), null, 'files starting with a dot are never served');
+  assert.equal(resolveFile('/game/..%2f..%2fpackage.json'), null);
+  assert.notEqual(resolveFile('/host/main.js'), null);
 });
 
 test('pages only accept GET and HEAD', async (t) => {
@@ -116,7 +122,6 @@ test('the QR code is refused for anything that is not a room code', async (t) =>
   const s = await startServer(t);
   for (const room of ['', 'abc', 'ABCDE', 'AB1D', '<svg>', '../x', 'ABCD&x=1']) {
     const res = await fetch(`${s.base}/api/qr?room=${encodeURIComponent(room)}`);
-    if (room === 'ABCD&x=1') continue;
     assert.equal(res.status, 400, room);
   }
   assert.equal((await fetch(`${s.base}/api/qr`)).status, 400);
@@ -135,6 +140,9 @@ test('the QR link is https for a public host name and http only for local addres
   assert.equal(await linkFor('mac-mini.tail1234.ts.net'), 'https://mac-mini.tail1234.ts.net/play?room=ABCD');
   assert.equal(await linkFor('localhost:3000'), 'http://localhost:3000/play?room=ABCD');
   assert.equal(await linkFor('192.168.1.20:3000'), 'http://192.168.1.20:3000/play?room=ABCD');
+  assert.equal(await linkFor('172.20.10.4:3000'), 'http://172.20.10.4:3000/play?room=ABCD', 'a phone hotspot address is local too');
+  assert.equal(await linkFor('172.99.1.1'), 'https://172.99.1.1/play?room=ABCD', 'outside 172.16 to 172.31 it is public');
+  assert.equal(await linkFor('10.0.0.5:3000'), 'http://10.0.0.5:3000/play?room=ABCD');
   assert.equal(await linkFor('evil.example/x?y=<script>'), 400, 'a host header with odd characters is refused');
 });
 

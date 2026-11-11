@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node server/index.js",
-    "test": "node --test \"tests/game/*.test.js\" \"tests/server/*.test.js\"",
+    "test": "node --test --test-timeout=60000 \"tests/game/*.test.js\" \"tests/server/*.test.js\"",
     "test:browser": "node --test --test-timeout=180000 \"tests/browser/*.test.js\"",
     "test:all": "npm test && npm run test:browser"
   },

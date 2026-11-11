@@ -3,6 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FIGHTERS, getFighter } from '../../src/game/fighters.js';
+import { CONFIG } from '../../src/game/config.js';
 import { fight, place, run, tap, of } from '../helpers/game.js';
 
 // Slot 0 uses the special. Slots 1.. are opponents placed at the given offsets (dx, and optionally y).
@@ -56,7 +57,9 @@ test('Padel Smash: 18 % on the first opponent in the line only', () => {
   assert.equal(second.percent, 0, 'the ball stops at the first opponent');
   assert.deepEqual(told.map((e) => e.slot), [first.slot]);
   assert.equal(told[0].text, 'Smashed!');
-  assert.ok(of(events, 'hit')[0].speed > 8, 'strong knockback');
+  // "strong knockback": clearly more than a normal attack would give at the same damage (weight 100)
+  const normal = CONFIG.attack.baseKb + CONFIG.attack.kbGrowth * 0.18;
+  assert.ok(of(events, 'hit')[0].speed > normal * 1.3, `strong knockback (${of(events, 'hit')[0].speed} against ${normal})`);
 });
 
 test('Padel Smash: misses beyond its range and above its line', () => {

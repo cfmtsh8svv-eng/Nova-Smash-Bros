@@ -42,6 +42,17 @@ export class InputBuffer {
     this.tapped = neutralInput(); // went down since the last frame, even if already up again
     this.presses = { attack: 0, jump: 0, special: 0 }; // presses not yet played back
     this.lastSeq = -1;
+    this.quiet = null;
+  }
+
+  // The phone went quiet (a network hiccup): let go of everything until it is heard again.
+  // What was held is remembered, so a button that is still down when the next message
+  // arrives carries on as a hold instead of counting as a new press.
+  letGo() {
+    if (!this.quiet) this.quiet = this.held;
+    this.held = neutralInput();
+    this.tapped = neutralInput();
+    this.presses = { attack: 0, jump: 0, special: 0 };
   }
 
   // A message from the phone. seq is the phone's message counter: anything that
@@ -55,8 +66,10 @@ export class InputBuffer {
       this.lastSeq = seq;
     }
     const next = decodeInput(mask);
+    const was = this.quiet || this.held;
+    this.quiet = null;
     for (const b of BUTTONS) {
-      if (next[b] && !this.held[b]) {
+      if (next[b] && !was[b]) {
         this.tapped[b] = true;
         if (b in this.presses) this.presses[b] = Math.min(MAX_QUEUED_PRESSES, this.presses[b] + 1);
       }

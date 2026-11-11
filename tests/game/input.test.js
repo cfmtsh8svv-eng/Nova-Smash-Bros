@@ -137,3 +137,31 @@ test('the final KO slow motion is 2 s of real time at quarter speed', () => {
   assert.equal(state.finalTimer / 60 / CONFIG.match.finalKoTimeScale, 2);
   assert.equal(of(run(state, 30), 'matchEnd').length, 1);
 });
+
+test('a phone that goes quiet lets go of everything, and a button still held afterwards is not a new press', () => {
+  const buffer = new InputBuffer();
+  buffer.receive(BIT.right | BIT.jump, 1);
+  assert.equal(buffer.consume().jumpP, true);
+  // the host hears nothing for a while: the fighter must stop
+  buffer.letGo();
+  buffer.letGo(); // called on every frame while the silence lasts
+  const quiet = buffer.consume();
+  assert.deepEqual([quiet.right, quiet.jump, quiet.jumpP], [false, false, false]);
+  // the next heartbeat still has both buttons down: the run goes on, the jump is not repeated
+  buffer.receive(BIT.right | BIT.jump, 2);
+  const back = buffer.consume();
+  assert.deepEqual([back.right, back.jump, back.jumpP], [true, true, false]);
+  // a button pressed during the silence is new, and a release followed by a press is a press again
+  buffer.letGo();
+  buffer.receive(BIT.right | BIT.jump | BIT.attack, 3);
+  const during = buffer.consume();
+  assert.deepEqual([during.attackP, during.jumpP], [true, false]);
+  buffer.receive(BIT.right, 4);
+  buffer.receive(BIT.right | BIT.jump, 5);
+  assert.equal(buffer.consume().jumpP, true);
+  // presses that were waiting when the phone went quiet are dropped, not played late
+  buffer.receive(0, 6);
+  buffer.receive(BIT.attack, 7);
+  buffer.letGo();
+  assert.equal(buffer.consume().attackP, false);
+});

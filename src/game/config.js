@@ -86,7 +86,7 @@ export const CONFIG = {
     nameFrames: seconds(1), // the name alone, before the numbers
     countFrames: seconds(1), // each of 3, 2, 1
     cancelledFrames: seconds(2), // how long "STRIKE!" stays
-    train: { strikeChance: 0.25, speed: 20, length: 560, height: 104, damage: 20, baseKb: 9, kbGrowth: 10, angleDeg: 30 },
+    train: { strikeChance: 0.25, speed: 20, length: 560, height: 104, damage: 20, baseKb: 8, kbGrowth: 7, angleDeg: 30 },
     wifi: { delayFrames: 12, frames: seconds(6) }, // 12 frames = 200 ms
     wave: { speed: 14, width: 200, height: 110, damage: 12, baseKb: 7, kbGrowth: 8, angleDeg: 45 },
     gulls: { frames: seconds(2), reach: 70, peckDamage: 3, peckStun: 14 },
@@ -113,7 +113,7 @@ export const FIGHTER_STATS = {
 // `total` the frame on which the fighter can act again.
 export const SPECIAL_TUNING = {
   cash_rain: { cooldown: seconds(7), radius: 220, damage: 6, slipFrames: seconds(1.5), push: 9, at: 10, total: 36 },
-  padel_smash: { cooldown: seconds(7), range: 510, speed: 17, size: 18, damage: 18, baseKb: 7, kbGrowth: 12, angleDeg: 32, at: 8, total: 30 },
+  padel_smash: { cooldown: seconds(7), range: 510, speed: 17, size: 18, damage: 18, baseKb: 6, kbGrowth: 9, angleDeg: 32, at: 8, total: 30 },
   rounds_on_me: { cooldown: seconds(8), radius: 200, damage: 4, tipsyFrames: seconds(4), at: 10, total: 36 },
   wave_rider: { cooldown: seconds(6), range: 360, speed: 12, damage: 10, reach: 22, endStun: 16, keepSpeed: 0.1, at: 4, total: 40 },
   ring_light_flash: { cooldown: seconds(7), radius: 320, damage: 5, stunFrames: seconds(1), at: 8, total: 30 },

@@ -36,6 +36,8 @@ let screen = 'title';
 let match = null; // { id, players, stageId } while a match is running or its results are shown
 let wantRoom = false;
 let creatingRoom = false;
+let roomRetry = null;
+let startTimer = null;
 
 const game = createGame({
   canvas: $('stage'),
@@ -104,6 +106,8 @@ const MESSAGES = {
     $('netNote').hidden = !local;
     $('netNote').textContent = local ? 'Phones cannot reach "localhost". Open this page through the computer\'s network address or the public URL.' : '';
     creatingRoom = false;
+    clearTimeout(roomRetry);
+    if (msg.resumed) game.resync(); // phones may have missed a KO or a new damage value meanwhile
     if (msg.resumed && msg.phase === 'match') {
       if (pendingStart) {
         // The connection dropped just after "Start": the server did start the match. Carry on.
@@ -114,9 +118,10 @@ const MESSAGES = {
       } else if (match && match.id === msg.matchId) {
         matchPhase(game.paused); // still playing (or loading): phones get the right screen again
       } else {
-        // The page was reloaded in the middle of a match: that match is gone.
+        // The server still has a match that this page no longer has (the page was reloaded,
+        // or the match was left while offline): it is ended on the server too.
         link.send({ t: 'match_abort', matchId: msg.matchId });
-        toast('The page was reloaded, so the running match was ended.');
+        toast('A match that was no longer running on this screen was ended.');
         show('lobby');
         lobbyPhase();
       }
@@ -185,8 +190,25 @@ const MESSAGES = {
       game.stop();
       match = null;
       link.send({ t: 'host_create' });
-      toast('The room had expired. A new one was opened: players need to scan again.');
+      $('roomCode').textContent = '----';
+      $('qr').removeAttribute('src');
+      toast('The room had expired. A new one is being opened: players need to scan again.');
       return;
+    }
+    if (!lobby.room && wantRoom) {
+      // Opening a room was refused (too many at the moment): say so and try again shortly.
+      creatingRoom = false;
+      clearTimeout(roomRetry);
+      roomRetry = setTimeout(() => { if (!lobby.room && wantRoom && !creatingRoom) creatingRoom = link.send({ t: 'host_create' }); }, 5000);
+      toast(`${msg.msg} Trying again in a few seconds.`);
+      return;
+    }
+    if (pendingStart) {
+      // Whatever the reason, the start did not happen: back to the lobby, where Start works again.
+      pendingStart = null;
+      clearTimeout(startTimer);
+      show('lobby');
+      if (msg.code !== 'bad_start') toast('The match could not be started. Press Start again.');
     }
     if (msg.code === 'bad_result') {
       $('resultNote').textContent = `${msg.msg} The match does not count for the leaderboard.`;
@@ -400,6 +422,14 @@ function requestStart() {
     return;
   }
   show('loading');
+  // Never stay on "Get ready…": if the server says nothing for a while, go back to the lobby.
+  clearTimeout(startTimer);
+  startTimer = setTimeout(() => {
+    if (!pendingStart) return;
+    pendingStart = null;
+    show('lobby');
+    toast('The server did not answer. Press Start again.');
+  }, 8000);
 }
 
 function matchPhase(paused = false) {
@@ -416,6 +446,7 @@ async function beginMatch(matchId) {
   if (!pendingStart) return;
   match = { id: matchId, ...pendingStart };
   pendingStart = null;
+  clearTimeout(startTimer);
   lobby.stageVotes.clear();
   matchPhase();
   await game.start(match);
@@ -501,7 +532,7 @@ function submitResult() {
   // If the server does not answer, say so instead of waiting forever.
   setTimeout(() => {
     if (match && match.result === result && !match.saved && $('resultNote').textContent === 'Saving the result…') {
-      $('resultNote').textContent = 'The server has not confirmed the result yet. It is sent again when the connection is back.';
+      $('resultNote').textContent = link.connected ? 'The server has not confirmed the result yet.' : 'No connection right now. The result is sent as soon as it is back.';
     }
   }, 6000);
 }
@@ -510,6 +541,9 @@ function sendResultPhases(result, saved) {
   const winner = result.players.find((p) => p.place === 1);
   for (const p of result.players) {
     if (match.players.find((m) => m.slot === p.slot && Number.isInteger(m.keys))) continue;
+    // Only to the phone of the player who played: somebody new may have taken that slot since.
+    const now = lobby.roster.find((r) => r.slot === p.slot);
+    if (!now || now.gamertag !== p.name) continue;
     const line = saved ? saved.players.find((l) => l.slot === p.slot) : null;
     phase({
       name: 'results', place: p.place, of: result.players.length, won: p.place === 1, winner: winner.name,
@@ -545,6 +579,10 @@ function backToLobby() {
 
 // ---- start ----
 
+// A free host goes to sleep when nobody loads a page for a while. While a room is open,
+// a tiny request every few minutes keeps it awake.
+setInterval(() => { if (lobby.room) fetch('/healthz').catch(() => {}); }, 4 * 60 * 1000);
+
 buildLobbyControls();
 renderLobby();
 game.setPreview('campus');
@@ -559,7 +597,10 @@ $('openRoom').addEventListener('click', () => {
   if (lobby.room) show('lobby');
   else if (creatingRoom) return; // a second click while the first room is on its way
   else if (link.send({ t: 'host_create' })) creatingRoom = true;
-  else toast('Connecting to the server…');
+  else {
+    link.wake(); // the connection had been closed for doing nothing: open it; the room follows
+    toast('Connecting to the server…');
+  }
 });
 
 // A reload keeps the room: the code on the wall and the players stay valid.

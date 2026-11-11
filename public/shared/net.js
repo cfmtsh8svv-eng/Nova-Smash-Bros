@@ -9,7 +9,8 @@ export function createLink({ onOpen = () => {}, onMessage = () => {}, onState = 
   let pingN = 0;
   let lastPong = 0;
   let closedByUs = false;
-  const link = { connected: false, rttMs: null, send, close, reconnectNow };
+  let dormant = false; // closed by the server for doing nothing: stay closed until there is something to say
+  const link = { connected: false, rttMs: null, send, close, reconnectNow, wake };
 
   function url() {
     return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
@@ -78,8 +79,9 @@ export function createLink({ onOpen = () => {}, onMessage = () => {}, onState = 
       // 4002: this page was replaced by a newer one (the same room open in another tab).
       // Reconnecting would only make the two tabs take the room from each other for ever.
       if (event.code === 4002) closedByUs = true;
-      if (was || event.code === 4002) onState(false, event.code);
-      if (!closedByUs) schedule();
+      if (event.code === 4003) dormant = true;
+      if ((was && !dormant) || event.code === 4002) onState(false, event.code);
+      if (!closedByUs && !dormant) schedule();
     };
     mine.onerror = () => { /* onclose follows */ };
     return undefined;
@@ -110,7 +112,16 @@ export function createLink({ onOpen = () => {}, onMessage = () => {}, onState = 
 
   // Coming back from a locked screen: do not wait for the next retry.
   function reconnectNow() {
-    if (closedByUs || (ws && (ws.readyState === 0 || ws.readyState === 1))) return;
+    if (closedByUs || dormant || (ws && (ws.readyState === 0 || ws.readyState === 1))) return;
+    retryMs = 400;
+    open();
+  }
+
+  // Connect again after the server closed an idle connection (the page now wants to send something).
+  function wake() {
+    if (closedByUs) return;
+    dormant = false;
+    if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;
     retryMs = 400;
     open();
   }

@@ -131,5 +131,19 @@ test('the host page loses its connection around Start, in mid-match and when the
   await ana.waitForSelector('#select:not([hidden])');
   await secondTab.waitForFunction(() => /another tab/.test(document.getElementById('noticeText').textContent));
 
+  // --- "Leave" lasts: when the server later closes the idle connection, the phone does not walk back in
+  await max.waitForSelector('#select:not([hidden])');
+  await max.click('#leave');
+  await max.waitForFunction(() => /You left the room/.test(document.getElementById('noticeText').textContent));
+  await host.waitForFunction(() => !window.novaBrawl.roster.some((p) => p.gamertag === 'Max'));
+  for (const conn of app.rooms.connections) if (conn.role === null) conn.ws.close(4003, 'idle'); // what the housekeeping does after a minute
+  await host.waitForTimeout(1500);
+  assert.equal(await host.evaluate(() => window.novaBrawl.roster.some((p) => p.gamertag === 'Max')), false, 'still out');
+  assert.match(await max.textContent('#noticeText'), /You left the room/);
+  // "Join again" opens the connection again and joins.
+  await max.click('#noticeButton');
+  await max.waitForSelector('#select:not([hidden])', { timeout: 10_000 });
+  await host.waitForFunction(() => window.novaBrawl.roster.some((p) => p.gamertag === 'Max' && p.connected));
+
   assert.deepEqual(crashes, [], 'no page threw an error');
 });

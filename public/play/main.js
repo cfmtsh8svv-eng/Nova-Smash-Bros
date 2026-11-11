@@ -28,6 +28,7 @@ const me = {
   cd: { left: 0, max: 1, at: 0 },
 };
 let authMode = 'register';
+let joinRetry = null;
 let seq = 0;
 const feedback = createFeedback($('flash'));
 
@@ -57,7 +58,7 @@ const link = createLink({
     $('offline').hidden = true;
     me.joined = false;
     me.joining = false;
-    if (!me.replaced) tryJoin(); // a tab that was replaced by a newer one stays out until asked
+    if (!me.replaced && !me.left) tryJoin(); // a tab that was replaced, or a player who left, stays out until asked
   },
   onState(connected) {
     if (!connected) {
@@ -74,7 +75,11 @@ const link = createLink({
 });
 
 function tryJoin() {
-  if (!me.token || !me.room || me.joined || me.joining || !link.connected) return false;
+  if (!me.token || !me.room || me.joined || me.joining) return false;
+  if (!link.connected) {
+    link.wake(); // joins as soon as the connection is there (see onOpen)
+    return false;
+  }
   me.joining = true;
   return link.send({ t: 'join', room: me.room, token: me.token });
 }
@@ -89,6 +94,8 @@ const MESSAGES = {
     me.joined = true;
     me.joining = false;
     me.replaced = false;
+    me.left = false;
+    clearTimeout(joinRetry);
     me.slot = msg.slot;
     me.gamertag = msg.gamertag;
     me.status = null;
@@ -120,10 +127,12 @@ const MESSAGES = {
         me.stageVote = null; // ... and vote again (the host counts from zero)
       }
       me.status = null; // nothing of the last match (damage, "You're out!") carries over
+      me.hazards = null; // the hazard vote starts fresh too
       $('stageVote').hidden = !msg.vote;
       if (msg.vote && Array.isArray(msg.stages)) buildStageVote(msg.stages);
       showSelect();
     } else if (msg.name === 'match') {
+      me.stageVote = null; // the vote was used: the next lobby starts without one
       if (Array.isArray(msg.slots) && msg.slots.includes(me.slot)) {
         me.lives = [1, 2, 3].includes(msg.lives) ? msg.lives : 3;
         // Only rebuilt when the list changes, so a vote stays highlighted through a pause.
@@ -160,6 +169,8 @@ const MESSAGES = {
   },
 
   feedback(msg) {
+    // Hazard announcements are for players in the match (their pad is showing).
+    if (String(msg.kind).startsWith('hazard') && $('pad').hidden) return undefined;
     if (msg.kind === 'hazardWarn') return showHazard(msg.name, '');
     if (msg.kind === 'hazardCount') {
       feedback.sound('hazardCount');
@@ -210,7 +221,8 @@ const MESSAGES = {
   left() {
     me.joined = false;
     if (!me.token) return; // logged out: the login screen is already showing
-    notice('You left the room.', 'Join again', () => { if (!tryJoin()) showAuth(); });
+    me.left = true; // stays out, also when the connection is renewed, until "Join again"
+    notice('You left the room.', 'Join again', () => { me.left = false; notice('Joining…'); tryJoin(); });
   },
 
   error(msg) {
@@ -225,6 +237,12 @@ const MESSAGES = {
       setError('form', msg.msg);
     } else if (['room_full', 'room_closed', 'unavailable'].includes(msg.code)) {
       notice(String(msg.msg), 'Try again', () => { notice('Joining…'); tryJoin(); });
+    } else if (msg.code === 'busy' && !me.joined) {
+      // The server is turning joins away for the moment: say so and try again shortly.
+      $('offline').textContent = 'The server is busy. Trying again…';
+      $('offline').hidden = false;
+      clearTimeout(joinRetry);
+      joinRetry = setTimeout(tryJoin, 2500 + Math.random() * 2500);
     } else if (msg.code !== 'bad_message' && msg.msg) {
       showMessage(String(msg.msg)); // shown on whatever screen the player is on
     }
@@ -297,7 +315,11 @@ async function submitAuth(event) {
       body: JSON.stringify(authMode === 'register' ? { gamertag, pin, pin2 } : { gamertag, pin }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) return setError(data.field || 'form', data.error || 'That did not work. Try again.');
+    if (!res.ok) {
+      // A name that is "taken" may be the player's own from last time.
+      const hint = res.status === 409 ? ' If it is yours, tap "I have an account".' : '';
+      return setError(data.field || 'form', (data.error || 'That did not work. Try again.') + hint);
+    }
     me.token = data.token;
     me.gamertag = data.gamertag;
     me.room = room;
@@ -397,6 +419,7 @@ function toggleReady() {
   if (!me.ready) me.fighter = centredFighter();
   me.ready = !me.ready;
   link.send({ t: 'pick', fighter: FIGHTERS[me.fighter].id, ready: me.ready });
+  keepAwake(); // waiting in the lobby: a phone that locks itself would drop out of the room
   feedback.sound(me.ready ? 'ready' : 'tap');
   feedback.vibrate([25]);
   showSelect();
@@ -526,11 +549,14 @@ function showResults(msg) {
     item.append(el('b', '', `Achievement: ${String(a.name)}`), el('span', '', String(a.text || '')));
     return item;
   }));
-  if (list.length && $('results').hidden === false) feedback.fire({ kind: 'good', vibrate: [40, 40, 120], flash: '#22a36b' });
   $('resultNote').textContent = msg.note ? String(msg.note) : 'Waiting for the host…';
-  const first = $('results').hidden;
   show('results');
-  if (first && list.length) feedback.fire({ kind: 'good', vibrate: [40, 40, 120], flash: '#22a36b' });
+  // New achievements are celebrated once, not every time the result is sent again.
+  const earned = list.map((x) => String(x.name)).join('|');
+  if (earned && earned !== me.celebrated) {
+    me.celebrated = earned;
+    feedback.fire({ kind: 'good', vibrate: [40, 40, 120], flash: '#22a36b' });
+  }
 }
 
 // ---- start ----

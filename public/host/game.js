@@ -161,8 +161,8 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
       s.cd = Math.ceil(s.cd / 20) * 20; // in coarse steps; the phone animates in between
       const key = JSON.stringify(s);
       if (lastStatus.get(slot) === key) continue;
-      lastStatus.set(slot, key);
-      sendTo(slot, { t: 'status', ...s });
+      // Remembered only once it has really gone out, so nothing is missed while offline.
+      if (sendTo(slot, { t: 'status', ...s })) lastStatus.set(slot, key);
     }
   }
 
@@ -229,6 +229,8 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
 
   return {
     start, stop, onInput, setConnected,
+    // After a reconnect: send every phone its status again, whether it changed or not.
+    resync() { lastStatus = new Map(); },
     setPreview(stageId) { previewStage = stageId; loadStage(stageId).catch(() => {}); },
     vote(slot, hazardId) { return state ? voteHazard(state, slot, hazardId) : false; },
     setPaused(value) { if (loop && state && state.phase !== 'ended') loop.paused = value; return Boolean(loop && loop.paused); },

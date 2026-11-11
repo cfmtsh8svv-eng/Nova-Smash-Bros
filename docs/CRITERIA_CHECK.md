@@ -22,14 +22,14 @@ Run on the build machine (macOS, Node 26.13.0; the unit and server tests also un
 
 - **A whole match on the deployed app.** The build played the deployed app only for a few seconds with emulated phones (see the table). After the deployment a team member played on it: the sheet now holds one stored match between two players they registered, so a complete match with a saved result has happened on the real system. The build did not watch that match.
 - **The automated tests do not use the real sheet.** They use the in-memory store and a stand-in that speaks the same protocol (`tests/server/outage.test.js`). The checks with the real sheet in the table were done once by hand.
-- **Real phones.** A team member reported after the deployment that the game works with phones. Which phones and browsers, and whether in the demo room, is not written down. Everything the build checked itself was in Chromium with emulated iPhone and Android screens and touch events. Safari on a real iPhone, the demo room's Wi-Fi and a projector still need a test that is written down.
+- **Real phones.** After the deployment the team tested the deployed app with iPhones in Safari and reports that it works. That is the team's own test, not something the build ran: everything the build checked itself was in Chromium with emulated iPhone and Android screens and touch events. Not reported so far: a real Android phone, the demo room's Wi-Fi and a projector.
 - **`main`.** Merged. The tests pass on `main` (see the table).
 
 ## 1. It works (20 %)
 
 > "The deployed app runs all workflows without errors, including invalid input."
 
-**Deployed from `main` at <https://nova-brawl.onrender.com>, checked there with emulated phones (see the table at the top), and played by a team member on phones.** What is missing for a firm claim at the top level is a written record of that test: which phones, which browsers, and the workflows tried, including invalid input. The list below is the evidence from the automated tests.
+**Deployed from `main` at <https://nova-brawl.onrender.com>, checked there with emulated phones (see the table at the top), and tested by the team with iPhones in Safari.** The team reports that it works; the sheet holds one stored match from their test. For a firm claim that *all* workflows run without errors on real phones, the remaining step is to go through the list once on a phone (register, log in, wrong PIN, a full match, a reload in the middle, leaving) and on one Android phone. The list below is the evidence from the automated tests.
 
 - **Every workflow, in a real browser.** `tests/browser/flow.test.js`, "a whole match from the stage vote to the results, a second match, removing a player, logging out", plays the complete loop twice with the real pages and the real server and fails on any console error or broken file.
 - **What a player would notice.** `tests/browser/smoke.test.js` uses an emulated iPhone and an emulated Android phone: the fighter follows the phone and stops when the thumb lifts, a real hit shows as damage on the victim's phone only, the stage and the sprites are really drawn (pixels are read back from the canvas), every pad button can be reached by a finger, a held button stays held, pause really freezes the match, and a phone that reloads or loses its connection gets its pad back.
@@ -38,7 +38,7 @@ Run on the build machine (macOS, Node 26.13.0; the unit and server tests also un
 - **Four players end to end.** `tests/server/e2e.test.js`: "four phones register, join, pick, play a full match to a winner; the result reaches the store and the leaderboard".
 - **A robustness pass with a simulated bad network** (delay, jitter, stalls, a host or phone cut off for 5 to 40 seconds) and nine matches in a row found no lost or doubled button presses, no memory growth, and a result saved exactly once in every case. The problems it did find were fixed (D-129 to D-131 in [`DECISIONS.md`](DECISIONS.md)).
 
-Missing for the top level: play complete matches on real phones in the demo room and write down the result ([`TEAM_TASKS.md`](TEAM_TASKS.md)).
+Missing for the top level: one pass through every workflow on a real phone, a real Android phone, and a try in the demo room ([`TEAM_TASKS.md`](TEAM_TASKS.md)).
 
 ## 2. User interface and experience (20 %)
 
@@ -50,7 +50,7 @@ Missing for the top level: play complete matches on real phones in the demo room
 - **Errors say what to do.** Messages are written for the player ("That gamertag is taken. Log in with 'I have an account'.", "Wrong PIN, 4 tries left.", "The host closed the room.") and are checked word for word in `tests/browser/smoke.test.js`. Connection trouble is always visible: "Weak connection", "Connection lost, reconnecting…", "The big screen lost its connection…".
 - **Checked by looking.** Every screen of the host page and the phone page was captured at laptop size and at iPhone and Android sizes and reviewed; long names, the landscape fighter select and overlapping banners were fixed after that.
 
-Not at the top level until: someone has held a real phone. Thumb reach, the feel of the buttons and readability on the projector can only be judged in the room. The game-feel review left five tuning notes for the team in [`TEAM_TASKS.md`](TEAM_TASKS.md).
+The team has played it on iPhones in Safari and reports that it works. Readability on the projector can only be judged in the room, and how the buttons feel is the team's call: The game-feel review left five tuning notes for the team in [`TEAM_TASKS.md`](TEAM_TASKS.md).
 
 ## 3. Scope and ambition (20 %)
 

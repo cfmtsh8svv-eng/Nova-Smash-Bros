@@ -41,7 +41,7 @@ Rule from [`AGENTS.md`](../AGENTS.md): never change a test just to make it pass.
 
 ## For everyone
 
-- Before the demo, on a real iPhone: hold a direction for three seconds and check that the fighter keeps running (Safari was not tested in the build; everything was checked in Chromium).
+- The team tested the deployed app with iPhones in Safari after the deployment and it works (the build itself only used Chromium). Still worth doing before the demo: the same on one Android phone, and in the demo room on its Wi-Fi and projector.
 - Things the game-feel review noticed that were left for you to judge on real phones: the two arrows ◀ and ▶ are far apart (`public/play/play.css`); the D-pad/joystick switch sits just above Attack and can be hit in a fight; every hit freezes the whole game for a moment (`hitPauseMs` in `src/game/config.js`), which is a lot with four players; getting back to the stage after being launched is hard with one air jump (`doubleJumpSpeed`); Bass Drop and the up-attack launch too steeply to ever knock anyone out (`upAngleDeg`).
 - Play five matches on real phones and write down what felt wrong. Each note is either a tuning value (see G1, C2) or a row for `docs/DECISIONS.md`.
 - Read your section of [`WALKTHROUGH.md`](WALKTHROUGH.md) out loud once. If a sentence is hard to say, rewrite it in your own words and commit that.

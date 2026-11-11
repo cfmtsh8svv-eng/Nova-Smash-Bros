@@ -21,6 +21,35 @@ import { HAZARD_IDS, STAGE_IDS } from '../src/game/stages.js';
 
 const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // without I and O, which look like 1 and 0
 const RELAY_TYPES = ['phase', 'status', 'feedback'];
+const PHASE_NAMES = ['lobby', 'match', 'results'];
+const FIGHTER_STATES = ['alive', 'dead', 'out'];
+
+// A relayed message may only contain plain data of a sensible size: short text,
+// numbers, booleans, and small lists or objects of those, at most three levels deep.
+function plainData(value, depth = 0) {
+  if (value === null || typeof value === 'boolean') return true;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value === 'string') return value.length <= 300;
+  if (depth >= 3 || typeof value !== 'object') return false;
+  const items = Array.isArray(value) ? value : Object.values(value);
+  return items.length <= 24 && items.every((v) => plainData(v, depth + 1));
+}
+const optional = (value, check) => value === undefined || value === null || check(value);
+const shortText = (max) => (v) => typeof v === 'string' && v.length <= max;
+const colour = (v) => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v);
+
+// The three kinds of message a host may send to phones, each with its own fields.
+export function relayProblem(m) {
+  if (!isPlainObject(m) || !RELAY_TYPES.includes(m.t) || !plainData(m)) return true;
+  if (m.t === 'phase') return !PHASE_NAMES.includes(m.name);
+  if (m.t === 'status') {
+    return !(isInt(m.pct, 0, 999) && isInt(m.lives, 0, 3) && FIGHTER_STATES.includes(m.state) && isInt(m.cd, 0, 3600) && isInt(m.cdMax, 1, 3600)
+      && optional(m.held, shortText(12)) && optional(m.tipsy, (v) => typeof v === 'boolean'));
+  }
+  return !(shortText(24)(m.kind) && optional(m.text, shortText(160)) && optional(m.title, shortText(60)) && optional(m.name, shortText(60))
+    && optional(m.flash, colour) && optional(m.n, (v) => isInt(v, 0, 9))
+    && optional(m.vibrate, (v) => Array.isArray(v) && v.length <= 12 && v.every((x) => isInt(x, 0, 2000))));
+}
 
 export const ERRORS = {
   room_not_found: 'Room not found. Check the code on the big screen.',
@@ -409,7 +438,7 @@ const HOST_HANDLERS = {
   to(conn, msg) {
     const room = conn.room;
     const inner = msg.msg;
-    if (!isPlainObject(inner) || !RELAY_TYPES.includes(inner.t) || !(msg.slot === 'all' || isInt(msg.slot, 0, 3))) return this.strike(conn);
+    if (relayProblem(inner) || !(msg.slot === 'all' || isInt(msg.slot, 0, 3))) return this.strike(conn);
     room.lastActive = this.now();
     const targets = msg.slot === 'all' ? room.slots : [room.slots[msg.slot]];
     for (const slot of targets) {

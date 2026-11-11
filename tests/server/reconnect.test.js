@@ -55,7 +55,7 @@ test('during a match a dropped player keeps the slot until the match ends and ca
   const { matchId } = await h.next('match_started');
   await h.next('roster');
   h.send({ t: 'to', slot: 'all', msg: { t: 'phase', name: 'match', stage: 'campus' } });
-  h.send({ t: 'to', slot: 0, msg: { t: 'status', pct: 87, lives: 2 } });
+  h.send({ t: 'to', slot: 0, msg: { t: 'status', pct: 87, lives: 2, state: 'alive', cd: 0, cdMax: 420 } });
   await a.next('status');
   await a.close();
   assert.equal((await h.next('roster')).players[0].connected, false);
@@ -69,7 +69,7 @@ test('during a match a dropped player keeps the slot until the match ends and ca
   assert.equal(joined.phase, 'match');
   // The server replays the current screen and the player's last status.
   assert.equal((await again.next('phase')).name, 'match');
-  assert.deepEqual(await again.next('status'), { t: 'status', pct: 87, lives: 2 });
+  assert.deepEqual(await again.next('status'), { t: 'status', pct: 87, lives: 2, state: 'alive', cd: 0, cdMax: 420 });
   again.send({ t: 'input', m: 2, q: 1 });
   assert.equal((await h.next('input')).slot, 0);
 

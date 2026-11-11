@@ -107,7 +107,7 @@ test('a player cannot start a match, submit a result, close the room or talk to 
     { t: 'match_result', matchId: 'x', result: sampleResult() },
     { t: 'match_abort', matchId: 'x' },
     { t: 'room_set', closed: true },
-    { t: 'to', slot: 1, msg: { t: 'feedback', text: 'You lose' } },
+    { t: 'to', slot: 1, msg: { t: 'feedback', kind: 'ko', text: 'You lose' } },
     { t: 'host_resume', code: h.code, hostKey: 'guess' },
     { t: 'host_create' },
   ];
@@ -129,7 +129,7 @@ test('a socket that has not joined anything cannot send game messages', async (t
   const s = await startServer(t);
   const h = await s.host();
   const stranger = await s.open();
-  for (const msg of [{ t: 'input', m: 1, q: 1 }, { t: 'pick', fighter: 'house_dj', ready: true }, { t: 'match_start', stage: 'campus', lives: 3, slots: [], guests: 2 }, { t: 'to', slot: 'all', msg: { t: 'phase', name: 'x' } }]) {
+  for (const msg of [{ t: 'input', m: 1, q: 1 }, { t: 'pick', fighter: 'house_dj', ready: true }, { t: 'match_start', stage: 'campus', lives: 3, slots: [], guests: 2 }, { t: 'to', slot: 'all', msg: { t: 'phase', name: 'match' } }]) {
     stranger.send(msg);
     assert.equal((await stranger.next('error')).code, 'not_joined');
   }
@@ -146,7 +146,7 @@ test('a host cannot touch another host\'s room', async (t) => {
   // h2 has no players: starting with h1's slots fails, and nothing reaches h1's phones.
   h2.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
   assert.equal((await h2.next('error')).code, 'bad_start');
-  h2.send({ t: 'to', slot: 'all', msg: { t: 'phase', name: 'hijack' } });
+  h2.send({ t: 'to', slot: 'all', msg: { t: 'phase', name: 'lobby' } });
   await h2.settle();
   await a.settle();
   assert.equal(a.inbox.length + b.inbox.length, 0);
@@ -348,7 +348,7 @@ test('the host sends status, phase and feedback to one phone or to all', async (
   const h = await s.host();
   const a = await s.player(h, 'Ana');
   const b = await s.player(h, 'Max');
-  h.send({ t: 'to', slot: 1, msg: { t: 'feedback', text: 'Blinded!', flash: '#ffffff' } });
+  h.send({ t: 'to', slot: 1, msg: { t: 'feedback', kind: 'special', text: 'Blinded!', flash: '#ffffff' } });
   assert.equal((await b.next('feedback')).text, 'Blinded!');
   h.send({ t: 'to', slot: 'all', msg: { t: 'phase', name: 'match' } });
   assert.equal((await a.next('phase')).name, 'match');
@@ -367,6 +367,20 @@ test('the host can only relay the three known message types', async (t) => {
     { t: 'to', slot: 7, msg: { t: 'phase' } },
     { t: 'to', slot: '0', msg: { t: 'phase' } },
     { t: 'to', msg: { t: 'phase' } },
+    // the right type, but fields that do not belong there
+    { t: 'to', slot: 0, msg: { t: 'phase', name: 'hacked' } },
+    { t: 'to', slot: 0, msg: { t: 'phase' } },
+    { t: 'to', slot: 0, msg: { t: 'feedback', kind: 'ko', vibrate: 'not-a-list' } },
+    { t: 'to', slot: 0, msg: { t: 'feedback', kind: 'ko', vibrate: [999999] } },
+    { t: 'to', slot: 0, msg: { t: 'feedback', kind: 'ko', flash: 'url(x)' } },
+    { t: 'to', slot: 0, msg: { t: 'feedback', kind: 'ko', text: 'x'.repeat(161) } },
+    { t: 'to', slot: 0, msg: { t: 'feedback', text: 'no kind' } },
+    { t: 'to', slot: 0, msg: { t: 'feedback', kind: 'ko', extra: 'x'.repeat(301) } },
+    { t: 'to', slot: 0, msg: { t: 'feedback', kind: 'ko', deep: { a: { b: { c: { d: 1 } } } } } },
+    { t: 'to', slot: 0, msg: { t: 'status', pct: -5, lives: 3, state: 'alive', cd: 0, cdMax: 400 } },
+    { t: 'to', slot: 0, msg: { t: 'status', pct: 10, lives: 9, state: 'alive', cd: 0, cdMax: 400 } },
+    { t: 'to', slot: 0, msg: { t: 'status', pct: 10, lives: 3, state: 'winner', cd: 0, cdMax: 400 } },
+    { t: 'to', slot: 0, msg: { t: 'status', pct: '10', lives: 3, state: 'alive', cd: 0, cdMax: 400 } },
   ]) {
     h.send(bad);
     assert.equal((await h.next('error')).code, 'bad_message');
@@ -433,7 +447,7 @@ test('oversized messages are dropped: 512 bytes for phones, 16 KB for the host',
   await h.settle();
   assert.equal(h.inbox.filter((m) => m.t === 'input').length, 0);
   // The host may send more than a phone ...
-  h.send({ t: 'to', slot: 0, msg: { t: 'phase', name: 'results', pad: 'x'.repeat(4000) } });
+  h.send({ t: 'to', slot: 0, msg: { t: 'phase', name: 'results', pad: Array(20).fill('x'.repeat(200)) } });
   assert.equal((await a.next('phase')).name, 'results');
   // ... but anything over the hard limit closes the socket (the ws library refuses it).
   h.send(JSON.stringify({ t: 'to', slot: 0, msg: { t: 'phase', pad: 'x'.repeat(40_000) } }));

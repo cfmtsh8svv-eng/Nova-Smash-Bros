@@ -4,6 +4,9 @@ services:
     name: nova-brawl
     runtime: node
     plan: free
+    # Close to the players: every button press travels phone -> server -> big screen.
+    # (Render cannot move an existing service; to change the region, delete and create it again.)
+    region: frankfurt
     buildCommand: npm ci --omit=dev
     startCommand: npm start
     healthCheckPath: /healthz

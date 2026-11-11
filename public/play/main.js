@@ -18,7 +18,7 @@ const el = (tag, className, text) => {
   return node;
 };
 const SCREENS = ['auth', 'notice', 'select', 'pad', 'results'];
-const HEARTBEAT_MS = 250;
+const HEARTBEAT_MS = 100; // the host lets go of a phone's buttons after 600 ms of silence
 
 const me = {
   room: null, token: storage.get('localStorage', 'nb_token'), gamertag: storage.get('localStorage', 'nb_tag'),
@@ -39,6 +39,26 @@ function show(name) {
     hideHazard(); // a countdown from the last match must not be there in the next one
   }
   if (name === 'pad') keepAwake();
+  showBanner();
+}
+
+// The one line at the top that says what is wrong with the connection: the nearest problem first.
+const banner = { offline: false, weak: false, busy: false, hostGone: false };
+function showBanner() {
+  const text = banner.offline ? 'Connection lost, reconnecting…'
+    : banner.weak ? 'Weak connection: the server is not answering…'
+      : banner.busy ? 'The server is busy. Trying again…'
+        : banner.hostGone ? 'The big screen lost its connection…' : '';
+  if (text) $('offline').textContent = text;
+  $('offline').hidden = !text || !me.token || !$('auth').hidden;
+}
+
+// The room code is kept in the address, so a reload (or a phone that threw the page away
+// while it was locked) finds its way back, also when the code was typed in by hand.
+function rememberRoom(code) {
+  try {
+    history.replaceState(null, '', code ? `/play?room=${code}` : '/play');
+  } catch { /* not allowed here: a reload then asks for the code again */ }
 }
 
 function notice(text, button, action) {
@@ -55,7 +75,8 @@ function notice(text, button, action) {
 
 const link = createLink({
   onOpen() {
-    $('offline').hidden = true;
+    Object.assign(banner, { offline: false, weak: false, busy: false, hostGone: false });
+    showBanner();
     me.joined = false;
     me.joining = false;
     if (!me.replaced && !me.left) tryJoin(); // a tab that was replaced, or a player who left, stays out until asked
@@ -63,10 +84,14 @@ const link = createLink({
   onState(connected) {
     if (!connected) {
       me.joined = false;
-      $('offline').textContent = 'Connection lost, reconnecting…';
-      $('offline').hidden = !me.token || $('auth').hidden === false;
+      banner.offline = true;
+      showBanner();
       controls.setEnabled(false); // nothing is sent while offline; fingers that are down are remembered
     }
+  },
+  onLag(late) {
+    banner.weak = late;
+    showBanner();
   },
   onMessage(msg) {
     const handler = MESSAGES[msg.t];
@@ -112,9 +137,13 @@ const MESSAGES = {
       if (index >= 0) me.fighter = index;
     }
     me.ready = Boolean(msg.ready && msg.fighter);
-    $('offline').hidden = msg.hostConnected;
-    if (!msg.hostConnected) $('offline').textContent = 'The big screen lost its connection…';
-    // The server now replays the current screen. Until it does, show the fighter select.
+    banner.busy = false;
+    banner.hostGone = !msg.hostConnected;
+    showBanner();
+    rememberRoom(me.room);
+    // The server now replays the current screen. A player who is back in the middle of their
+    // match keeps the pad (and a thumb that never left it); everyone else sees the fighter select.
+    if (msg.phase === 'match' && !$('pad').hidden) return;
     showSelect();
     if (msg.phase === 'match') notice('A match is running. You are in the next one.');
   },
@@ -195,14 +224,15 @@ const MESSAGES = {
   },
 
   host(msg) {
-    $('offline').textContent = 'The big screen lost its connection…';
-    $('offline').hidden = Boolean(msg.connected);
+    banner.hostGone = !msg.connected;
+    showBanner();
   },
 
   closed(msg) {
     me.joined = false;
     me.room = null;
-    $('offline').hidden = true;
+    rememberRoom(null);
+    banner.hostGone = false;
     notice(String(msg.msg || 'The room was closed.'), 'Enter another code', () => showAuth());
   },
 
@@ -229,6 +259,7 @@ const MESSAGES = {
     me.joining = false;
     if (msg.code === 'room_not_found') {
       me.room = null;
+      rememberRoom(null);
       showAuth(me.token ? 'login' : authMode);
       setError('room', msg.msg);
     } else if (msg.code === 'bad_token' || msg.code === 'signed_out') {
@@ -239,10 +270,13 @@ const MESSAGES = {
       notice(String(msg.msg), 'Try again', () => { notice('Joining…'); tryJoin(); });
     } else if (msg.code === 'busy' && !me.joined) {
       // The server is turning joins away for the moment: say so and try again shortly.
-      $('offline').textContent = 'The server is busy. Trying again…';
-      $('offline').hidden = false;
+      banner.busy = true;
+      showBanner();
       clearTimeout(joinRetry);
       joinRetry = setTimeout(tryJoin, 2500 + Math.random() * 2500);
+    } else if (msg.code === 'busy') {
+      // In the room already: a burst of messages after a network hiccup was turned away.
+      // The buttons are sent again by the heartbeat, so there is nothing to tell the player.
     } else if (msg.code !== 'bad_message' && msg.msg) {
       showMessage(String(msg.msg)); // shown on whatever screen the player is on
     }
@@ -283,7 +317,8 @@ function showAuth(mode = authMode) {
     $('authSubmit').textContent = 'Join the room';
   }
   clearErrors();
-  $('offline').hidden = true;
+  banner.busy = false;
+  banner.hostGone = false;
   show('auth');
 }
 
@@ -485,7 +520,12 @@ function updateOverlay(paused) {
   controls.setEnabled(!title && me.joined);
 }
 
+let hazardTimer = null;
 function showHazard(name, count) {
+  // If the news of the hazard's start or end gets lost (the big screen was offline for a
+  // moment), the warning does not stay for ever: it goes when nothing follows it.
+  clearTimeout(hazardTimer);
+  hazardTimer = setTimeout(hideHazard, count ? 2000 : 3000);
   $('hazard').hidden = false;
   $('hazardName').textContent = String(name || '');
   const number = $('hazardCount');

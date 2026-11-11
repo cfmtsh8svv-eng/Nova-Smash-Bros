@@ -47,10 +47,17 @@ export function createControls({ root, dpad, stickZone, ring, knob, onChange }) 
       if (dy >= STICK.downAt) buttons.push('down');
     }
     const length = Math.hypot(dx, dy) || 1;
-    const reach = Math.min(length, STICK.knobTravel);
     const box = stickZone.getBoundingClientRect();
-    knob.style.left = `${p.ox - box.left + (dx / length) * reach}px`;
-    knob.style.top = `${p.oy - box.top + (dy / length) * reach}px`;
+    if (length > STICK.knobTravel) {
+      // The thumb went past the rim: the stick is dragged along, so turning back
+      // never needs more than the width of the stick, however far the thumb drifted.
+      p.ox = x - (dx / length) * STICK.knobTravel;
+      p.oy = y - (dy / length) * STICK.knobTravel;
+      ring.style.left = `${p.ox - box.left}px`;
+      ring.style.top = `${p.oy - box.top}px`;
+    }
+    knob.style.left = `${x - box.left}px`;
+    knob.style.top = `${y - box.top}px`;
     return buttons;
   }
 

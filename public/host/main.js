@@ -71,7 +71,16 @@ function lobbyPhase() {
 
 // ---- the server connection ----
 
+let weak = false;
 const link = createLink({
+  // The connection still looks open, but the server stopped answering: say so right away,
+  // because the phones' buttons do not arrive in the meantime.
+  onLag(late) {
+    if (!link.connected) return;
+    weak = late;
+    if (late) $('offline').textContent = 'Weak connection: the server is not answering…';
+    $('offline').hidden = !late || screen === 'title';
+  },
   onOpen() {
     $('offline').hidden = true;
     if (lobby.room) link.send({ t: 'host_resume', code: lobby.room.code, hostKey: lobby.room.hostKey });
@@ -80,6 +89,7 @@ const link = createLink({
   onState(connected, code) {
     $('offline').textContent = code === 4002 ? 'This room was opened in another tab. This tab is no longer used.' : 'Connection lost, reconnecting…';
     $('offline').hidden = connected || (screen === 'title' && code !== 4002);
+    weak = false;
     if (code === 4002) {
       // The other tab has the room now: nothing may keep running here.
       game.stop();

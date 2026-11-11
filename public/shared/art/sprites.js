@@ -73,6 +73,7 @@ export function loadSprite(fighterId, mainColour = null, pose = 'idle') {
       return canvas;
     }, (err) => {
       cache.delete(key);
+      console.error(`Could not draw the sprite ${key}: ${err.message}`); // callers carry on without the picture, so say it here
       throw err;
     });
     cache.set(key, job);
@@ -146,6 +147,7 @@ export function loadStage(stageId, width = 1280, height = 720) {
       return canvas;
     })().catch((err) => {
       stageCache.delete(key);
+      console.error(`Could not draw the stage ${key}: ${err.message}`);
       throw err;
     });
     stageCache.set(key, job);

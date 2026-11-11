@@ -41,6 +41,8 @@ Rule from [`AGENTS.md`](../AGENTS.md): never change a test just to make it pass.
 
 ## For everyone
 
+- Before the demo, on a real iPhone: hold a direction for three seconds and check that the fighter keeps running (Safari was not tested in the build; everything was checked in Chromium).
+- Things the game-feel review noticed that were left for you to judge on real phones: the two arrows ◀ and ▶ are far apart (`public/play/play.css`); the D-pad/joystick switch sits just above Attack and can be hit in a fight; every hit freezes the whole game for a moment (`hitPauseMs` in `src/game/config.js`), which is a lot with four players; getting back to the stage after being launched is hard with one air jump (`doubleJumpSpeed`); Bass Drop and the up-attack launch too steeply to ever knock anyone out (`upAngleDeg`).
 - Play five matches on real phones and write down what felt wrong. Each note is either a tuning value (see G1, C2) or a row for `docs/DECISIONS.md`.
 - Read your section of [`WALKTHROUGH.md`](WALKTHROUGH.md) out loud once. If a sentence is hard to say, rewrite it in your own words and commit that.
 - Demo mode is described in [`DEMO.md`](DEMO.md). It is a good bigger task if there is time: the settings and the time-cap rule already exist; the lobby toggle, sending the cap to the server and letting the server accept a time-capped result are what is left.

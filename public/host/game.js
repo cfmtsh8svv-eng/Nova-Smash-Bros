@@ -3,6 +3,7 @@
 import { CONFIG, PLAYER_COLORS, SCREEN } from '/game/config.js';
 import { createMatch, phoneStatus } from '/game/match.js';
 import { createLoop } from '/game/loop.js';
+import { alpha } from '/game/clock.js';
 import { InputBuffer } from '/game/input.js';
 import { voteHazard } from '/game/hazards.js';
 import { damageColor } from '/game/view.js';
@@ -12,7 +13,7 @@ import { createRenderer } from './render.js';
 import { createFx } from './fx.js';
 import { createKeyboard } from './keyboard.js';
 
-const STALE_MS = 1500; // a phone that sent nothing for this long is treated as "let go of everything"
+const STALE_MS = 600; // a phone that sent nothing for this long (six missed heartbeats) is treated as "let go of everything"
 const HAZARD_SOUND = { train: 'train', wave: 'wave', gulls: 'gulls', crowd: 'crowd', drinks: 'drinks', wifi: 'wifi' };
 
 export function createGame({ canvas, audio, sendTo, onEnd }) {
@@ -28,6 +29,7 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
   let guests = new Map(); // slot -> keyboard index
   let lastStatus = new Map();
   let lastTime = null;
+  let lastPlaces = null; // where the fighters were one step ago (only kept during the slow motion)
   let endTimer = null;
 
   // ---- inputs ----
@@ -36,7 +38,7 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     const now = performance.now();
     const inputs = {};
     for (const [slot, phone] of phones) {
-      if (now - phone.lastSeen > STALE_MS) phone.buffer.reset();
+      if (now - phone.lastSeen > STALE_MS) phone.buffer.letGo();
       inputs[slot] = phone.buffer.consume();
     }
     for (const [slot, index] of guests) inputs[slot] = keyboard.read(index);
@@ -174,7 +176,8 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     lastTime = now;
     const frames = Math.max(0, Math.min(dt, 100)) / (1000 / 60);
     if (loop && !loop.paused) {
-      loop.tick(dt);
+      const before = state && state.phase === 'finalKo' ? state.fighters.map((f) => ({ x: f.x, y: f.y })) : null;
+      if (loop.tick(dt) > 0) lastPlaces = before;
       if (state) sendStatus();
     }
     if (!loop || !loop.paused) {
@@ -183,9 +186,33 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
       const k = 1 - 0.86 ** frames;
       for (const key of ['x', 'y', 'zoom']) view.camera[key] += (cameraGoal[key] - view.camera[key]) * k;
     }
-    renderer.draw(state ? state.stage.id : previewStage, state, view);
+    drawSmooth();
   }
   requestAnimationFrame(frame);
+
+  // In the final-KO slow motion the rules take a step only every fourth picture. To keep the
+  // flight smooth, the fighters are drawn between their last two places. Only the picture
+  // changes: the places are put back before the rules look at them again.
+  function drawSmooth() {
+    const smooth = loop && state && state.phase === 'finalKo' && lastPlaces && lastPlaces.length === state.fighters.length;
+    if (!smooth) {
+      if (!state || state.phase !== 'finalKo') lastPlaces = null;
+      return renderer.draw(state ? state.stage.id : previewStage, state, view);
+    }
+    const t = alpha(loop.clock);
+    const real = state.fighters.map((f) => ({ x: f.x, y: f.y }));
+    state.fighters.forEach((f, i) => {
+      const from = lastPlaces[i];
+      if (Math.hypot(f.x - from.x, f.y - from.y) > 120) return; // a jump in place (a respawn), not a flight
+      f.x = from.x + (f.x - from.x) * t;
+      f.y = from.y + (f.y - from.y) * t;
+    });
+    try {
+      return renderer.draw(state.stage.id, state, view);
+    } finally {
+      state.fighters.forEach((f, i) => { f.x = real[i].x; f.y = real[i].y; });
+    }
+  }
 
   // ---- control from the lobby ----
 

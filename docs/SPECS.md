@@ -27,7 +27,7 @@ host page  --result-->  server  --https-->  Apps Script web app  -->  Google She
 ```
 
 - Messages are small JSON objects over one WebSocket per page. `server/rooms.js` lists every message type and who may send it.
-- The phone sends its seven buttons as one number (a bit mask) whenever they change, plus a heartbeat four times a second.
+- The phone sends its seven buttons as one number (a bit mask) whenever they change, plus a heartbeat ten times a second.
 - The host page is the only place where the match is simulated. The server never sees positions or hits, only the final result.
 
 ## Numbers that matter

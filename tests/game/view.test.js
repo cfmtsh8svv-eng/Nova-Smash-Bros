@@ -79,9 +79,9 @@ test('the roster and the stages match the spec', () => {
     'Carcavelos Gang Member': [100, 3, 'Pizza Throw', 'Spaghetti Lasso'],
   });
   assert.deepEqual(STAGES.map((s) => [s.name, s.platforms.length, s.hazards]), [
-    ['Nova SBE Campus', 5, ['train', 'wifi']],
-    ['Carcavelos Beach', 5, ['wave', 'gulls']],
-    ['Bairro Alto', 6, ['crowd', 'drinks']],
+    ['Nova SBE Campus', 5, ['train', 'wifi', 'rain']],
+    ['Carcavelos Beach', 5, ['wave', 'gulls', 'sun']],
+    ['Bairro Alto', 6, ['crowd', 'drinks', 'fireworks']],
   ]);
   for (const stage of STAGES) {
     assert.equal(stage.platforms.filter((p) => p.solid).length, 1, 'one solid main ground');

@@ -162,7 +162,7 @@ Nothing in here touches the screen, the network or the clock. Even chance comes 
 | `specials.js` | The eight specials, one small function each |
 | `physics.js` (ledge grab) | `tryLedge` and `holdLedge`: grabbing the two corners of the main ground, hanging, climbing up, letting go (D-138) |
 | `stomp.js` | The stomp: Attack in the air without Up drops straight down; landing sends out a shockwave (D-137) |
-| `items.js`, `hazards.js` | The nine items (on touch, held, the forced Group Project with its fuse; D-140); the hazards and their warning |
+| `items.js`, `hazards.js` | The nine items (on touch, held, the forced Group Project with its fuse; D-140); the nine hazards, three per stage, with their warning, the late train and the next one 10 to 15 s after the last (D-143 to D-149) |
 | `input.js` | The buffer between "messages arrive whenever" and "the game looks once per step" |
 | `clock.js`, `loop.js` | Turning real time into steps; slow motion and hit pause |
 | `scoring.js`, `view.js` | Points; damage colour and which pose to show |
@@ -293,7 +293,7 @@ The script in the sheet (`Code.gs`) is the last guard before a cell is written. 
 
 **Held items** are drawn in the fighter's back hand (D-139). `handPoint` in `public/shared/art/characters.js` works out where that hand is in each pose with the same arm and lean angles the sprite is drawn with, so the item follows the arm when running, jumping, attacking and hanging.
 
-**Drawing order**, back to front: the stage (one prepared picture), hazards behind the fighters, items, fighters, things that fly, hazards in front (train, wave, crowd), effects, name tags, and last the display on top: player cards top left, hazard countdown top right, big texts in the middle.
+**Drawing order**, back to front: the stage (one prepared picture), hazards behind the fighters, items, fighters, things that fly, hazards in front (train, wave, crowd, rain, rockets), effects, name tags, and last the display on top: player cards top left, hazard countdown top right, big texts in the middle.
 
 **The lobby** shows the QR code, the four slots and the settings. A new player's card pops in with a flash in their colour; until they have chosen a fighter it shows a grey silhouette. The stage choice is **Vote (default)** or one of the three stages.
 

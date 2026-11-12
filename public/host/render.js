@@ -241,11 +241,13 @@ export function createRenderer(canvas) {
 
   // ---- hazards ----
 
+  // The train runs on the rails at the bottom of the screen (y 678 to 720) and is tall enough
+  // to reach up through the terrace level, where it hits (D-144).
   function drawTrain(rect, dir) {
     const cars = 3;
     const carW = rect.w / cars;
     const y = rect.y + 8;
-    const h = rect.h - 30 - 20;
+    const h = 690 - y;
     for (let i = 0; i < cars; i++) {
       const x = rect.x + i * carW;
       ctx.lineWidth = 4;
@@ -264,10 +266,11 @@ export function createRenderer(canvas) {
     ctx.beginPath(); ctx.arc(front, y + h * 0.75, 7, 0, 7); ctx.fill();
   }
 
+  // The water rises from the bottom edge of the screen (D-146).
   function drawWave(rect, dir, t) {
     ctx.save();
     const top = rect.y + 6;
-    const bottom = rect.y + rect.h;
+    const bottom = SCREEN.h;
     const grad = ctx.createLinearGradient(0, top, 0, bottom);
     grad.addColorStop(0, '#bfeeff');
     grad.addColorStop(0.3, '#3fb6d8');
@@ -407,7 +410,26 @@ export function createRenderer(canvas) {
     };
     const edge = hz.dir > 0 ? 0 : SCREEN.w;
     if (hz.id === 'train') glow(edge, ground - 50, 170, '#fff2c8');
-    if (hz.id === 'wave') glow(edge, ground - 40, 190, '#7fe0ff');
+    if (hz.id === 'wave') glow(hz.pos + CONFIG.hazards.wave.width / 2, SCREEN.h - 40, 170, '#7fe0ff');
+    if (hz.id === 'rain') {
+      ctx.save();
+      ctx.globalAlpha = 0.18 + 0.12 * pulse;
+      ctx.fillStyle = '#2a3346';
+      ctx.fillRect(0, 0, SCREEN.w, SCREEN.h);
+      ctx.restore();
+    }
+    if (hz.id === 'sun') glow(SCREEN.w / 2, ground - 20, 520, '#fff2a8');
+    if (hz.id === 'fireworks') {
+      for (const x of hz.spots) {
+        glow(x, ground - 6, 44, '#ff7a3d');
+        // a lit fuse lying on the street
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(x - 14, ground - 3); ctx.quadraticCurveTo(x, ground - 9, x + 12, ground - 4); ctx.stroke();
+        ctx.fillStyle = Math.floor(t / 3) % 2 ? '#f6c343' : '#ff7a3d';
+        ctx.beginPath(); ctx.arc(x + 12 + Math.sin(t / 2) * 2, ground - 6, 4, 0, 7); ctx.fill();
+      }
+    }
     if (hz.id === 'crowd') glow(edge, ground - 50, 170, '#ffd98a');
     if (hz.id === 'gulls') glow(edge, hz.zone === 'sand' ? 520 : 360, 150, '#ffffff');
     if (hz.id === 'wifi') drawWifiIcon(84, wifiBand(hz).y + 96, pulse);
@@ -417,12 +439,92 @@ export function createRenderer(canvas) {
     }
   }
 
+  // Sudden Rain: a darker sky and a wet shine on every platform (the drops are drawn in front).
+  function drawRainBack(state, t) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(30,38,58,.38)';
+    ctx.fillRect(0, 0, SCREEN.w, SCREEN.h);
+    for (const p of state.stage.platforms) {
+      const g = ctx.createLinearGradient(p.x, 0, p.x + p.w, 0);
+      const k = (t * 4) % (p.w + 200);
+      g.addColorStop(0, 'rgba(255,255,255,0)');
+      g.addColorStop(Math.max(0, Math.min(1, (k - 100) / p.w)), 'rgba(255,255,255,.08)');
+      g.addColorStop(Math.max(0, Math.min(1, k / p.w)), 'rgba(220,240,255,.55)');
+      g.addColorStop(1, 'rgba(255,255,255,.1)');
+      ctx.fillStyle = g;
+      ctx.fillRect(p.x, p.y - 3, p.w, 6);
+    }
+    ctx.restore();
+  }
+
+  function drawRain(t) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(200,225,255,.55)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < 140; i++) {
+      const x = (i * 97 + t * 3) % (SCREEN.w + 80) - 40;
+      const y = (i * 53 + t * 22) % (SCREEN.h + 40) - 20;
+      ctx.moveTo(x, y); ctx.lineTo(x - 6, y + 22);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Midday Sun: a bright glare over the sand and heat shimmer on it.
+  function drawSun(state, t) {
+    const ground = state.stage.platforms[0].y;
+    const top = CONFIG.levels.groundAbove - 60;
+    ctx.save();
+    const g = ctx.createLinearGradient(0, top, 0, ground + 20);
+    g.addColorStop(0, 'rgba(255,240,170,0)');
+    g.addColorStop(1, `rgba(255,236,150,${0.38 + 0.08 * Math.sin(t / 8)})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, top, SCREEN.w, ground + 20 - top);
+    ctx.strokeStyle = 'rgba(255,255,255,.35)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 16; i++) {
+      const x = 140 + i * 66;
+      const y = ground - 20 - ((t * 1.5 + i * 13) % 50);
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 6 * Math.sin(t / 4 + i), y - 10, x, y - 20); ctx.stroke();
+    }
+    const sun = ctx.createRadialGradient(1120, 70, 10, 1120, 70, 150);
+    sun.addColorStop(0, 'rgba(255,255,230,.9)');
+    sun.addColorStop(1, 'rgba(255,240,170,0)');
+    ctx.fillStyle = sun;
+    ctx.fillRect(970, 0, 310, 230);
+    ctx.restore();
+  }
+
+  function drawRockets(hz, t) {
+    const F = CONFIG.hazards.fireworks;
+    for (const r of hz.rockets) {
+      if (r.done) continue;
+      ctx.save();
+      ctx.translate(r.x, r.y);
+      // the trail of sparks below
+      for (let i = 0; i < 8; i++) {
+        ctx.fillStyle = ['#f6c343', '#ff7a3d', '#ffffff'][i % 3];
+        ctx.fillRect(-3 + Math.sin(t + i) * 4, 6 + i * 9, 5, 5);
+      }
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = INK;
+      ctx.fillStyle = '#e63946';
+      roundRect(ctx, -F.width / 4, -F.height, F.width / 2, F.height - 6, 4); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#f6c343';
+      ctx.beginPath(); ctx.moveTo(-F.width / 4, -F.height); ctx.lineTo(0, -F.height - 14); ctx.lineTo(F.width / 4, -F.height); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   function drawHazardBack(state, t) {
     const hz = state.hazard;
     if (hz.phase === 'warn') drawTelegraph(state, t);
     if (hz.phase !== 'active') return;
     if (hz.id === 'wifi') drawWifi(hz, t);
     if (hz.id === 'drinks') drawDrinks(hz, t);
+    if (hz.id === 'rain') drawRainBack(state, t);
+    if (hz.id === 'sun') drawSun(state, t);
   }
 
   function drawHazardFront(state, t) {
@@ -433,6 +535,8 @@ export function createRenderer(canvas) {
     if (hz.id === 'wave') drawWave(rect, hz.dir, t);
     if (hz.id === 'crowd') drawCrowd(rect, hz.dir, t);
     if (hz.id === 'gulls') drawGulls(hz, t);
+    if (hz.id === 'rain') drawRain(t);
+    if (hz.id === 'fireworks') drawRockets(hz, t);
   }
 
   // ---- fighters ----
@@ -731,9 +835,6 @@ export function createRenderer(canvas) {
         outlined(ctx, String(hz.count), 0, 0, '#ffffff', 9);
         ctx.restore();
       }
-    } else if (hz.phase === 'cancelled') {
-      ctx.font = `24px ${DISPLAY}`;
-      outlined(ctx, hz.text, SCREEN.w - 30, 44, '#f6c343', 6);
     }
   }
 

@@ -209,11 +209,6 @@ const MESSAGES = {
       return showHazard(msg.name, String(msg.n));
     }
     if (msg.kind === 'hazardStart' || msg.kind === 'hazardEnd') return hideHazard();
-    if (msg.kind === 'hazardCancel') {
-      feedback.sound('hazardCancel');
-      showHazard(String(msg.text || ''), '');
-      return setTimeout(hideHazard, 2200);
-    }
     feedback.fire(msg);
     if (msg.kind === 'ko' || msg.kind === 'out') {
       me.koTitle = String(msg.title || 'KO!');

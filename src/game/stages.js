@@ -16,7 +16,7 @@ export const STAGES = [
     ],
     spawns: [{ x: 330, y: 600 }, { x: 950, y: 600 }, { x: 540, y: 600 }, { x: 740, y: 600 }],
     respawn: { x: 640, y: 60 },
-    hazards: ['train', 'wifi'],
+    hazards: ['train', 'wifi', 'rain'],
   },
   {
     id: 'beach', name: 'Carcavelos Beach', time: 'day', trim: 'life',
@@ -29,7 +29,7 @@ export const STAGES = [
     ],
     spawns: [{ x: 330, y: 600 }, { x: 950, y: 600 }, { x: 540, y: 600 }, { x: 740, y: 600 }],
     respawn: { x: 640, y: 60 },
-    hazards: ['wave', 'gulls'],
+    hazards: ['wave', 'gulls', 'sun'],
   },
   {
     id: 'bairro', name: 'Bairro Alto', time: 'night', trim: 'tram',
@@ -43,7 +43,7 @@ export const STAGES = [
     ],
     spawns: [{ x: 330, y: 600 }, { x: 950, y: 600 }, { x: 540, y: 600 }, { x: 740, y: 600 }],
     respawn: { x: 640, y: 60 },
-    hazards: ['crowd', 'drinks'],
+    hazards: ['crowd', 'drinks', 'fireworks'],
   },
 ];
 
@@ -70,5 +70,8 @@ export const HAZARDS = {
   gulls: { id: 'gulls', name: 'SEAGULLS', short: 'Seagulls' },
   crowd: { id: 'crowd', name: 'DRUNK CROWD', short: 'Drunk Crowd' },
   drinks: { id: 'drinks', name: 'DRINKS', short: 'Drinks' },
+  rain: { id: 'rain', name: 'SUDDEN RAIN', short: 'Sudden Rain' },
+  sun: { id: 'sun', name: 'MIDDAY SUN', short: 'Midday Sun' },
+  fireworks: { id: 'fireworks', name: 'FIREWORKS', short: 'Fireworks' },
 };
 export const HAZARD_IDS = Object.keys(HAZARDS);

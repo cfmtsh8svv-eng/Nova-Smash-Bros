@@ -179,11 +179,22 @@ Detailed illustration, drawn in code, true to the real places. Platforms are **p
 
 | Stage | Time | Platforms | Hazards |
 |---|---|---|---|
-| **Nova SBE Campus** | Day | Terrace, CTT Student Hall canopy, Pingo Doce & Go roof, main roof, tower roof | **Cascais Line Train** across the terrace level (25 % chance: "STRIKE! Train cancelled.") · **Bad Wi-Fi**: inputs delayed 200 ms for 6 s |
-| **Carcavelos Beach** | Day | Sandbank, surf-bar roof, açaí kiosk roof, lifeguard deck, lifeguard roof. Fort, Ponte 25 de Abril and Cristo Rei in the background. | **Big Wave** sweeps the sand level · **Seagulls** steal an item |
-| **Bairro Alto** | Night | Street without tram rails or overhead wires (with Erasmus Corner and its "BEER €1.50" sign), two balconies, the roof terrace of the bar The Spot, two roofs | **Drunk Crowd** pushes along the street and drags players with it · **Drinks** that make you tipsy for 8 s |
+| **Nova SBE Campus** | Day | Terrace, CTT Student Hall canopy, Pingo Doce & Go roof, main roof, tower roof | **Cascais Line Train** across the terrace level · **Bad Wi-Fi**: inputs delayed 200 ms for 6 s · **Sudden Rain**: the whole map is slippery for 6 s |
+| **Carcavelos Beach** | Day | Sandbank, surf-bar roof, açaí kiosk roof, lifeguard deck, lifeguard roof. Fort, Ponte 25 de Abril and Cristo Rei in the background. | **Big Wave** rises from the bottom and rolls across the sand · **Seagulls** steal an item · **Midday Sun** burns everyone on the sand |
+| **Bairro Alto** | Night | Street without tram rails or overhead wires (with Erasmus Corner and its "BEER €1.50" sign), two balconies, the roof terrace of the bar The Spot, two roofs | **Drunk Crowd** pushes along the street and drags players with it · **Drinks** that make you tipsy for 8 s · **Fireworks** shoot up from three spots in the street |
 
-One hazard at a time, every 25 to 40 s. Every hazard is **announced as animated text only**: the hazard's name, then a large **3, 2, 1** where each number pops in on its own, on the big screen and on every phone. No box and no bar. On the big screen it sits in the **top right corner**, over open sky, so it never covers a platform or a fighter. **Every hazard can be escaped** by moving or jumping: each one only affects one level or zone, and at least one platform is always safe.
+**Three hazards per stage** (D-143 to D-148):
+
+- **Cascais Line Train.** The train is drawn on the rails at the bottom of the screen (y 678 to 720), tall enough to reach up through the terrace level, where it hits (20 %). **25 % of trains are late:** the warning and 3, 2, 1 run as usual, then nothing happens and nothing is shown; **5 s later** the train arrives **without any warning**.
+- **Bad Wi-Fi.** Unchanged: inputs in one zone (the roofs or the ground floor) arrive 200 ms late for 6 s.
+- **Sudden Rain.** Rain over the whole map for **6 s**: every fighter slips as with Cash Rain, on every platform. No damage, so it may cover everything. Rain over the stage, a darker sky, wet shine on the platforms; phone line "It's raining! Everything is slippery."
+- **Big Wave.** It **rises from the bottom of the screen** at a random point in one random half of the sandbank, then rolls towards the far edge of the stage (the edge on the other side) and off it. Fighters standing on the sand that it touches are **dragged along** with it, strongly enough to carry them over the edge, and take 8 % once. Jumping onto a platform or over the wave escapes it. It stops dragging at the stage edge, so a dragged fighter flies on and falls, with a chance to grab the ledge. The water is drawn from the bottom edge of the screen up.
+- **Seagulls.** Unchanged.
+- **Midday Sun.** For **5 s** every fighter on the **sand level** takes **2 % every 0.5 s** (at most 20 %). The roofs and the lifeguard tower are safe. Bright glare over the sand, heat shimmer; phone line "Sunburn! Get in the shade."
+- **Drunk Crowd** and **Drinks.** Unchanged.
+- **Fireworks.** Three marked spots in the street (a glowing fuse on the ground during the warning). When it fires, a rocket shoots straight up from each spot. A fighter it touches in the street is **carried upward** with it for about **0.5 s**, then the rocket **explodes**: 12 % and a launch (base_kb 6, kb_growth 8, 80°). Fighters on the balconies and roofs are safe (the rockets start in the street). Coloured explosion particles; phone line "Fireworks! Santos Populares came early."
+
+One hazard at a time. After a hazard ends, the next warning starts at a random point **10 to 15 s** later. Every hazard is **announced as animated text only**: the hazard's name, then a large **3, 2, 1** where each number pops in on its own, on the big screen and on every phone. No box and no bar. On the big screen it sits in the **top right corner**, over open sky, so it never covers a platform or a fighter. **Every hazard can be escaped** by moving or jumping: each one only affects one level or zone, and at least one platform is always safe. (Sudden Rain is the one exception: it covers the whole map but does no damage.)
 
 The campus roof carries the **Nova SBE logo**, redrawn from the official mark (source: Wikimedia Commons, `Nova_logo.png`, author Nova SBE, CC BY-SA 4.0). It is credited in `CREDITS.md` and stays the school's trademark.
 

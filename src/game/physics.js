@@ -119,10 +119,12 @@ export function moveFighter(state, f, inp) {
   }
   const prevX = f.x;
   const prevY = f.y;
-  const grip = f.dragVx !== 0 ? CONFIG.hazards.crowd.grip : 1;
+  // Dragged by a hazard: the crowd leaves a little grip, the big wave none (D-146).
+  const grip = f.dragVx !== 0 ? f.dragGrip ?? CONFIG.hazards.crowd.grip : 1;
   f.x += f.vx * grip + f.dragVx;
   f.y += f.vy;
   f.dragVx = 0;
+  f.dragGrip = undefined;
   f.gravityScale = 1;
 
   const wasOnGround = f.onGround;

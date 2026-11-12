@@ -535,8 +535,8 @@ const pin = (state, spots, frames) => {
   return events;
 };
 
-test('hazard lengths: Bad Wi-Fi is active for exactly 360 frames, the drinks stay for exactly 480', () => {
-  for (const [stage, id, frames] of [['campus', 'wifi', 360], ['bairro', 'drinks', 480]]) {
+test('hazard lengths: Bad Wi-Fi and Sudden Rain 360 frames, the drinks 480, the Midday Sun 300', () => {
+  for (const [stage, id, frames] of [['campus', 'wifi', 360], ['bairro', 'drinks', 480], ['campus', 'rain', 360], ['beach', 'sun', 300]]) {
     const state = fight({ stage, settings: { hazards: true } });
     state.fighters.forEach((f) => { f.invincible = 1e6; });
     beginWarning(state, { id, zone: 'roof', platform: 0 });
@@ -560,6 +560,9 @@ test('no hazard does anything while it is only being announced', () => {
     ['bairro', { id: 'crowd', dir: 1 }, 600],
     ['bairro', { id: 'drinks', platform: 0 }, 600],
     ['beach', { id: 'wave', dir: 1 }, 600],
+    ['campus', { id: 'rain' }, 600],
+    ['beach', { id: 'sun' }, 600],
+    ['bairro', { id: 'fireworks' }, 600],
   ];
   for (const [stage, forced, y] of cases) {
     const state = fight({ stage, settings: { hazards: true } });
@@ -580,6 +583,7 @@ test('no hazard does anything while it is only being announced', () => {
     assert.equal(jumpAt, 100, `${forced.id}: no input lag during the warning`);
     assert.equal(a.percent + b.percent, 0, forced.id);
     assert.equal(a.tipsy, 0);
+    assert.equal(a.slip, 0, `${forced.id}: no rain yet`);
     assert.deepEqual(a.held, { type: 'sardine', uses: 5 });
     assert.equal(of(events, 'feedback').length, 0, forced.id);
     assert.equal(state.hazard.phase, 'warn');
@@ -595,7 +599,7 @@ test('train, wave and crowd come from the left and from the right', () => {
         const [a, b] = state.fighters;
         beginWarning(state, { id, dir });
         const warn = pin(state, [[a, 640, 600], [b, 640, 336]], WARN_FRAMES);
-        if (of(warn, 'hazardCancel').length) continue; // a strike: try the next seed
+        if (state.hazard.phase === 'late') continue; // a late train: try the next seed
         const xs = [];
         let hitAt = null;
         let pushed = 0;
@@ -624,7 +628,7 @@ test('the train does 20 %, comes with the name CASCAIS LINE TRAIN, and nobody ge
     assert.equal(state.events.find((e) => e.type === 'hazardWarn').name, 'CASCAIS LINE TRAIN');
     a.percent = 185;
     const events = pin(state, [[a, 640, 600], [b, 640, 336]], WARN_FRAMES + 120);
-    if (of(events, 'hazardCancel').length) continue;
+    if (!of(events, 'hit').length) continue; // a late train: try the next seed
     const hit = of(events, 'hit')[0];
     assert.deepEqual([hit.slot, hit.by, hit.damage, hit.kind, hit.source], [0, null, 20, 'hazard', 'train']);
     const ko = of(events, 'ko')[0];
@@ -635,17 +639,17 @@ test('the train does 20 %, comes with the name CASCAIS LINE TRAIN, and nobody ge
   assert.fail('no train came');
 });
 
-test('the strike: exactly 55 of the first 200 seeds (about one in four)', () => {
-  let strikes = 0;
+test('the late train: exactly 55 of the first 200 seeds (about one in four)', () => {
+  let late = 0;
   for (let seed = 1; seed <= 200; seed++) {
     const state = fight({ stage: 'campus', settings: { hazards: true }, seed });
     beginWarning(state, { id: 'train' });
     for (let i = 0; i < WARN_FRAMES; i++) {
       state.fighters.forEach((f, k) => Object.assign(f, { x: 600 + k * 90, y: 100, vy: 0, gravityScale: 0 }));
-      if (of(run(state, 1), 'hazardCancel').length) strikes += 1;
+      if (of(run(state, 1), 'hazardLate').length) late += 1;
     }
   }
-  assert.equal(strikes, 55);
+  assert.equal(late, 55);
 });
 
 test('seagulls over the sand leave an item on a roof alone even when it is the first one they pass', () => {

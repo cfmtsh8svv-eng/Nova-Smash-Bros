@@ -14,7 +14,7 @@ import { createFx } from './fx.js';
 
 const STALE_MS = 600; // a phone that sent nothing for this long (six missed heartbeats) is treated as "let go of everything"
 const ITEM_SOUND = { bifana: 'munch', rooster: 'crow', project: 'project', cork: 'block', megaphone: 'blast' };
-const HAZARD_SOUND = { train: 'train', wave: 'wave', gulls: 'gulls', crowd: 'crowd', drinks: 'drinks', wifi: 'wifi' };
+const HAZARD_SOUND = { train: 'train', wave: 'wave', gulls: 'gulls', crowd: 'crowd', drinks: 'drinks', wifi: 'wifi', rain: 'rain', sun: 'sun', fireworks: 'fireworksLaunch' };
 
 export function createGame({ canvas, audio, sendTo, onEnd }) {
   const renderer = createRenderer(canvas);
@@ -125,6 +125,12 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
         fx.burst(e.x, e.y, { count: 34, color: ['#f6c343', '#ff7a3d', '#eef3f8', '#16122a'], speed: 10, size: 7, life: 34, gravity: 0.15 });
         fx.addShake(14);
         fx.addFlash(0.25, '#ff7a3d');
+      } else if (e.fx === 'firework') {
+        audio.play('firework');
+        const colours = ['#e63946', '#f6c343', '#22a36b', '#2f7fe0', '#e85d9c', '#ffffff'];
+        fx.burst(e.x, e.y, { count: 40, color: colours, speed: 9, size: 6, life: 40, gravity: 0.08 });
+        fx.ring(e.x, e.y, 110, colours[Math.floor(Math.random() * colours.length)], 22);
+        fx.addShake(8);
       } else if (e.fx === 'shatter') {
         audio.play('shatter');
         fx.burst(e.x, e.y, { count: 12, color: ['#eef3f8', '#2f5fb0'], speed: 5, size: 4, life: 16 });
@@ -144,7 +150,8 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     hazardWarn(e) { audio.play('warn'); toAllPhones({ t: 'feedback', kind: 'hazardWarn', name: e.name }); },
     hazardCount(e) { view.countAt = view.time; audio.play('warnCount'); toAllPhones({ t: 'feedback', kind: 'hazardCount', name: e.name, n: e.n }); },
     hazardStart(e) { audio.play(HAZARD_SOUND[e.hazard]); toAllPhones({ t: 'feedback', kind: 'hazardStart', name: e.name }); },
-    hazardCancel(e) { audio.play('strike'); toAllPhones({ t: 'feedback', kind: 'hazardCancel', text: e.text }); },
+    // A late train: after the 3, 2, 1 nothing happens, so the phones' countdown just goes away (D-144).
+    hazardLate() { toAllPhones({ t: 'feedback', kind: 'hazardEnd' }); },
     hazardEnd() { toAllPhones({ t: 'feedback', kind: 'hazardEnd' }); },
     feedback(e) { toPhone(e.slot, { t: 'feedback', kind: e.kind, text: e.text || '', title: e.title || '', flash: e.flash, vibrate: e.vibrate }); },
     finalKo(e) {

@@ -92,17 +92,19 @@ export const CONFIG = {
     rooster: { frames: seconds(5) },
   },
   hazards: {
-    minS: 25,
-    maxS: 40,
+    minS: 10, // the next warning starts 10 to 15 s after a hazard ends (D-143)
+    maxS: 15,
     nameFrames: seconds(1), // the name alone, before the numbers
     countFrames: seconds(1), // each of 3, 2, 1
-    cancelledFrames: seconds(2), // how long "STRIKE!" stays
-    train: { strikeChance: 0.25, speed: 20, length: 560, height: 104, damage: 20, baseKb: 8, kbGrowth: 7, angleDeg: 30 },
+    train: { lateChance: 0.25, lateFrames: seconds(5), speed: 20, length: 560, height: 104, damage: 20, baseKb: 8, kbGrowth: 7, angleDeg: 30 },
     wifi: { delayFrames: 12, frames: seconds(6) }, // 12 frames = 200 ms
-    wave: { speed: 14, width: 200, height: 110, damage: 12, baseKb: 7, kbGrowth: 8, angleDeg: 45 },
+    rain: { frames: seconds(6) },
+    wave: { riseFrames: 30, speed: 9, width: 200, height: 110, damage: 8 },
+    sun: { frames: seconds(5), every: 30, damage: 2, max: 20 },
     gulls: { frames: seconds(2), reach: 70, peckDamage: 3, peckStun: 14 },
     crowd: { speed: 5, width: 300, height: 100, damage: 5, grip: 0.3 },
     drinks: { count: 3, frames: seconds(8), tipsyFrames: seconds(8), size: 34 },
+    fireworks: { spots: 3, width: 30, height: 60, speed: 10, carryFrames: 30, damage: 12, baseKb: 6, kbGrowth: 8, angleDeg: 80 },
   },
   // Height bands used by hazards: a fighter is "on the ground level" when the feet are below this line.
   levels: { groundAbove: 520, roofBelow: 400 },

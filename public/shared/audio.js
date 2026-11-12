@@ -176,6 +176,10 @@ export function createAudio({ music = 0.45, effects = 0.8 } = {}) {
     gulls: () => [0, 0.25, 0.55].forEach((at) => tone({ type: 'sawtooth', from: 1500, to: 900, dur: 0.18, gain: 0.12, at })),
     crowd: () => noise({ dur: 2.2, gain: 0.25, from: 500, to: 1100, kind: 'bandpass' }),
     drinks: () => [88, 91, 95].forEach((n, i) => tone({ type: 'triangle', from: midi(n), dur: 0.1, gain: 0.12, at: i * 0.06 })),
+    rain: () => noise({ dur: 2.4, gain: 0.22, from: 3000, to: 5000, kind: 'highpass' }),
+    sun: () => [72, 76, 79, 84].forEach((n, i) => tone({ type: 'triangle', from: midi(n), dur: 0.3, gain: 0.1, at: i * 0.08 })),
+    fireworksLaunch: () => [0, 0.08, 0.16].forEach((at) => noise({ dur: 0.5, gain: 0.18, from: 600, to: 4000, kind: 'bandpass', at })),
+    firework: () => { noise({ dur: 0.4, gain: 0.4, from: 2500, to: 200 }); tone({ type: 'sine', from: 90, to: 40, dur: 0.3, gain: 0.35 }); },
     wifi: () => [0, 0.12, 0.3].forEach((at, i) => tone({ type: 'square', from: 900 - i * 250, dur: 0.07, gain: 0.12, at })),
     // one signature per special
     cash_rain: () => [0, 0.05, 0.1, 0.15, 0.2].forEach((at, i) => tone({ type: 'square', from: midi(88 + (i % 3) * 4), dur: 0.06, gain: 0.1, at })),

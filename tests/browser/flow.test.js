@@ -176,7 +176,7 @@ test('a whole match from the stage vote to the results, a second match, removing
   });
   await host.waitForFunction(() => window.novaBrawl.state.hazard.phase === 'warn');
   const hazardName = await host.evaluate(() => window.novaBrawl.state.hazard.name);
-  assert.match(hazardName, /^(BIG WAVE|SEAGULLS OVER THE (SAND|ROOFS))$/);
+  assert.match(hazardName, /^(BIG WAVE|SEAGULLS OVER THE (SAND|ROOFS)|MIDDAY SUN)$/);
   for (const p of [ana, max]) {
     await p.waitForFunction((name) => !document.getElementById('hazard').hidden && document.getElementById('hazardName').textContent === name, hazardName);
     await p.waitForFunction(() => ['3', '2', '1'].includes(document.getElementById('hazardCount').textContent));
@@ -188,7 +188,7 @@ test('a whole match from the stage vote to the results, a second match, removing
   await knockOut(host, 1);
   await max.waitForFunction(() => document.getElementById('overlayTitle').textContent === "You're out!");
   assert.match(await text(max, '#overlayText'), /Grab a coffee and watch\. Vote for the next hazard/);
-  assert.equal(await max.locator('#hazardVote button').count(), 2);
+  assert.equal(await max.locator('#hazardVote button').count(), 3, 'three hazards on the beach');
   await max.click('#hazardVote button:nth-child(1)');
   await host.waitForFunction(() => window.novaBrawl.state.hazardVotes[1] === 'wave');
   assert.equal(await ana.isHidden('#overlay'), true, 'Ana is still playing');

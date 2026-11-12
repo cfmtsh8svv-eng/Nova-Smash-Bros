@@ -53,6 +53,11 @@ input.bad { border-color: var(--red); }
 .dots { display: flex; gap: 6px; flex: none; }
 .dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
 .dots i.on { background: var(--yellow); }
+/* the intro before the match: one big Skip button */
+#intro { justify-content: center; gap: 16px; }
+#intro .bar { position: absolute; top: max(14px, env(safe-area-inset-top)); left: 16px; right: 16px; width: auto; }
+button.skip { font-size: 34px; padding: 16px 64px; background: var(--purple); color: #fff; border-radius: 20px; }
+button.skip.on { background: var(--green); }
 /* map vote: the same carousel as the fighter select, with a stage preview on each card */
 #mapvote { gap: 8px; }
 #mapvote .bar { justify-content: space-between; }

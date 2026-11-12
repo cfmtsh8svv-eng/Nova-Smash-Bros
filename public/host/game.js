@@ -29,6 +29,7 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
   let lastTime = null;
   let lastPlaces = null; // where the fighters were one step ago (only kept during the slow motion)
   let endTimer = null;
+  let held = false; // set up, but waiting for the intro to end
 
   // ---- inputs ----
 
@@ -226,6 +227,8 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     const smooth = loop && state && state.phase === 'finalKo' && lastPlaces && lastPlaces.length === state.fighters.length;
     if (!smooth) {
       if (!state || state.phase !== 'finalKo') lastPlaces = null;
+      // During the intro only the stage is drawn behind it, without fighters or HUD.
+      if (held) return renderer.draw(state.stage.id, null, view);
       return renderer.draw(state ? state.stage.id : previewStage, state, view);
     }
     const t = alpha(loop.clock);
@@ -246,7 +249,8 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
   // ---- control from the lobby ----
 
   // players: [{ slot, name, fighterId }], one per phone.
-  async function start({ stageId, players, settings }) {
+  // With `hold` the match is set up and drawn but does not run until go() (the intro, D-153).
+  async function start({ stageId, players, settings }, { hold = false } = {}) {
     stop();
     previewStage = stageId;
     const ordered = [...players].sort((a, b) => a.slot - b.slot);
@@ -265,12 +269,27 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     cameraGoal = { x: 640, y: 360, zoom: 1 };
     state = next;
     loop = createLoop({ state, getInputs, onEvent });
+    loop.paused = hold;
+    held = hold;
     audio.setMusic(stageId);
+    lastTime = null;
+  }
+
+  // The intro is over: the countdown starts. Whatever a phone pressed during the intro is forgotten.
+  function go() {
+    if (!loop || !held) return;
+    held = false;
+    for (const phone of phones.values()) {
+      phone.buffer.reset();
+      phone.lastSeen = performance.now();
+    }
+    loop.paused = false;
     lastTime = null;
   }
 
   function stop() {
     clearTimeout(endTimer);
+    held = false;
     loop = null;
     state = null;
     fx.clear();
@@ -278,12 +297,12 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
   }
 
   return {
-    start, stop, onInput, setConnected,
+    start, go, stop, onInput, setConnected,
     // After a reconnect: send every phone its status again, whether it changed or not.
     resync() { lastStatus = new Map(); },
     setPreview(stageId) { previewStage = stageId; loadStage(stageId).catch(() => {}); },
     vote(slot, hazardId) { return state ? voteHazard(state, slot, hazardId) : false; },
-    setPaused(value) { if (loop && state && state.phase !== 'ended') loop.paused = value; return Boolean(loop && loop.paused); },
+    setPaused(value) { if (loop && state && state.phase !== 'ended' && !held) loop.paused = value; return Boolean(loop && loop.paused); },
     get running() { return Boolean(loop); },
     get paused() { return Boolean(loop && loop.paused); },
     get state() { return state; },

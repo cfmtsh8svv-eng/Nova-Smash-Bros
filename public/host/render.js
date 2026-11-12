@@ -10,21 +10,12 @@ import { hazardRect } from '/game/hazards.js';
 import { getFighter } from '/game/fighters.js';
 import { duplicateColour, handPoint, SPRITE } from '/shared/art/characters.js';
 import { getSprite, getStageImage, loadStage } from '/shared/art/sprites.js';
+import { drawItemShape as drawItemPicture, roundRect } from './icons.js';
 
 const DISPLAY = '"Bungee", "Arial Black", sans-serif';
 const BODY = '"Nunito", "Segoe UI", sans-serif';
 const INK = '#16122a';
 const H = CONFIG.body.h;
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
 
 function outlined(ctx, text, x, y, fill, width = 6) {
   ctx.lineJoin = 'round';
@@ -76,94 +67,7 @@ export function createRenderer(canvas) {
   function drawItemShape(type, x, y, t) {
     ctx.save();
     ctx.translate(x, y);
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = INK;
-    if (type === 'nata') {
-      // Pastel de Nata: a golden tart with a burnt-sugar top
-      ctx.fillStyle = '#c98a3a';
-      ctx.beginPath(); ctx.ellipse(0, -11, 17, 12, 0, 0, 7); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#f6c343';
-      ctx.beginPath(); ctx.ellipse(0, -13, 12, 7, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = '#8a4f1e';
-      for (const [dx, dy] of [[-5, -14], [4, -12], [0, -16]]) { ctx.beginPath(); ctx.arc(dx, dy, 2.2, 0, 7); ctx.fill(); }
-    } else if (type === 'sardine') {
-      ctx.rotate(-0.25);
-      ctx.fillStyle = '#8fb4d9';
-      ctx.beginPath(); ctx.moveTo(-14, -12); ctx.lineTo(-24, -20); ctx.lineTo(-24, -4); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(0, -12, 17, 7, 0, 0, 7); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = INK;
-      ctx.beginPath(); ctx.arc(10, -13, 2, 0, 7); ctx.fill();
-    } else if (type === 'book') {
-      ctx.fillStyle = '#8a2f3a';
-      roundRect(ctx, -13, -30, 26, 30, 3); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#f6c343';
-      ctx.fillRect(-8, -24, 16, 4);
-      ctx.fillStyle = '#eef3f8';
-      ctx.fillRect(-11, -5, 22, 3);
-    } else if (type === 'project') {
-      // Group Project: a stuffed folder with a lit fuse
-      ctx.fillStyle = '#f6c343';
-      roundRect(ctx, -16, -28, 32, 26, 3); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#eef3f8';
-      ctx.fillRect(-12, -32, 22, 6);
-      ctx.fillStyle = INK;
-      ctx.font = `800 8px ${BODY}`;
-      ctx.textAlign = 'center';
-      ctx.fillText('GROUP', 0, -16);
-      ctx.fillText('WORK', 0, -8);
-      ctx.strokeStyle = INK;
-      ctx.beginPath(); ctx.moveTo(12, -28); ctx.quadraticCurveTo(20, -36, 16, -42); ctx.stroke();
-      ctx.fillStyle = Math.floor(t / 4) % 2 ? '#ff7a3d' : '#f6c343';
-      ctx.beginPath(); ctx.arc(16, -43, 3.5, 0, 7); ctx.fill();
-    } else if (type === 'bifana') {
-      // Bifana: a pork sandwich in a crusty roll
-      ctx.fillStyle = '#d9a35c';
-      ctx.beginPath(); ctx.ellipse(0, -16, 19, 8, 0, Math.PI, 0); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#9a5a32';
-      ctx.fillRect(-18, -16, 36, 5);
-      ctx.fillStyle = '#d9a35c';
-      ctx.beginPath(); ctx.ellipse(0, -10, 18, 5, 0, 0, Math.PI); ctx.fill(); ctx.stroke();
-    } else if (type === 'megaphone') {
-      ctx.fillStyle = '#e63946';
-      ctx.beginPath(); ctx.moveTo(-14, -20); ctx.lineTo(10, -30); ctx.lineTo(10, -4); ctx.lineTo(-14, -12); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#eef3f8';
-      ctx.fillRect(-20, -20, 7, 8);
-      ctx.strokeRect(-20, -20, 7, 8);
-      ctx.fillStyle = INK;
-      ctx.fillRect(-10, -10, 4, 9);
-    } else if (type === 'cork') {
-      // Cork Shield: a round cork board with a darker rim
-      ctx.fillStyle = '#c98a3a';
-      ctx.beginPath(); ctx.arc(0, -16, 15, 0, 7); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#a86b2c';
-      for (const [dx, dy] of [[-6, -20], [5, -12], [3, -23], [-3, -9], [8, -19]]) { ctx.beginPath(); ctx.arc(dx, dy, 1.6, 0, 7); ctx.fill(); }
-      ctx.strokeStyle = '#7a4a2c';
-      ctx.beginPath(); ctx.arc(0, -16, 11, 0, 7); ctx.stroke();
-    } else if (type === 'azulejo') {
-      // Azulejo: a white tile with a blue pattern
-      ctx.fillStyle = '#eef3f8';
-      roundRect(ctx, -14, -30, 28, 28, 2); ctx.fill(); ctx.stroke();
-      ctx.strokeStyle = '#2f5fb0';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.arc(0, -16, 7, 0, 7); ctx.stroke();
-      for (const [dx, dy] of [[-10, -26], [10, -26], [-10, -6], [10, -6]]) { ctx.beginPath(); ctx.arc(dx, dy, 3.5, 0, 7); ctx.stroke(); }
-    } else if (type === 'rooster') {
-      // Lucky Rooster (Galo de Barcelos): black body, red comb, coloured hearts
-      ctx.fillStyle = '#16122a';
-      ctx.beginPath(); ctx.ellipse(-2, -14, 13, 10, 0, 0, 7); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(9, -27, 5, 7, 0, 0, 7); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(-12, -16); ctx.lineTo(-20, -30); ctx.lineTo(-8, -22); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#e63946';
-      ctx.beginPath(); ctx.arc(9, -35, 3.5, 0, 7); ctx.arc(13, -33, 3, 0, 7); ctx.fill();
-      ctx.fillStyle = '#f6c343';
-      ctx.beginPath(); ctx.moveTo(13, -28); ctx.lineTo(18, -27); ctx.lineTo(13, -25); ctx.fill();
-      ctx.fillStyle = '#f6c343';
-      ctx.beginPath(); ctx.arc(-4, -14, 3, 0, 7); ctx.fill();
-      ctx.fillStyle = '#e63946';
-      ctx.beginPath(); ctx.arc(3, -11, 2.5, 0, 7); ctx.fill();
-      ctx.strokeStyle = '#f6c343';
-      ctx.beginPath(); ctx.moveTo(-2, -4); ctx.lineTo(-2, 0); ctx.moveTo(4, -4); ctx.lineTo(4, 0); ctx.stroke();
-    }
+    drawItemPicture(ctx, type, t);
     ctx.restore();
   }
 

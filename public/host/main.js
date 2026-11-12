@@ -9,6 +9,7 @@ import { createLink, storage } from '/shared/net.js';
 import { paintSprite, paintStage } from '/shared/art/sprites.js';
 import { duplicateColour } from '/shared/art/characters.js';
 import { createGame } from './game.js';
+import { createIntro } from './intro.js';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, className, text) => {
@@ -36,6 +37,8 @@ let creatingRoom = false;
 let roomRetry = null;
 let startTimer = null;
 let voting = null; // the map vote while it runs: { slots, players, votes: Map slot -> stage, endsAt, winner }
+let intro = null; // the intro before the match while it runs: { skipped: Set of slots, ticker }
+const introScreen = createIntro($);
 
 const game = createGame({
   canvas: $('stage'),
@@ -48,7 +51,7 @@ const game = createGame({
 
 function show(name) {
   screen = name;
-  for (const id of ['title', 'lobby', 'vote', 'loading', 'pause', 'results']) $(id).hidden = id !== name;
+  for (const id of ['title', 'lobby', 'vote', 'loading', 'intro', 'pause', 'results']) $(id).hidden = id !== name;
   $('frame').classList.toggle('playing', name === 'match');
   if (name === 'title' || name === 'lobby') audio.setMusic('lobby');
 }
@@ -90,6 +93,7 @@ const link = createLink({
     weak = false;
     if (code === 4002) {
       // The other tab has the room now: nothing may keep running here.
+      stopIntro();
       game.stop();
       match = null;
       pendingStart = null;
@@ -132,7 +136,9 @@ const MESSAGES = {
         // The match ended while we were offline: send the result now.
         submitResult();
       } else if (match && match.id === msg.matchId) {
-        matchPhase(game.paused); // still playing (or loading): phones get the right screen again
+        // still playing, loading or in the intro: phones get the right screen again
+        if (intro) introPhase();
+        else matchPhase(game.paused);
       } else {
         // The server still has a match that this page no longer has (the page was reloaded,
         // or the match was left while offline): it is ended on the server too.
@@ -172,6 +178,11 @@ const MESSAGES = {
       }
       if (old && old.connected !== p.connected) game.setConnected(p.slot);
     }
+    if (intro) {
+      // A player who lost the connection no longer holds up the intro.
+      renderPips();
+      checkIntroDone();
+    }
     if (voting && !voting.winner) {
       // A player who left or lost the connection during the vote no longer counts (D-136).
       for (const slot of [...voting.votes.keys()]) if (!counts(slot)) voting.votes.delete(slot);
@@ -195,6 +206,15 @@ const MESSAGES = {
     }
   },
 
+  skip(msg) {
+    if (!intro || !match || !match.players.some((p) => p.slot === msg.slot) || intro.skipped.has(msg.slot)) return;
+    intro.skipped.add(msg.slot);
+    audio.play('click');
+    renderPips();
+    introPhase();
+    checkIntroDone();
+  },
+
   vote_started() { beginVote(); },
 
   match_started(msg) { beginMatch(msg.matchId); },
@@ -211,6 +231,7 @@ const MESSAGES = {
       lobby.room = null;
       lobby.roster = [];
       storage.set('sessionStorage', 'nb_room', null);
+      stopIntro();
       game.stop();
       match = null;
       link.send({ t: 'host_create' });
@@ -564,9 +585,48 @@ async function beginMatch(matchId) {
     clearInterval(voting.ticker);
     voting = null;
   }
-  matchPhase();
-  await game.start(match);
+  const started = match;
+  await game.start(match, { hold: true });
+  if (match !== started) return; // the match was ended while it was loading
+  startIntro();
+}
+
+// ---- the intro before every match (GAME_SPEC §10b, D-153) ----
+
+function startIntro() {
+  intro = { skipped: new Set(), ticker: setInterval(() => { if (introScreen.over) endIntro(); }, 200) };
+  introScreen.open(match.stageId, pips());
+  show('intro');
+  introPhase();
+}
+
+// The players of the match, as the pips in the bottom right show them.
+const pips = () => match.players.map((p) => ({ slot: p.slot, connected: counts(p.slot), skipped: intro.skipped.has(p.slot) }));
+const renderPips = () => introScreen.renderPips(pips());
+
+function introPhase() {
+  phase({ name: 'intro', stage: match.stageId, slots: match.players.map((p) => p.slot), endsIn: introScreen.secondsLeft, skipped: [...intro.skipped] });
+}
+
+// Over early once every connected player of the match has pressed Skip.
+function checkIntroDone() {
+  const live = match.players.filter((p) => counts(p.slot));
+  if (live.length && live.every((p) => intro.skipped.has(p.slot))) endIntro();
+}
+
+function stopIntro() {
+  if (!intro) return;
+  clearInterval(intro.ticker);
+  introScreen.close();
+  intro = null;
+}
+
+function endIntro() {
+  if (!intro) return;
+  stopIntro();
+  game.go();
   show('match');
+  matchPhase();
 }
 
 function setPaused(value) {
@@ -579,6 +639,7 @@ function setPaused(value) {
 function quitMatch() {
   if (!match) return;
   link.send({ t: 'match_abort', matchId: match.id });
+  stopIntro();
   game.stop();
   match = null;
   show('lobby');
@@ -732,6 +793,7 @@ show('title');
 // (the host page runs the match and is trusted with its result; see docs/WALKTHROUGH.md).
 window.novaBrawl = {
   get screen() { return screen; },
+  get intro() { return intro ? { skipped: [...intro.skipped], secondsLeft: introScreen.secondsLeft } : null; },
   get state() { return game.state; },
   get roster() { return lobby.roster; },
 };

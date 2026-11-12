@@ -24,3 +24,5 @@ export function pinProblem(pin) {
 export const isRoomCode = (code) => typeof code === 'string' && ROOM_PATTERN.test(code);
 export const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 export const isInt = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
+// The phone's Skip on the match intro carries nothing but its type.
+export const isSkip = (msg) => isPlainObject(msg) && msg.t === 'skip' && Object.keys(msg).length === 1;

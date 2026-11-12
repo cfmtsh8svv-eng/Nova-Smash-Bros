@@ -238,9 +238,9 @@ Both are free. `docs/DEPLOY.md` has the steps for each.
 
 ## 10. Screens
 
-**Host (laptop):** Title (no team names) → Lobby (QR code, room code, player cards, stage choice: Vote or one of the three stages, close room, lives 1/2/3, items and hazards on/off, **separate volume sliders for music and effects**, leaderboard) → Map vote (with Vote only, §10a) → Countdown → Match (HUD with one card per player at the top) → Results (winner, per-player stats, points, new achievements, leaderboard) → back to the lobby. There is no rematch button.
+**Host (laptop):** Title (no team names) → Lobby (QR code, room code, player cards, stage choice: Vote or one of the three stages, close room, lives 1/2/3, items and hazards on/off, **separate volume sliders for music and effects**, leaderboard) → Map vote (with Vote only, §10a) → Intro (§10b) → Countdown → Match (HUD with one card per player at the top) → Results (winner, per-player stats, points, new achievements, leaderboard) → back to the lobby. There is no rematch button.
 
-**Phone:** Register / log in → Fighter select (swipe through the 8 fighters one at a time, with the neighbours peeking in at the sides; each card shows the sprite, the two attacks and **Speed and Weight as five-step bars, without numbers**) → Ready → Map vote (with Vote only, §10a) → Gamepad → KO'd → Eliminated + hazard vote → Results.
+**Phone:** Register / log in → Fighter select (swipe through the 8 fighters one at a time, with the neighbours peeking in at the sides; each card shows the sprite, the two attacks and **Speed and Weight as five-step bars, without numbers**) → Ready → Map vote (with Vote only, §10a) → Intro with a Skip button (§10b) → Gamepad → KO'd → Eliminated + hazard vote → Results.
 
 ### 10a. Map vote
 
@@ -252,6 +252,15 @@ Voting is the default; the host can still pick one fixed stage in the lobby (D-1
 - **End.** When every player in the vote has voted, or after **10 s**, whichever comes first. A tie or no votes is decided at random between the tied stages. The winning stage is shown for about 1.5 s on both screens, then the match starts on it with the players of the vote.
 - Players who join during the vote sit it out and play in the next match. A player who disconnects during the vote no longer counts: their vote is dropped and the vote does not wait for them.
 - **Server.** The room has a `vote` phase between `lobby` and `match`. Stage votes are accepted only in that phase and only from players in the vote; a second vote replaces the first. The match that follows must use one of the stages with the most votes.
+
+### 10b. Intro before every match
+
+Before every match (after the map vote, or right after Start with a fixed stage) the big screen shows an intro for **20 s** over the dimmed stage (D-153).
+
+- **Big screen.** "GET READY" and the stage name with day or night at the top. Under the heading **ITEMS**, three columns of cards with all nine items, each with its picture (the same art as on the stage), name and one line on what it does; every item card has a yellow frame, and the **Lucky Rooster** card also glows gold and carries a **RARE** tag. Next to them one column under **HAZARDS** with the three hazards of the chosen stage, each as a small animated picture (train, Wi-Fi with a red cross, rain cloud, wave, seagull, sun, crowd, beer glass, rocket) with its name and one line. There is no leaderboard. At the bottom: a 20 s bar with the seconds left, and **SKIP** with one pip per player of the match in the player colour; the pip fills when that player has skipped, and a disconnected player's pip is faded.
+- **Phone.** "GET READY", "Read the items on the big screen" and one big **SKIP** button. After a tap it turns green and says how many players are still reading.
+- **End.** After 20 s, or as soon as **every connected player of the match** has pressed Skip, whichever comes first. A player who disconnects no longer holds it up. Then the usual 3, 2, 1 countdown starts. Buttons pressed during the intro do nothing.
+- **Server.** A phone sends `skip`, with no other field. It is passed to the host only while a match runs and only from a player of that match; anything else in the message is a bad message. The intro screen is a `phase` named `intro` with the stage, the players, the seconds left and who has skipped.
 
 Every error is shown in plain words next to where it happened ("That gamertag is taken", "Wrong PIN, 3 tries left", "Room not found", "Connection lost, reconnecting…").
 

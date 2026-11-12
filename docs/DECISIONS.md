@@ -190,7 +190,8 @@ The team agreed these changes on 2026-11-12 after checking the mockups `design/o
 
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|
-| D-152 | Five fireworks | Five spots in the street instead of three, one near the middle of each fifth (at most 44 px from it), so neighbouring rockets always leave a gap. Rockets are 45 px wide instead of 30. `hazards.fireworks.spots` and `width` in `config.js`. | Three spots, 30 px (D-148, D-149) | Three rockets were too easy to avoid | Team | Decided |
+| D-152 | Five fireworks | Five spots in the street instead of three, one near the middle of each fifth (at most 44 px from it), so neighbouring rockets always leave a gap. Rockets are 45 px wide instead of 30. `hazards.fireworks.spots` and `width` in `config.js`. | Three spots, 30 px (D-148, D-149) | Team request of 2026-11-12 | Team | Decided |
+| D-153 | Intro before every match | 20 s over the dimmed stage: the nine items in three columns (yellow frames, the Lucky Rooster with a gold glow and RARE), the three hazards of the stage as small animated pictures, a 20 s bar and one Skip pip per player. It ends after 20 s or when every connected player of the match has pressed Skip on the phone. Phone → server → host message `skip` (no fields), passed on only during a match and only from its players; the host decides when the intro ends. The match is set up and drawn behind the intro but does not run; inputs from the intro are dropped. No leaderboard on it. | | Team request of 2026-11-12; mockup `design/options/round10-intro.html` approved by the team | Team | Decided |
 
 ### Proposals made by Claude while writing the docs
 

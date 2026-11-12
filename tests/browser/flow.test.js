@@ -47,7 +47,14 @@ test('a whole match from the stage vote to the results, a second match, removing
     await page.waitForSelector('#select:not([hidden])');
   };
   const text = (page, selector) => page.textContent(selector);
-  const fight = (host) => host.waitForFunction(() => window.novaBrawl.state && window.novaBrawl.state.phase === 'fight', null, { timeout: 20_000 });
+  // Every match starts with the 20 s intro (GAME_SPEC §10b); the players skip it on their phones.
+  const fight = async (host, phones) => {
+    for (const p of phones) {
+      await p.waitForSelector('#intro:not([hidden])');
+      await p.click('#skip');
+    }
+    return host.waitForFunction(() => window.novaBrawl.state && window.novaBrawl.state.phase === 'fight', null, { timeout: 20_000 });
+  };
   // Throw one fighter out of the screen (as if launched).
   const knockOut = (host, slot) => host.evaluate((s) => {
     const f = window.novaBrawl.state.fighters.find((x) => x.slot === s);
@@ -157,7 +164,24 @@ test('a whole match from the stage vote to the results, a second match, removing
   await zoe.click('#voteButton');
   await host.waitForSelector('.voteCard.winner[data-stage="beach"]');
   await zoe.waitForFunction(() => /Carcavelos Beach wins/.test(document.getElementById('voteHint').textContent));
-  await fight(host);
+
+  // --- the intro: nine items and the beach's three hazards; it waits until every player has skipped
+  await host.waitForSelector('#intro:not([hidden])');
+  assert.equal(await host.locator('#introItems .card').count(), 9);
+  assert.equal(await host.locator('#introItems .card.rare').count(), 1, 'only the Lucky Rooster is rare');
+  assert.match(await text(host, '#introItems .card.rare'), /Lucky Rooster\s*RARE/);
+  const hazardCards = await text(host, '#introHazards');
+  for (const words of ['Big Wave', 'Seagulls', 'Midday Sun']) assert.ok(hazardCards.includes(words), `the intro shows ${words}`);
+  assert.match(await text(host, '#introStage'), /Carcavelos Beach/);
+  assert.equal(await host.locator('#introPips .pip').count(), 3);
+  await ana.waitForSelector('#intro:not([hidden])');
+  await ana.click('#skip');
+  await host.waitForSelector('#introPips .pip.yes');
+  await ana.waitForFunction(() => document.getElementById('introLine').textContent === 'Skipped. 2 still reading');
+  assert.equal(await text(max, '#introLine'), 'Read the items on the big screen');
+  assert.equal(await host.evaluate(() => window.novaBrawl.screen), 'intro', 'one Skip is not enough');
+  assert.equal(await host.evaluate(() => window.novaBrawl.state.phase), 'countdown', 'the match waits behind the intro');
+  await fight(host, [max, zoe]);
   const setup = await host.evaluate(() => ({ stage: window.novaBrawl.state.stage.id, lives: window.novaBrawl.state.settings.lives, names: window.novaBrawl.state.fighters.map((f) => f.name) }));
   assert.deepEqual(setup, { stage: 'beach', lives: 1, names: ['Ana', 'Max', 'Zoe'] });
   await ana.waitForSelector('#pad:not([hidden])');
@@ -230,7 +254,7 @@ test('a whole match from the stage vote to the results, a second match, removing
   await max.click('#ready');
   await host.waitForFunction(() => !document.getElementById('startMatch').disabled);
   await host.click('#startMatch');
-  await fight(host);
+  await fight(host, [ana, max]);
   assert.equal(await host.evaluate(() => window.novaBrawl.state.stage.id), 'bairro');
   assert.equal(await max.isHidden('#overlay'), true, 'nothing of the last match is left on the phone');
   assert.equal(await text(max, '#padPct'), '0%');

@@ -18,7 +18,7 @@ const el = (tag, className, text) => {
   if (text !== undefined) node.textContent = text; // always as text, never as HTML
   return node;
 };
-const SCREENS = ['auth', 'notice', 'select', 'mapvote', 'pad', 'results'];
+const SCREENS = ['auth', 'notice', 'select', 'mapvote', 'intro', 'pad', 'results'];
 const HEARTBEAT_MS = 100; // the host lets go of a phone's buttons after 600 ms of silence
 
 const me = {
@@ -128,7 +128,7 @@ const MESSAGES = {
     me.status = null;
     storage.set('localStorage', 'nb_tag', msg.gamertag);
     const color = PLAYER_COLORS[msg.slot];
-    for (const id of ['selectTag', 'voteTag', 'padTag']) {
+    for (const id of ['selectTag', 'voteTag', 'introTag', 'padTag']) {
       $(id).textContent = `P${msg.slot + 1} · ${msg.gamertag}`;
       $(id).style.setProperty('--p', color);
       $(id).classList.toggle('p4', msg.slot === 3);
@@ -160,6 +160,9 @@ const MESSAGES = {
     } else if (msg.name === 'vote') {
       if (Array.isArray(msg.slots) && msg.slots.includes(me.slot)) showMapVote(msg);
       else notice('The players are voting for the stage. You are in the next match.');
+    } else if (msg.name === 'intro') {
+      if (Array.isArray(msg.slots) && msg.slots.includes(me.slot)) showIntro(msg);
+      else notice('A match is starting. You are in the next one.');
     } else if (msg.name === 'match') {
       if (Array.isArray(msg.slots) && msg.slots.includes(me.slot)) {
         me.lives = [1, 2, 3].includes(msg.lives) ? msg.lives : 3;
@@ -573,6 +576,28 @@ function castVote() {
   markMapCard();
 }
 
+// ---- the intro before the match (GAME_SPEC §10b) ----
+
+function showIntro(msg) {
+  const skipped = Array.isArray(msg.skipped) ? msg.skipped : [];
+  const done = skipped.includes(me.slot);
+  show('intro');
+  $('skip').classList.toggle('on', done);
+  $('skip').textContent = done ? 'SKIPPED' : 'SKIP';
+  const reading = msg.slots.length - skipped.length;
+  $('introLine').textContent = done ? `Skipped. ${reading} still reading` : 'Read the items on the big screen';
+}
+
+function skipIntro() {
+  if ($('skip').classList.contains('on')) return;
+  link.send({ t: 'skip' });
+  $('skip').classList.add('on');
+  $('skip').textContent = 'SKIPPED';
+  $('introLine').textContent = 'Skipped. Waiting for the others';
+  feedback.sound('ready');
+  feedback.vibrate([25]);
+}
+
 // ---- gamepad ----
 
 const controls = createControls({
@@ -695,6 +720,7 @@ function showResults(msg) {
 buildCarousel();
 buildMapCarousel();
 $('voteButton').addEventListener('click', castVote);
+$('skip').addEventListener('click', skipIntro);
 requestAnimationFrame(drawCooldown);
 
 $('authForm').addEventListener('submit', submitAuth);

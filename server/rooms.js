@@ -7,6 +7,11 @@
 //   phone -> server -> host : input, pick, vote, skip
 //   host  -> server -> phone: phase, status, feedback
 //
+// Bots (GAME_SPEC §5a, D-165) live in the room too, so the start and result checks can
+// count them and they survive a reload of the host page. They have no phone and no slot
+// in room.slots: an ordered list room.bots, of which the first room.botsActive play and
+// the rest wait on the bench (a bot that made room for a human who joined).
+//
 // Access control in one sentence: the socket that created a room is its host,
 // and only the host can start a match, submit its result or talk to the phones.
 import { randomBytes, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
@@ -18,6 +23,7 @@ import { checkResult, scoreResult } from './results.js';
 import { isValidMask } from '../src/game/input.js';
 import { FIGHTER_IDS } from '../src/game/fighters.js';
 import { HAZARD_IDS, STAGE_IDS } from '../src/game/stages.js';
+import { BOT_NAMES } from '../src/game/bot.js';
 
 const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // without I and O, which look like 1 and 0
 const RELAY_TYPES = ['phase', 'status', 'feedback'];
@@ -62,8 +68,8 @@ const PHASE_FIELDS = {
   match: (m) => onlyKeys(m, ['t', 'name', 'stage', 'stageName', 'paused', 'lives', 'slots', 'hazards'])
     && optional(m.stage, (v) => STAGE_IDS.includes(v)) && optional(m.stageName, shortText(40)) && optional(m.paused, bool)
     && optional(m.lives, (v) => isInt(v, 1, 3)) && optional(m.slots, listOf(4, (v) => isInt(v, 0, 3))) && optional(m.hazards, listOf(6, named(HAZARD_IDS))),
-  results: (m) => onlyKeys(m, ['t', 'name', 'place', 'of', 'won', 'winner', 'stats', 'points', 'total', 'achievements', 'note'])
-    && optional(m.place, (v) => isInt(v, 1, 4)) && optional(m.of, (v) => isInt(v, 2, 4)) && optional(m.won, bool) && optional(m.winner, shortText(40))
+  results: (m) => onlyKeys(m, ['t', 'name', 'place', 'of', 'won', 'winner', 'winnerBot', 'stats', 'points', 'total', 'achievements', 'note'])
+    && optional(m.place, (v) => isInt(v, 1, 4)) && optional(m.of, (v) => isInt(v, 2, 4)) && optional(m.won, bool) && optional(m.winner, shortText(40)) && optional(m.winnerBot, bool)
     && optional(m.stats, (v) => isPlainObject(v) && onlyKeys(v, ['dealt', 'taken', 'kos', 'falls']) && Object.values(v).every(count))
     && optional(m.points, count) && optional(m.total, (v) => isInt(v, 0, 1e9))
     && optional(m.achievements, listOf(8, (v) => isPlainObject(v) && onlyKeys(v, ['name', 'text']) && shortText(40)(v.name) && optional(v.text, shortText(80))))
@@ -105,6 +111,7 @@ export const ERRORS = {
   busy: 'Too many requests. Wait a moment.',
   no_match: 'No such match, or its result was already saved.',
   bad_start: 'The match cannot start like this.',
+  bad_bots: 'The bots cannot be changed like this.',
   room_gone: 'That room no longer exists.',
 };
 
@@ -282,10 +289,36 @@ export class Rooms {
   }
 
   roster(room) {
+    const humans = room.slots.map((s, i) => (s ? { slot: i, gamertag: s.gamertag, connected: s.connected, fighter: s.fighter, ready: s.ready, crown: this.crown(s.lower) } : null)).filter(Boolean);
+    // The bots: those of the running match, otherwise the active ones with the slot they would get now.
+    const bots = room.match ? room.match.bots : this.placeBots(room, room.slots.map((s, i) => (s ? i : -1)).filter((i) => i >= 0));
     return {
       t: 'roster', code: room.code, closed: room.closed, phase: room.phase,
-      players: room.slots.map((s, i) => (s ? { slot: i, gamertag: s.gamertag, connected: s.connected, fighter: s.fighter, ready: s.ready, crown: this.crown(s.lower) } : null)).filter(Boolean),
+      players: [...humans, ...bots.map((b) => ({ slot: b.slot, bot: true, name: b.name, fighter: b.fighter, ready: true }))],
+      bench: room.bots.length - room.botsActive,
     };
+  }
+
+  // ---- bots (GAME_SPEC §5a, D-158, D-165) ----
+
+  humans(room) {
+    return room.slots.filter(Boolean).length;
+  }
+
+  // The active bots with their slots: the free slots 0 to 3 in ascending order, after `taken`.
+  placeBots(room, taken) {
+    const free = [0, 1, 2, 3].filter((i) => !taken.includes(i));
+    return room.bots.slice(0, room.botsActive).map((b, i) => ({ slot: free[i], name: b.name, fighter: b.fighter }));
+  }
+
+  // In the lobby, humans plus active bots never exceed 4: the bot added last goes to the
+  // bench to make room for a human, and the bot that went there last comes back when a
+  // place is free again. Outside the lobby nothing moves (the bots of a match stay in it).
+  settleBots(room) {
+    if (room.phase !== 'lobby') return;
+    const humans = this.humans(room);
+    while (room.botsActive > 0 && humans + room.botsActive > LIMITS.playersPerRoom) room.botsActive -= 1;
+    while (room.botsActive < room.bots.length && humans + room.botsActive < LIMITS.playersPerRoom) room.botsActive += 1;
   }
 
   // The crown (D-154): this player's last saved match was a win. Read from the player cache,
@@ -296,6 +329,7 @@ export class Rooms {
   }
 
   sendRoster(room) {
+    this.settleBots(room);
     this.send(room.host, this.roster(room));
   }
 
@@ -303,8 +337,10 @@ export class Rooms {
     for (const slot of room.slots) if (slot && slot.conn) this.send(slot.conn, message);
   }
 
-  // The players of a vote or a match: 2 to 4 different slots, each in the room with a fighter and ready.
-  // Returns false (and has answered the host) if they are not.
+  // The humans of a vote or a match (their slots): each in the room with a fighter and ready,
+  // at least one of them, and at least 2 fighters with the active bots (D-156). From the
+  // lobby every human in the room must be in the list; after a vote, players who joined
+  // during it sit the match out. Returns false (and has answered the host) if not.
   startable(conn, room, slots) {
     const refuse = (why) => { this.fail(conn, 'bad_start', { msg: why }); return false; };
     if (!Array.isArray(slots) || slots.length > 4 || new Set(slots).size !== slots.length || !slots.every((s) => isInt(s, 0, 3))) {
@@ -316,8 +352,14 @@ export class Rooms {
       if (!slot) return refuse('A player in the start list is not in the room.');
       if (!slot.fighter || !slot.ready) return refuse(`${slot.gamertag} has not picked a fighter yet.`);
     }
-    if (slots.length < 2) return refuse('At least 2 players are needed.');
-    if (slots.length > LIMITS.playersPerRoom) return refuse('At most 4 players can fight.');
+    if (room.phase === 'lobby') {
+      const waiting = room.slots.find((s, i) => s && !slots.includes(i));
+      if (waiting) return refuse(waiting.ready ? `${waiting.gamertag} is missing from the start list.` : `${waiting.gamertag} is not ready yet.`);
+    }
+    if (slots.length < 1) return refuse('At least 1 player needs to be ready.');
+    const fighters = slots.length + room.botsActive;
+    if (fighters < 2) return refuse('At least 2 fighters are needed: add a bot or wait for another player.');
+    if (fighters > LIMITS.playersPerRoom) return refuse('At most 4 fighters can fight.');
     return true;
   }
 
@@ -417,7 +459,7 @@ const NEW_HANDLERS = {
     const code = this.newCode();
     if (!code) return this.fail(conn, 'busy');
     const room = {
-      code, hostKey: randomBytes(24).toString('base64url'), host: conn, hostTimer: null, closed: false, phase: 'lobby',
+      code, hostKey: randomBytes(24).toString('base64url'), host: conn, hostTimer: null, closed: false, phase: 'lobby', bots: [], botsActive: 0,
       slots: [null, null, null, null], match: null, vote: null, phaseAll: null, lastResult: null, lastActive: this.now(), address: conn.address, banned: new Set(),
     };
     this.rooms.set(code, room);
@@ -444,7 +486,7 @@ const NEW_HANDLERS = {
     room.host = conn;
     room.lastActive = this.now();
     Object.assign(conn, { role: 'host', room, bucket: new Bucket(LIMITS.hostMessagesPerSecond, this.now()) });
-    this.send(conn, { t: 'room', code: room.code, hostKey: room.hostKey, resumed: true, phase: room.phase, matchId: room.match ? room.match.id : null });
+    this.send(conn, { t: 'room', code: room.code, hostKey: room.hostKey, resumed: true, phase: room.phase, matchId: room.match ? room.match.id : null, bots: room.match ? room.match.bots : [] });
     this.sendRoster(room);
     if (room.lastResult) this.send(conn, room.lastResult);
     room.hostQuiet = false;
@@ -614,6 +656,21 @@ const HOST_HANDLERS = {
     if (inner.t === 'phase' && msg.slot === 'all') room.phaseAll = inner;
   },
 
+  // The bots of the lobby (GAME_SPEC §5a, D-165): the fighters of the active bots, in the
+  // order they were added. Their names follow that order. A shorter list removes bots and
+  // empties the bench (the host took places away); the same length only changes fighters.
+  bots(conn, msg) {
+    const room = conn.room;
+    const list = msg.fighters;
+    if (!onlyKeys(msg, ['t', 'fighters']) || !Array.isArray(list) || list.length > BOT_NAMES.length || !list.every((f) => typeof f === 'string' && FIGHTER_IDS.includes(f))) return this.strike(conn);
+    if (room.phase !== 'lobby') return this.fail(conn, 'bad_bots', { msg: 'Bots can only be changed in the lobby.' });
+    if (this.humans(room) + list.length > LIMITS.playersPerRoom) return this.fail(conn, 'bad_bots', { msg: 'There is no free place for another bot.' });
+    const bench = list.length < room.botsActive ? [] : room.bots.slice(room.botsActive);
+    room.bots = [...list.map((fighter, i) => ({ name: BOT_NAMES[i], fighter })), ...bench.map((b, i) => ({ ...b, name: BOT_NAMES[list.length + i] }))];
+    room.botsActive = list.length;
+    return this.sendRoster(room);
+  },
+
   // Close the room so nobody new can join, or open it again.
   room_set(conn, msg) {
     if (typeof msg.closed !== 'boolean') return this.strike(conn);
@@ -681,10 +738,12 @@ const HOST_HANDLERS = {
     if (!this.startable(conn, room, msg.slots)) return undefined;
     room.lastResult = null;
     room.vote = null;
-    room.match = { id: randomUUID(), stage: msg.stage, lives: msg.lives, slots: [...msg.slots], startedAt: this.now(), players: new Map(msg.slots.map((i) => [i, room.slots[i].lower])) };
+    // The bots get the slots the humans of the match do not use, in ascending order (D-165).
+    const bots = this.placeBots(room, msg.slots);
+    room.match = { id: randomUUID(), stage: msg.stage, lives: msg.lives, slots: [...msg.slots], bots, startedAt: this.now(), players: new Map(msg.slots.map((i) => [i, room.slots[i].lower])) };
     room.phase = 'match';
     room.lastActive = this.now();
-    this.send(conn, { t: 'match_started', matchId: room.match.id });
+    this.send(conn, { t: 'match_started', matchId: room.match.id, bots });
     return this.sendRoster(room);
   },
 

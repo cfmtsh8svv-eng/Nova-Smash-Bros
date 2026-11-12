@@ -98,7 +98,7 @@ test('the vote starts like a match: at least 2 ready players, only the host, onl
   const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
   const b = await s.player(h, 'Max'); // still choosing
   h.send({ t: 'vote_start', slots: [0] });
-  assert.match((await h.next('error')).msg, /At least 2 players/);
+  assert.match((await h.next('error')).msg, /Max is not ready yet/); // every human in the lobby must be ready (D-156)
   h.send({ t: 'vote_start', slots: [0, 1] });
   assert.match((await h.next('error')).msg, /Max has not picked a fighter/);
   for (const slots of ['all', [0, 0], [0, 9], null, [0, 1, 2, 3, 0]]) {

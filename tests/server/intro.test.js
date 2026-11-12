@@ -6,15 +6,15 @@ import assert from 'node:assert/strict';
 import { startServer } from '../helpers/server.js';
 import { relayProblem } from '../../server/rooms.js';
 
-// Three players in the room; Ana and Max play, Zoe sits this match out.
+// Ana and Max play; Zoe joins once the match has started and sits it out.
 async function matchOfTwo(s) {
   const h = await s.host();
   const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
   const b = await s.player(h, 'Max', { fighter: 'house_dj' });
-  const c = await s.player(h, 'Zoe', { fighter: 'house_dj' });
   h.send({ t: 'match_start', stage: 'beach', lives: 3, slots: [a.slot, b.slot] });
   await h.next('match_started');
   await h.next('roster', { match: (r) => r.phase === 'match' });
+  const c = await s.player(h, 'Zoe');
   return { h, a, b, c };
 }
 

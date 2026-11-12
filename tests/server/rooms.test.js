@@ -180,8 +180,9 @@ test('starting is refused with too few players, unready players or bad settings'
   assert.equal(err.code, 'bad_start');
   assert.match(err.msg, /Max has not picked a fighter/);
 
+  // Every human in the lobby must be ready (D-156): Max cannot be left out.
   start({ slots: [a.slot] });
-  assert.match((await h.next('error')).msg, /At least 2 players/);
+  assert.match((await h.next('error')).msg, /Max is not ready yet/);
 
   start({ slots: [a.slot, 3] });
   assert.match((await h.next('error')).msg, /not in the room/);
@@ -193,18 +194,22 @@ test('starting is refused with too few players, unready players or bad settings'
   assert.equal(s.app.rooms.rooms.get(h.code).phase, 'lobby');
 });
 
-test('a match can start with 2 or 3 of the players in the room; there are no keyboard players', async (t) => {
+test('a match starts only once every human in the lobby is ready; there are no keyboard players', async (t) => {
   const s = await startServer(t);
   const h = await s.host();
   const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
   const b = await s.player(h, 'Ben', { fighter: 'house_dj' });
-  await s.player(h, 'Max'); // still choosing: left out
+  const c = await s.player(h, 'Max'); // still choosing: blocks the start (D-156)
   // Keyboard players were removed (D-132): one phone plus a "guest" is not a match.
   h.send({ t: 'match_start', stage: 'beach', lives: 2, slots: [a.slot], guests: 1 });
   assert.equal((await h.next('error')).code, 'bad_message');
   h.send({ t: 'match_start', stage: 'beach', lives: 2, slots: [a.slot] });
-  assert.match((await h.next('error')).msg, /At least 2 players/);
+  assert.match((await h.next('error')).msg, /Ben is missing from the start list/);
   h.send({ t: 'match_start', stage: 'beach', lives: 2, slots: [a.slot, b.slot] });
+  assert.match((await h.next('error')).msg, /Max is not ready yet/);
+  c.send({ t: 'pick', fighter: 'surfer_girl', ready: true });
+  await h.next('roster');
+  h.send({ t: 'match_start', stage: 'beach', lives: 2, slots: [a.slot, b.slot, c.slot] });
   assert.ok((await h.next('match_started')).matchId);
 });
 

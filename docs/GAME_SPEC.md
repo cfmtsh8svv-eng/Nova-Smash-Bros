@@ -60,12 +60,14 @@ Laptop (host page, runs game) ───┘    (static files, rooms, relay, accou
 
 | Sheet tab | Columns |
 |---|---|
-| `players` | gamertag, gamertag_lower, salt, pin_hash, created_at, matches, wins, points, kos, falls, damage_dealt, damage_taken, achievements |
+| `players` | gamertag, gamertag_lower, salt, pin_hash, created_at, matches, wins, points, kos, falls, damage_dealt, damage_taken, achievements, last_won |
 | `matches` | match_id, ended_at, stage, mode, lives, duration_s, winner, players_json |
 
 The **leaderboard** ranks players by **points**. Each match gives placement points (1st 100, 2nd 60, 3rd 40, 4th 20) plus 1 point per 10 % damage dealt. It is read from `players`, cached on the server for 60 s, and shown on the host's results screen and lobby.
 
 **Achievements** belong to a player, are stored in the sheet and have no effect on gameplay. They show on the results screen and on the phone when earned. First set: First Win, Hat-Trick (3 wins), Heavy Hitter (1,000 % damage dealt in total), Untouchable (win without losing a life), Comeback (win on the last life above 150 %), Globetrotter (win on all three stages), Regular (10 matches), Special Delivery (KO with a special).
+
+**The crown** (D-154) is cosmetic. A player whose last saved match was a win wears a small gold crown: on the fighter during a match (above the head), on the sprite of their lobby card (no text with it) and on the podium. Several players can wear one at the same time (each won the last match they played). It is stored in the `last_won` column (1 or 0) and changes with every saved result: the winner gets it, everyone else in that match loses theirs. A practice match or a result that does not count (§4 limits) changes nothing. If the sheet cannot be written, the server still changes its own copy at once, so the crown is right until the server restarts.
 
 **One phone per account.** If a gamertag logs in on a second phone, the first phone is signed out with a clear message.
 

@@ -7,7 +7,9 @@ export class StoreError extends Error {
   }
 }
 
-export const emptyStats = () => ({ matches: 0, wins: 0, points: 0, kos: 0, falls: 0, damage_dealt: 0, damage_taken: 0, achievements: [] });
+export const emptyStats = () => ({ matches: 0, wins: 0, points: 0, kos: 0, falls: 0, damage_dealt: 0, damage_taken: 0, achievements: [], last_won: false });
+// The crown (D-154): a player whose last saved match was a win. Set by every saved match.
+export const wonLast = (update) => (update.deltas.wins || 0) > 0;
 export const STAT_KEYS = ['matches', 'wins', 'points', 'kos', 'falls', 'damage_dealt', 'damage_taken'];
 
 export class MemoryStore {
@@ -48,6 +50,7 @@ export class MemoryStore {
       if (!row) continue;
       for (const key of STAT_KEYS) row[key] += u.deltas[key] || 0;
       for (const a of u.achievements || []) if (!row.achievements.includes(a)) row.achievements.push(a);
+      row.last_won = wonLast(u);
     }
     return { duplicate: false };
   }

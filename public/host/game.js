@@ -267,6 +267,7 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     fx.clear();
     view.camera = { x: 640, y: 360, zoom: 1 };
     cameraGoal = { x: 640, y: 360, zoom: 1 };
+    view.crowns = new Set(ordered.filter((p) => p.crown).map((p) => p.slot)); // cosmetic only (D-154)
     state = next;
     loop = createLoop({ state, getInputs, onEvent });
     loop.paused = hold;

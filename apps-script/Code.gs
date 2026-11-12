@@ -11,9 +11,14 @@
  * Actions: ping, getPlayer, createPlayer, recordMatch, listPlayers
  */
 
-var PLAYER_COLUMNS = ['gamertag', 'gamertag_lower', 'salt', 'pin_hash', 'created_at', 'matches', 'wins', 'points', 'kos', 'falls', 'damage_dealt', 'damage_taken', 'achievements'];
+// last_won (column N, D-154): 1 if the player's last saved match was a win (the crown), else 0.
+var PLAYER_COLUMNS = ['gamertag', 'gamertag_lower', 'salt', 'pin_hash', 'created_at', 'matches', 'wins', 'points', 'kos', 'falls', 'damage_dealt', 'damage_taken', 'achievements', 'last_won'];
 var MATCH_COLUMNS = ['match_id', 'ended_at', 'stage', 'mode', 'lives', 'duration_s', 'winner', 'players_json'];
 var STAT_COLUMNS = ['matches', 'wins', 'points', 'kos', 'falls', 'damage_dealt', 'damage_taken'];
+// Columns stored as whole numbers rather than as plain text.
+function isNumberColumn(c) {
+  return STAT_COLUMNS.indexOf(c) >= 0 || c === 'lives' || c === 'duration_s' || c === 'last_won';
+}
 var GAMERTAG = /^[A-Za-z0-9_]{3,12}$/;
 var HEX = /^[0-9a-f]{16,128}$/;
 var ACHIEVEMENT = /^[a-z_]{1,30}$/;
@@ -89,7 +94,7 @@ function tab(name, columns) {
     // Text columns are stored as plain text, so a value can never be read as a formula, date or number.
     sheet.getRange(1, 1, sheet.getMaxRows(), columns.length).setNumberFormat('@');
     for (var i = 0; i < columns.length; i++) {
-      if (STAT_COLUMNS.indexOf(columns[i]) >= 0 || columns[i] === 'lives' || columns[i] === 'duration_s') {
+      if (isNumberColumn(columns[i])) {
         sheet.getRange(2, i + 1, sheet.getMaxRows() - 1, 1).setNumberFormat('0');
       }
     }
@@ -103,7 +108,7 @@ function appendRecord(sheet, columns, values) {
   var row = sheet.getLastRow() + 1;
   if (row > sheet.getMaxRows()) sheet.insertRowsAfter(sheet.getMaxRows(), 50);
   var formats = columns.map(function (c) {
-    return STAT_COLUMNS.indexOf(c) >= 0 || c === 'lives' || c === 'duration_s' ? '0' : '@';
+    return isNumberColumn(c) ? '0' : '@';
   });
   var range = sheet.getRange(row, 1, 1, columns.length);
   range.setNumberFormats([formats]);
@@ -124,6 +129,8 @@ function rowToPlayer(values) {
   for (var i = 0; i < PLAYER_COLUMNS.length; i++) player[PLAYER_COLUMNS[i]] = values[i];
   for (var j = 0; j < STAT_COLUMNS.length; j++) player[STAT_COLUMNS[j]] = Number(player[STAT_COLUMNS[j]]) || 0;
   player.achievements = String(player.achievements || '').split(',').filter(function (a) { return ACHIEVEMENT.test(a); });
+  // An empty cell (a sheet from before the column was added) means no crown.
+  player.last_won = Number(player.last_won) === 1;
   return player;
 }
 
@@ -150,8 +157,8 @@ function createPlayer(payload) {
   }
   var sheet = tab('players', PLAYER_COLUMNS);
   if (findPlayerRow(sheet, lower)) return { ok: false, error: 'duplicate', message: 'That gamertag is taken.' };
-  appendRecord(sheet, PLAYER_COLUMNS, [gamertag, lower, salt, hash, created, 0, 0, 0, 0, 0, 0, 0, '']);
-  return { ok: true, data: { gamertag: gamertag, gamertag_lower: lower, salt: salt, pin_hash: hash, created_at: created, matches: 0, wins: 0, points: 0, kos: 0, falls: 0, damage_dealt: 0, damage_taken: 0, achievements: [] } };
+  appendRecord(sheet, PLAYER_COLUMNS, [gamertag, lower, salt, hash, created, 0, 0, 0, 0, 0, 0, 0, '', 0]);
+  return { ok: true, data: { gamertag: gamertag, gamertag_lower: lower, salt: salt, pin_hash: hash, created_at: created, matches: 0, wins: 0, points: 0, kos: 0, falls: 0, damage_dealt: 0, damage_taken: 0, achievements: [], last_won: false } };
 }
 
 function isJsonList(text) {
@@ -212,6 +219,8 @@ function recordMatch(payload) {
     // Only the number columns and the achievements are written back: name, salt and hash are never touched.
     players.getRange(row, 6, 1, 7).setValues([STAT_COLUMNS.map(function (c) { return player[c]; })]);
     players.getRange(row, 13).setValue(list.join(','));
+    // The crown: whoever won this match wears it, everyone else in it loses theirs.
+    players.getRange(row, 14).setNumberFormat('0').setValue(deltas.wins === 1 ? 1 : 0);
   }
   return { ok: true, data: { duplicate: false } };
 }

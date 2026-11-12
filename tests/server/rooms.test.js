@@ -414,7 +414,7 @@ test('fighter picks and votes are validated', async (t) => {
   assert.equal(h.inbox.filter((m) => m.t === 'roster').length, 0);
   assert.equal(s.app.rooms.rooms.get(h.code).slots[0].ready, false, 'cannot be ready without a fighter');
   a.send({ t: 'pick', fighter: 'lisboa_og', ready: true });
-  assert.deepEqual((await h.next('roster')).players[0], { slot: 0, gamertag: 'Ana', connected: true, fighter: 'lisboa_og', ready: true });
+  assert.deepEqual((await h.next('roster')).players[0], { slot: 0, gamertag: 'Ana', connected: true, fighter: 'lisboa_og', ready: true, crown: false });
 
   // A stage vote only counts in the vote phase (tests/server/vote.test.js), never in the lobby.
   for (const bad of [{ kind: 'stage', value: 'beach' }, { kind: 'stage', value: 'moon' }, { kind: 'hazard', value: 'wave' }, { kind: 'winner', value: 'me' }, { kind: 'stage' }]) {

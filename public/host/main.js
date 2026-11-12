@@ -277,7 +277,7 @@ const MESSAGES = {
 
 // Who would play if the match started now: every phone with a fighter that tapped Ready.
 function lineup() {
-  return lobby.roster.filter((p) => p.fighter && p.ready).map((p) => ({ slot: p.slot, name: p.gamertag, fighterId: p.fighter }));
+  return lobby.roster.filter((p) => p.fighter && p.ready).map((p) => ({ slot: p.slot, name: p.gamertag, fighterId: p.fighter, crown: Boolean(p.crown) }));
 }
 
 function renderSlot(index) {
@@ -293,7 +293,8 @@ function renderSlot(index) {
     info.append(el('span', 'tag', `P${index + 1} · ${player.gamertag}`));
     const fighter = player.fighter ? getFighter(player.fighter) : null;
     // Until a fighter is picked, only a grey silhouette is shown.
-    paintSprite(picture, player.fighter || FIGHTERS[index % FIGHTERS.length].id, { silhouette: !fighter, mainColour: fighter && isDuplicate(player) ? duplicateColour(fighter.id, PLAYER_COLORS[index]) : null }).catch(() => {});
+    // A player who won their last match wears the crown on the sprite, with no text (D-154).
+    paintSprite(picture, player.fighter || FIGHTERS[index % FIGHTERS.length].id, { silhouette: !fighter, mainColour: fighter && isDuplicate(player) ? duplicateColour(fighter.id, PLAYER_COLORS[index]) : null, headroom: CROWN_ROOM, crown: Boolean(player.crown) }).catch(() => {});
     info.append(el('div', 'fighter', fighter ? fighter.name : 'Choosing…'));
     if (!player.connected) info.append(el('div', 'state away', 'Reconnecting…'));
     else if (player.ready) info.append(el('div', 'state ready', 'Ready!'));
@@ -322,6 +323,8 @@ function renderSlot(index) {
   }
   return card;
 }
+
+const CROWN_ROOM = 16; // sprite pixels above every lobby sprite, so a crown fits
 
 // The later player with the same fighter wears the player colour (lower slots come first).
 function isDuplicate(player) {

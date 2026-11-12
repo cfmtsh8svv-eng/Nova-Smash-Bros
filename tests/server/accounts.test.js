@@ -91,7 +91,7 @@ test('the sheet never sees the PIN: only a salt and a hash are stored', async (t
   await reg(s, 'Secret1', '4821');
   await reg(s, 'Secret2', '4821');
   const [a, b] = [...s.store.players.values()];
-  assert.deepEqual(Object.keys(a).sort(), ['achievements', 'created_at', 'damage_dealt', 'damage_taken', 'falls', 'gamertag', 'gamertag_lower', 'kos', 'matches', 'pin_hash', 'points', 'salt', 'wins'], 'there is no PIN field');
+  assert.deepEqual(Object.keys(a).sort(), ['achievements', 'created_at', 'damage_dealt', 'damage_taken', 'falls', 'gamertag', 'gamertag_lower', 'kos', 'last_won', 'matches', 'pin_hash', 'points', 'salt', 'wins'], 'there is no PIN field');
   assert.match(a.pin_hash, /^[0-9a-f]{64}$/);
   assert.match(a.salt, /^[0-9a-f]{32}$/);
   // The hash is made with the server's secret pepper: without it, the same PIN and salt give another hash.

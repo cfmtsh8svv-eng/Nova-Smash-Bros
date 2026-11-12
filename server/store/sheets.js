@@ -78,5 +78,7 @@ function normalise(row) {
     matches: num(row.matches), wins: num(row.wins), points: num(row.points), kos: num(row.kos), falls: num(row.falls),
     damage_dealt: num(row.damage_dealt), damage_taken: num(row.damage_taken),
     achievements: achievements.filter((a) => /^[a-z_]{1,30}$/.test(a)),
+    // The crown column (D-154). An empty cell, as in a sheet from before the column existed, is no crown.
+    last_won: row.last_won === true || Number(row.last_won) === 1,
   };
 }

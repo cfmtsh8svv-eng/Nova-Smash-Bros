@@ -11,6 +11,7 @@ import { getFighter } from '/game/fighters.js';
 import { duplicateColour, handPoint, SPRITE } from '/shared/art/characters.js';
 import { getSprite, getStageImage, loadStage } from '/shared/art/sprites.js';
 import { drawItemShape as drawItemPicture, roundRect } from './icons.js';
+import { CROWN_SINK, drawCrown, headAboveFeet } from '/shared/art/crown.js';
 
 const DISPLAY = '"Bungee", "Arial Black", sans-serif';
 const BODY = '"Nunito", "Segoe UI", sans-serif';
@@ -29,6 +30,7 @@ function outlined(ctx, text, x, y, fill, width = 6) {
 export function createRenderer(canvas) {
   const ctx = canvas.getContext('2d');
   let pixelScale = 1;
+  let crowns = new Set(); // slots that wear the crown in the match being drawn
 
   // Keep the canvas as sharp as the screen allows (up to 2x), in a 16:9 box.
   function resize() {
@@ -613,6 +615,11 @@ export function createRenderer(canvas) {
       ctx.fillRect(-15, -64, 30, 64);
     }
     ctx.restore();
+    // The crown of the last match's winner (D-154), on the head.
+    if (crowns.has(f.slot)) {
+      const head = headAboveFeet(getSprite(f.fighterId, main, 'idle')) * SPRITE.scale * sy;
+      drawCrown(ctx, f.x - 3 * f.facing, f.y + lift - head + CROWN_SINK, 0.9);
+    }
 
     drawAttack(f);
 
@@ -757,7 +764,8 @@ export function createRenderer(canvas) {
     // A fighter outside the picture gets a marker at the edge instead.
     const off = f.x < 10 || f.x > SCREEN.w - 10 || f.y < 30 || f.y - H > SCREEN.h;
     const x = Math.max(w / 2 + 8, Math.min(SCREEN.w - w / 2 - 8, f.x));
-    const y = Math.max(84, Math.min(SCREEN.h - 30, f.y - H - 30));
+    // A crowned fighter's pill sits a little higher, so the crown on the head stays visible.
+    const y = Math.max(84, Math.min(SCREEN.h - 30, f.y - H - 30 - (crowns.has(f.slot) ? 22 : 0)));
     ctx.lineWidth = 3;
     ctx.strokeStyle = INK;
     ctx.fillStyle = color;
@@ -943,6 +951,7 @@ export function createRenderer(canvas) {
   // view: { camera: {x, y, zoom}, fx, time, countAt, dim }
   function draw(stageId, state, view) {
     const fx = view.fx;
+    crowns = view.crowns || new Set();
     ctx.setTransform(pixelScale, 0, 0, pixelScale, 0, 0);
     ctx.imageSmoothingEnabled = true;
     ctx.globalAlpha = 1;

@@ -284,8 +284,15 @@ export class Rooms {
   roster(room) {
     return {
       t: 'roster', code: room.code, closed: room.closed, phase: room.phase,
-      players: room.slots.map((s, i) => (s ? { slot: i, gamertag: s.gamertag, connected: s.connected, fighter: s.fighter, ready: s.ready } : null)).filter(Boolean),
+      players: room.slots.map((s, i) => (s ? { slot: i, gamertag: s.gamertag, connected: s.connected, fighter: s.fighter, ready: s.ready, crown: this.crown(s.lower) } : null)).filter(Boolean),
     };
+  }
+
+  // The crown (D-154): this player's last saved match was a win. Read from the player cache,
+  // which a saved result updates at once, also while the sheet cannot be written.
+  crown(lower) {
+    const row = this.data.players.get(lower);
+    return Boolean(row && row.last_won);
   }
 
   sendRoster(room) {
@@ -709,6 +716,7 @@ const HOST_HANDLERS = {
       for (const row of roster.values()) this.limiter.count(`results:${hour}:${row.gamertag_lower}`, this.now());
       this.data.recordMatch(scored.matchRow, scored.updates);
       stored = true;
+      if (this.rooms.get(room.code) === room) this.sendRoster(room); // the crowns have moved
       await Promise.race([this.data.flush().catch(() => {}), new Promise((r) => setTimeout(r, 2500))]);
       if (this.data.pending > 0) note = 'The scores are still being written to the Google Sheet.';
     } else {

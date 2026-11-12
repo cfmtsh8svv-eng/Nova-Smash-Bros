@@ -994,5 +994,15 @@ export function createRenderer(canvas) {
     }
   }
 
-  return { draw, resize };
+  // The end sequence (ceremony.js) draws itself; this only sets up the canvas for it.
+  function drawCeremony(stageId, ceremony, seconds) {
+    ctx.setTransform(pixelScale, 0, 0, pixelScale, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#0c0a1c';
+    ctx.fillRect(0, 0, SCREEN.w, SCREEN.h);
+    ceremony.draw(ctx, seconds, () => drawStage(stageId));
+  }
+
+  return { draw, drawCeremony, resize };
 }

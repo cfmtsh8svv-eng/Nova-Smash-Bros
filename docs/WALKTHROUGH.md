@@ -284,10 +284,13 @@ The script in the sheet (`Code.gs`) is the last guard before a cell is written. 
 
 | File | What it does |
 |---|---|
-| `main.js` | The screens: title → lobby → map vote (with Vote) → match → results → lobby. Talks to the server. |
+| `main.js` | The screens: title → lobby → map vote (with Vote) → intro → match → end sequence and results → lobby. Talks to the server. |
 | `game.js` | Runs one match: collects the inputs, calls the rules, turns events into effects, sound and phone messages |
 | `render.js` | Draws one picture of the match |
 | `fx.js` | Particles, damage numbers, screen shake, big texts |
+| `intro.js` | The 20 s intro before every match: item and hazard cards, timer, Skip pips (GAME_SPEC §10b) |
+| `icons.js` | Item and hazard pictures shared by `render.js` and `intro.js` |
+| `ceremony.js` | The end sequence after the final KO: name slam, podium rising from the stage ground, crowns, fireworks (GAME_SPEC §10) |
 
 **The loop.** The browser calls our function before every screen refresh (usually 60 times a second). Each time: ask the clock how many rule steps are due, run them, then draw the current state. Drawing never changes the state. If the laptop is slow, fewer pictures are drawn but the rules still take the same steps, so the game does not slow down or speed up.
 

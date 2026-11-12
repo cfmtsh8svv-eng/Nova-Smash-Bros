@@ -68,7 +68,6 @@ button.plain { background: transparent; box-shadow: none; color: var(--mute); }
 .board li b { color: var(--yellow); font-weight: 800; }
 .board li.none { display: block; color: var(--mute); background: none; }
 .board.stale::after { content: "May be out of date: the player list cannot be reached right now."; display: block; grid-column: 1 / -1; color: var(--yellow); font-size: 0.95cqw; padding: 0.2cqw 0.5cqw; }
-.board.wide { grid-template-columns: repeat(2, 1fr); column-gap: 1.5cqw; width: 44cqw; }
 
 /* the intro before every match (GAME_SPEC §10b): items and hazards over the dimmed stage */
 #intro { align-items: stretch; justify-content: flex-start; gap: 1.2cqw; padding: 2.2cqw 2.6cqw 1.8cqw; text-align: left; }
@@ -104,24 +103,20 @@ button.plain { background: transparent; box-shadow: none; color: var(--mute); }
 .pip.yes { background: var(--p); color: #fff; }
 .pip.gone { opacity: 0.25; border-style: dashed; }
 
-/* results */
-#results { justify-content: flex-start; gap: 1cqw; padding-top: 2cqw; }
-.winner { font-family: var(--display); font-weight: 400; font-size: 3.2cqw; color: var(--yellow); text-shadow: 0 0.3cqw 0 var(--dark); }
-.podium { display: flex; align-items: flex-end; justify-content: center; gap: 1.2cqw; height: 27cqw; }
-.place { --p: #5b5670; display: flex; flex-direction: column; align-items: center; width: 17cqw; }
-.place canvas { width: 10cqw; height: auto; image-rendering: pixelated; }
-.place .tag { background: var(--p); color: #fff; font-weight: 800; font-size: 1.15cqw; padding: 0.05em 0.8em; border-radius: 99px; margin-bottom: 0.2cqw; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.place.p4 .tag { color: var(--dark); }
-.place .step { width: 100%; background: linear-gradient(#3a2d5c, #241a3d); border: 0.25cqw solid var(--line); border-bottom: 0; border-radius: 0.8cqw 0.8cqw 0 0; padding: 0.4cqw 0.5cqw; font-size: 0.98cqw; line-height: 1.35; }
-.place .step .n { font-family: var(--display); font-size: 2cqw; color: var(--yellow); line-height: 1; }
-.place .step .pts { font-family: var(--display); font-size: 1.3cqw; color: var(--orange); }
-.place .step .ach { color: var(--green); font-size: 0.92cqw; }
-.place.first .step { min-height: 13cqw; }
-.place.second .step { min-height: 10.5cqw; }
-.place.third .step { min-height: 8.5cqw; }
-.place.fourth .step { min-height: 6.5cqw; border-radius: 0.8cqw; border-bottom: 0.25cqw solid var(--line); }
-.place.fourth canvas { transform: rotate(90deg); margin: -2.4cqw 0 -1.6cqw; }
-.resultsBottom { display: flex; align-items: flex-end; gap: 3cqw; }
+/* results: the podium is drawn on the canvas (ceremony.js); a stat card sits above each
+   fighter, placed in % of the 1280 x 720 stage by main.js */
+#results { padding: 0; }
+.resultCards { position: absolute; inset: 0; pointer-events: none; }
+.stat { --p: #5b5670; position: absolute; transform: translate(-50%, -100%) scale(0.6); opacity: 0; width: 13cqw; background: rgba(22, 18, 42, 0.9); border: 0.2cqw solid var(--p); border-radius: 0.9cqw; padding: 0.5cqw 0.7cqw; font-size: 0.88cqw; line-height: 1.35; text-align: left; transition: opacity 0.35s, transform 0.45s cubic-bezier(0.2, 1.5, 0.4, 1); }
+.stat.on { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+.stat .h { display: flex; align-items: baseline; gap: 0.4cqw; }
+.stat .n { font-family: var(--display); font-size: 1.6cqw; color: var(--yellow); line-height: 1; }
+.stat .who { font-weight: 800; color: var(--p); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat .pts { font-family: var(--display); font-size: 1.15cqw; color: var(--orange); }
+.stat .ach { color: var(--green); font-size: 0.85cqw; }
+.resultNote { position: absolute; left: 1.6cqw; bottom: 1.2cqw; max-width: 30cqw; text-align: left; }
+.lobbyBtn { position: absolute; left: 50%; bottom: 1.2cqw; transform: translateX(-50%); font-size: 1.5cqw; padding: 0.5cqw 2cqw; }
+.lobbyBtn:active:not(:disabled) { transform: translate(-50%, 0.2cqw); }
 
 /* map vote: the three stages side by side, large */
 #vote { gap: 1.4cqw; }
@@ -146,4 +141,5 @@ button.plain { background: transparent; box-shadow: none; color: var(--mute); }
   .voteCard { transition: none; }
   #dim { transition: none; }
   #intro .card { animation: none; opacity: 1; transform: none; }
+  .stat { transition: none; }
 }

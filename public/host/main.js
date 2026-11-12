@@ -10,6 +10,7 @@ import { paintSprite, paintStage } from '/shared/art/sprites.js';
 import { duplicateColour } from '/shared/art/characters.js';
 import { createGame } from './game.js';
 import { createIntro } from './intro.js';
+import { BLOCKS, BUTTON_AT, FOURTH_X, GROUND, STATS_AT } from './ceremony.js';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, className, text) => {
@@ -52,7 +53,8 @@ const game = createGame({
 function show(name) {
   screen = name;
   for (const id of ['title', 'lobby', 'vote', 'loading', 'intro', 'pause', 'results']) $(id).hidden = id !== name;
-  $('frame').classList.toggle('playing', name === 'match');
+  // During the match and its end sequence the stage is not dimmed by the page (the end sequence dims it itself).
+  $('frame').classList.toggle('playing', name === 'match' || name === 'results');
   if (name === 'title' || name === 'lobby') audio.setMusic('lobby');
 }
 
@@ -667,36 +669,40 @@ const ordinal = (n) => ['1st', '2nd', '3rd', '4th'][n - 1] || `${n}th`;
 function showResults(result) {
   if (!match) return;
   match.result = result;
-  game.stop();
-  show('results');
+  show('results'); // the end sequence keeps running on the canvas behind the cards
   audio.setMusic('lobby');
-  const byPlace = [...result.players].sort((a, b) => a.place - b.place);
-  const winner = byPlace[0];
-  $('winnerLine').textContent = `${winner.name} graduates with honours!`;
   $('resultNote').textContent = 'Saving the result…';
+  $('backToLobby').hidden = true;
 
-  // Podium order on screen: 2nd, 1st, 3rd, and a fourth player flat on the ground beside it.
-  const order = [byPlace[1], byPlace[0], byPlace[2], byPlace[3]].filter(Boolean);
-  $('podium').replaceChildren(...order.map((p) => {
-    const box = el('div', `place p${p.slot + 1} ${['first', 'second', 'third', 'fourth'][p.place - 1]}`);
-    box.style.setProperty('--p', PLAYER_COLORS[p.slot]);
-    box.dataset.slot = String(p.slot);
-    const duplicate = result.players.some((o) => o.slot < p.slot && o.fighterId === p.fighterId);
-    const picture = el('canvas');
-    paintSprite(picture, p.fighterId, { mainColour: duplicate ? duplicateColour(p.fighterId, PLAYER_COLORS[p.slot]) : null, pose: p.place === 4 ? 'ko' : p.place === 1 ? 'jump' : 'idle' }).catch(() => {});
-    box.append(el('span', 'tag', `P${p.slot + 1} · ${p.name}`), picture);
-    const step = el('div', 'step');
-    step.append(el('div', 'n', ordinal(p.place)));
-    step.append(el('div', '', `Dealt ${p.damageDealt} % · Taken ${p.damageTaken} %`));
-    step.append(el('div', '', `KOs ${p.kos} · Falls ${p.falls}`));
-    step.append(el('div', 'pts', ''));
-    step.append(el('div', 'ach', ''));
-    box.append(step);
-    return box;
-  }));
-  fillBoard($('resultBoard'), null);
+  // One card above each fighter on the podium; the 4th one's above the fighter lying on the ground.
+  const cards = [...result.players].sort((a, b) => a.place - b.place).map((p) => {
+    const card = el('div', `stat p${p.slot + 1} ${PLACE_CLASS[p.place - 1]}`);
+    card.style.setProperty('--p', PLAYER_COLORS[p.slot]);
+    card.dataset.slot = String(p.slot);
+    const x = p.place === 4 ? FOURTH_X : BLOCKS[p.place].x;
+    const top = p.place === 4 ? GROUND - 70 : GROUND - BLOCKS[p.place].h - 168;
+    card.style.left = `${(x / 1280) * 100}%`;
+    card.style.top = `${(top / 720) * 100}%`;
+    const head = el('div', 'h');
+    head.append(el('span', 'n', ordinal(p.place)), el('span', 'who', `P${p.slot + 1} · ${p.name}`));
+    card.append(head, el('div', '', `${p.damageDealt} % dealt · ${p.damageTaken} % taken`), el('div', '', `KOs ${p.kos} · Falls ${p.falls}`), el('div', 'pts', ''), el('div', 'ach', ''));
+    return card;
+  });
+  $('resultCards').replaceChildren(...cards);
+  clearResultTimers();
+  resultTimers = [
+    ...cards.map((card, i) => setTimeout(() => card.classList.add('on'), STATS_AT * 1000 + i * 110)),
+    setTimeout(() => { $('backToLobby').hidden = false; }, BUTTON_AT * 1000),
+  ];
 
   submitResult();
+}
+
+const PLACE_CLASS = ['first', 'second', 'third', 'fourth'];
+let resultTimers = [];
+function clearResultTimers() {
+  resultTimers.forEach(clearTimeout);
+  resultTimers = [];
 }
 
 // Send the result to the server and each phone's own line to the phones. Called again
@@ -735,12 +741,11 @@ function sendResultPhases(result, saved) {
 function renderResultExtras(saved) {
   $('resultNote').textContent = saved.note || (saved.stored ? 'Result saved.' : '');
   for (const line of saved.players) {
-    const box = $('podium').querySelector(`[data-slot="${line.slot}"]`);
+    const box = $('resultCards').querySelector(`[data-slot="${line.slot}"]`);
     if (!box) continue;
     box.querySelector('.pts').textContent = line.unsaved ? 'Not saved: no points' : `+${line.points} points`;
     box.querySelector('.ach').textContent = line.achievements.length ? `New: ${line.achievements.map((a) => a.name).join(', ')}` : '';
   }
-  fillBoard($('resultBoard'), saved.leaderboard, saved.stale);
   fillBoard($('board'), (saved.leaderboard || []).slice(0, 8), saved.stale);
   if (match && match.result) sendResultPhases(match.result, saved);
 }
@@ -748,6 +753,8 @@ function renderResultExtras(saved) {
 function backToLobby() {
   if (match && !match.saved) link.send({ t: 'match_abort', matchId: match.id }); // only matters if the result never got through
   match = null;
+  clearResultTimers();
+  game.stop(); // the end sequence
   show('lobby');
   lobbyPhase();
   renderLobby();

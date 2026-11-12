@@ -90,17 +90,11 @@
       <p class="small" id="pauseHelp">Press P or Esc to resume. Phones cannot pause.</p>
     </section>
 
+    <!-- The podium itself is drawn on the canvas (ceremony.js); these are the cards over it. -->
     <section id="results" class="screen" hidden>
-      <h1 id="winnerLine" class="winner"></h1>
-      <div id="podium" class="podium"></div>
-      <p id="resultNote" class="small"></p>
-      <div class="resultsBottom">
-        <div>
-          <h2>Leaderboard</h2>
-          <ol id="resultBoard" class="board wide"></ol>
-        </div>
-        <button id="backToLobby" class="big">Back to the lobby</button>
-      </div>
+      <div id="resultCards" class="resultCards"></div>
+      <p id="resultNote" class="small resultNote"></p>
+      <button id="backToLobby" class="big lobbyBtn" hidden>Back to the lobby</button>
     </section>
 
     <div id="toast" role="status" hidden></div>

@@ -220,12 +220,14 @@ test('a whole match from the stage vote to the results, a second match, removing
   // --- Zoe goes too: final KO, then the results
   await knockOut(host, 2);
   await host.waitForSelector('#results:not([hidden])', { timeout: 15_000 });
-  assert.equal(await text(host, '#winnerLine'), 'Ana graduates with honours!');
   await host.waitForFunction(() => document.getElementById('resultNote').textContent === 'Result saved.');
-  const podium = await host.evaluate(() => [...document.querySelectorAll('#podium .place')].map((p) => [p.querySelector('.tag').textContent, p.querySelector('.n').textContent, p.querySelector('.pts').textContent]));
-  assert.deepEqual(podium, [['P3 · Zoe', '2nd', '+60 points'], ['P1 · Ana', '1st', '+100 points'], ['P2 · Max', '3rd', '+40 points']]);
-  assert.match(await host.evaluate(() => document.querySelector('#podium .place.first .ach').textContent), /First Win/);
-  assert.deepEqual(await host.evaluate(() => [...document.querySelectorAll('#resultBoard li')].map((li) => li.textContent)), ['1.Ana100 pts', '2.Zoe60 pts', '3.Max40 pts']);
+  // The podium is drawn on the canvas (GAME_SPEC §10, D-155); a stat card sits above each fighter.
+  const cards = await host.evaluate(() => [...document.querySelectorAll('#resultCards .stat')].map((p) => [p.querySelector('.who').textContent, p.querySelector('.n').textContent, p.querySelector('.pts').textContent]));
+  assert.deepEqual(cards, [['P1 · Ana', '1st', '+100 points'], ['P3 · Zoe', '2nd', '+60 points'], ['P2 · Max', '3rd', '+40 points']]);
+  assert.match(await host.evaluate(() => document.querySelector('#resultCards .stat.first .ach').textContent), /First Win/);
+  await host.waitForSelector('#resultCards .stat.on');
+  assert.equal(await host.locator('#results .board').count(), 0, 'no leaderboard on the results screen');
+  await host.waitForSelector('#backToLobby:not([hidden])', { timeout: 10_000 });
   assert.equal(await host.locator('#results button').count(), 1, 'only "Back to the lobby": no rematch button');
 
   // --- each phone shows its own result

@@ -166,6 +166,7 @@ Nothing in here touches the screen, the network or the clock. Even chance comes 
 | `input.js` | The buffer between "messages arrive whenever" and "the game looks once per step" |
 | `clock.js`, `loop.js` | Turning real time into steps; slow motion and hit pause |
 | `scoring.js`, `view.js` | Points; damage colour and which pose to show |
+| `bot.js` | The bots (GAME_SPEC §5a, D-163): turns the match state into a phone-style input. See [Bots](#bots-srcgamebotjs) |
 
 ### Three things worth being able to explain
 
@@ -181,6 +182,18 @@ More damage means a faster launch. A heavier fighter is launched more slowly. Af
 
 **Slow motion that cannot change the result.** The final KO runs in slow motion for two seconds, and every hit freezes the game for a moment (a strong one a little longer). Both are done in `loop.js` by changing *when* the next step is taken, never *what* a step does. A step is always 1/60 second of game time. A test plays whole matches with and without these effects and checks that every event happens on the same step.
 
+### Bots (`src/game/bot.js`)
+
+**Where it lives and how its input gets in.** A bot is not a special kind of fighter. The rules cannot tell it from a phone: `createBot({ slot, level, seed })` makes a small object with the bot's memory, and `botInput(bot, state)` returns exactly what a phone's `InputBuffer.consume()` returns (`left, right, up, down, attack, jump, special` and the `attackP, jumpP, specialP` presses). On the host page, `game.js` keeps one bot per bot slot for the whole match and, in `getInputs()`, asks each of them for its input every step, next to the phones' buffers. `step()` did not change. The loop does not call `getInputs()` while the match is paused or held behind the intro, so the bots pause too. `botInput` only reads the state; a test checks that the state is byte for byte the same after the call.
+
+**What it does.** Each step it picks a target: the nearest opponent, where the leader (most lives, then the lowest damage) counts as a quarter nearer. It finds its way over a small map of the platforms (which platform can be reached from which by jumping, double-jumping, dropping through or hopping across a gap), works out the first hop of the shortest way and runs, jumps or presses Down. In reach it attacks (with Up for a target above), uses its special when it is ready and the target is in that special's range (Wave Rider only where the ride ends above the main ground), and now and then stomps from above. Off the stage it steers to the main ground, double-jumps at ground level and lets the ledge grab catch it, then climbs with Jump. On the ground it never runs towards a spot with nothing below it, so it does not walk off by itself. It picks up items lying on its own platform close by (never the Group Project), and with the Group Project in its hands it goes for the nearest opponent to pass it on. Once a hazard is announced it moves to a level outside the hazard's zone and stays out of it until the hazard is over.
+
+**Human limits.** The bot keeps the last few snapshots of what it saw and decides on the one from `reactionFrames` steps ago (12 steps, 0.2 s); only its own fighter it knows as it is now. Every `aimEvery` steps it draws a new misjudgement of up to `aimError` px that it adds to where it thinks the target is. Every press of Attack, Jump, Special or Down is held for `pressHold` steps, and the same button is pressed again only `pressGap` steps after it was let go, like a thumb on a phone. Now and then (`hesitateChance`) it stops and thinks for `hesitateFrames`. Hazards: it only reads what the screen shows (the announced hazard, its zone, the train, wave or crowd once they are there). It never reads the timer of the next hazard or the late train's delay, so a late train surprises it too. A test runs the same match with and without a hazard queued and checks that the bots press exactly the same buttons until the warning appears.
+
+**Randomness.** A bot has its own seeded random numbers (`rng.js`), started from the match seed and its slot. A match with bots replays exactly, which the tests use.
+
+**Tuning.** All numbers are in `config.js` under `bots.medium`: `reactionFrames`, `aimError`, `aimEvery`, `attackChance`, `specialChance`, `stompChance`, `leaderBias`, `itemReach`, `hesitateChance`, `hesitateFrames`, `pressHold`, `pressGap`, `climbDelay`. To make the bot harder, lower `reactionFrames` and `aimError` and raise `attackChance`; to make it easier, do the opposite. Easy and hard are meant to be two more number sets with the same keys (`bots.easy`, `bots.hard`); `createBot` takes the level. The target is that a first-time player on a phone wins about every second one-on-one (D-157). That can only be judged by playing; `tests/game/bot.test.js` checks the lower and upper end with a scripted "simple human" (walks to the bot, attacks in reach, sees everything 0.25 s late): it must win some of 15 matches, but not all.
+
 ### Why it was built this way
 
 - **Pure rules** so they can be tested without a browser, and so one person can understand them without knowing anything about networks.
@@ -191,7 +204,8 @@ More damage means a faster launch. A heavier fighter is launched more slowly. Af
 
 - Fighters are boxes. Hits are "does this rectangle touch that rectangle". That is simple and fair, but an attack can hit a little outside the drawn sprite.
 - No shield, no grabs, no combos: decided by the team to keep it understandable in ten seconds.
-- The numbers are a first tuning. A scripted test player finishes matches quickly; real players will show what needs changing.
+- The numbers are a first tuning. A scripted test player finishes matches quickly; real players will show what needs changing. The same goes for the bots' numbers.
+- The bot is a set of rules of thumb, not a planner: it does not dodge attacks, does not read the opponent's special cooldown and does not edge-guard. That fits "a first-time player" (D-157); a hard level would need more than new numbers.
 - With no time limit, a match between players who never fight never ends. The host can end it from the pause screen.
 
 ---
@@ -219,6 +233,7 @@ Every page has one **WebSocket** to the server: a connection that stays open so 
 | Phone | `input` | The seven buttons, as one number, with a running counter |
 | Phone | `pick`, `vote` | Fighter and ready; stage vote (only in the map vote) or hazard vote (only during a match) |
 | Host | `vote_start`, `vote_cancel` | Open the map vote for the ready players; give it up |
+| Host | `bots` | The fighters of the lobby's bots, in the order they were added (lobby only) |
 | Host | `match_start`, `match_result`, `match_abort` | Start, finish, cancel a match |
 | Host | `to` | "Pass this on to phone 2" or "to all": `phase` (which screen), `status` (damage, lives), `feedback` (vibrate, flash, text) |
 | Server | `roster` | To the host: who is in the room |
@@ -228,6 +243,8 @@ Every page has one **WebSocket** to the server: a connection that stays open so 
 **Who may do what** is one table per role. A phone's table simply has no "start a match" entry. If a phone sends `match_start`, the answer is "Only the host screen can do that" and nothing else happens. The slot number of an input is taken from the connection, never from the message, so a phone cannot press another player's buttons.
 
 **The map vote** (round 2, D-135, D-136) is a room phase of its own: `lobby` → `vote` → `match` → `lobby`. The host's `vote_start` is checked like a match start (at least two ready players). In the `vote` phase the server accepts a stage vote only from a player in the vote and keeps the latest vote of each; a player who leaves or loses the connection loses their vote. The `match_start` that follows must name one of the stages with the most votes, so a host page cannot quietly ignore the vote.
+
+**Bots in the room** (round 4, D-156 to D-165). The room keeps the bots, so a reload of the host page does not lose them and the start and result checks can count them. They are an ordered list `room.bots` (named Freshman, Intern, Erasmus by their place in it); the first `room.botsActive` of them play, the rest wait on a **bench**. Bots have no phone and no entry in `room.slots`. Every time the roster goes out in the lobby, `settleBots` makes sure humans plus active bots never exceed four: a human who joins sends the last active bot to the bench, and when a human leaves, the bot that went there last comes back. Outside the lobby nothing moves; the bench is settled when the room is back there. The host's `bots` message sets the fighters of the active bots; a shorter list removes bots and empties the bench. The roster lists the active bots with `bot: true` and the slot each would get. **Starting** needs at least one Ready human, every human in the lobby Ready and at least two fighters with the bots; at the start the bots get the slots the humans of the match do not use, in ascending order, and the server keeps them with the match (`room.match.bots`) and sends them in `match_started`. A phone that joins during the match may get the slot number of a bot of that match: the server passes its input on as usual, and the host page ignores input for any slot that has no phone in the match.
 
 **Reconnecting.** A phone that drops keeps its slot: for 30 seconds in the lobby, and until the end of the match during a match. When it comes back with its token it gets the same slot, and the server replays the last screen and status so it is up to date at once. The host page can also reconnect: when it created the room it got a secret key, and with that key it takes the room back.
 
@@ -248,7 +265,7 @@ At the end of a match the host page sends the result. The server:
 4. Works out **achievements** from the player's totals (First Win, Hat-Trick, Heavy Hitter, Untouchable, Comeback, Globetrotter, Regular, Special Delivery).
 5. Puts everything into the queue for the sheet and answers the host page at once.
 
-Every fighter belongs to a logged-in phone (keyboard players were removed in round 2, D-132). If fewer than two of the players' accounts can be read when the result arrives (the sheet is down), the match is a "practice match" and is not stored; a player whose account could not be read gets no points.
+Every human fighter belongs to a logged-in phone (keyboard players were removed in round 2, D-132). A bot's line names its slot from `room.match.bots` and is checked like every other line (and must still have the fighter it started with); it has no account, gets no points, achievements or crown, and is left out of the `matches` row (a bot that won is written as `(bot)`). The humans' places count the bots (D-161). If fewer than two of the humans' accounts can be read when the result arrives (only one human played, or the sheet is down), the match is a "practice match" and is not stored; a player whose account could not be read gets no points.
 
 ### The store (`store/`, `data.js`, `apps-script/Code.gs`)
 
@@ -298,7 +315,7 @@ The script in the sheet (`Code.gs`) is the last guard before a cell is written. 
 
 **Drawing order**, back to front: the stage (one prepared picture), hazards behind the fighters, items, fighters, things that fly, hazards in front (train, wave, crowd, rain, rockets), effects, name tags, and last the display on top: player cards top left, hazard countdown top right, big texts in the middle.
 
-**The lobby** shows the QR code, the four slots and the settings. A new player's card pops in with a flash in their colour; until they have chosen a fighter it shows a grey silhouette. The stage choice is **Vote (default)** or one of the three stages.
+**The lobby** shows the QR code, the four slots and the settings. A new player's card pops in with a flash in their colour; until they have chosen a fighter it shows a grey silhouette. The stage choice is **Vote (default)** or one of the three stages. Under the cards, **Add bot** and **Remove bot** send the server the new list of bot fighters; a new bot gets a random fighter nobody has picked if there is one (`Math.random` is fine here, it is not part of the match). A bot's card is a button: a click switches it to the next fighter. Bots carry a BOT tag wherever their name is shown (card, name pill, HUD card, podium, stat card), never wear a crown, have no voter sprite in the map vote and no Skip pip in the intro, and nothing is ever sent to a phone for them.
 
 **The map vote.** With Vote, Start opens the vote screen: the three stage pictures side by side, each with its live count and the small sprites of the players who voted for it, and a 10 s countdown. The host page counts the votes as they come in and ends the vote when every player who still counts has voted, or when the time is up. It draws the winner with `tallyVote` (a tie is random among the tied stages), shows it for 1.5 s, then starts the match. The stage pictures are the stage art drawn small (`paintStage` in `public/shared/art/sprites.js`).
 
@@ -374,7 +391,7 @@ What is deliberately **not** protected, and why: see the next section.
 | Command | What runs |
 |---|---|
 | `npm test` | `tests/game/` (the rules) and `tests/server/` (the server, including the end-to-end match) |
-| `npm run test:browser` | The three files in `tests/browser/` in a real browser: `smoke` (join and play), `flow` (a whole evening), `regressions` (connection drops) |
+| `npm run test:browser` | The four files in `tests/browser/` in a real browser: `smoke` (join and play), `flow` (a whole evening), `regressions` (connection drops), `bots` (one phone and bots, the bench) |
 | `npm audit --audit-level=high` | Known problems in dependencies |
 
 All three run in GitHub Actions on every push and pull request.
@@ -384,7 +401,8 @@ How the tests are organised:
 - `rules`, `movement`, `specials`, `items`, `hazards`, `input`, `view`: one file per area of the rules.
 - `exact.test.js` (rules) and `strict.test.js` (server): tests that use the **literal numbers from the spec** instead of reading them from the code, so changing a rule by accident fails a test.
 - `regressions.test.js` (rules, server, browser): tests for the defects the reviewers found. In the rules and the server there is one for each defect, and each failed before its fix. In the client, the defects a browser test can reach are covered (connection drops, a held button through a KO); the rest was checked by hand.
-- `accounts`, `rooms`, `reconnect`, `results`, `outage`, `http`, `e2e`: the server by topic.
+- `accounts`, `rooms`, `reconnect`, `results`, `outage`, `http`, `e2e`, `bots`: the server by topic.
+- `bot.test.js` (rules): the bots play with the real rules. It checks that a match with bots replays exactly, that a bot does not fall off by itself, gets back to the stage, beats a standing opponent, ends a match against another bot, reacts no sooner than its reaction delay, ignores a hazard until it is announced and then leaves its level, never changes the state and presses like a thumb, and that a scripted simple human wins some but not all matches against it (`tests/helpers/bots.js`).
 
 Tests use Node's built-in test runner. There is no test framework to learn.
 
@@ -408,7 +426,7 @@ Say these plainly when asked; they are choices, not accidents.
 10. **The sheet is written at most once per match.** The script writes the match row first and the players' numbers after it. If Google fails in between, the retry sees the match row and adds nothing, so those points are lost rather than counted twice.
 11. **No bad-word filter** for gamertags (team decision).
 12. **Vibration does not work on iPhones** (a browser limit); flash and sound replace it.
-13. **Tuning is a first version.**
+13. **Tuning is a first version**, the bots' numbers too (`bots.medium` in `config.js`). Only medium bots exist; easy and hard are new number sets later.
 14. **Demo mode is not built.** What was agreed is in `DEMO.md`.
 15. **The big screen needs a current browser** (Chrome, Edge, Firefox or Safari from 2023 on). The phone page also runs on older phones (iOS 15 and later).
 
@@ -432,7 +450,7 @@ Say these plainly when asked; they are choices, not accidents.
 
 ## 10. Questions for each package owner
 
-Each member owns one package and explains it. These are the five questions each owner is most likely to get, with plain answers.
+Each member owns one package and explains it. These are the questions each owner is most likely to get, with plain answers.
 
 ### For the owner of the game rules (`src/game/`, `tests/game/`)
 
@@ -450,6 +468,9 @@ No. Slow motion and the short freeze on hits only change *when* the next step ha
 
 **5. Where would you change something if a fighter is too strong?**
 In `src/game/config.js`. Every number is there: the special's damage, range, cooldown, the fighter's weight and speed. The normal attack is the same for everyone on purpose (a team decision), so balance comes from specials, weight and speed.
+
+**6. How does a bot play, and how do you know it does not cheat?**
+`src/game/bot.js` is a pure function that returns the same buttons a phone sends, so the rules treat it like a player. It sees the others 0.2 s late, misjudges distances a little and presses no faster than a thumb. It never reads hidden timers: a test runs a match with and without a queued hazard and checks the bot presses the same buttons until the warning appears. Its numbers are in `config.js` under `bots.medium`.
 
 ### For the owner of the server (`server/`, `apps-script/`, `tests/server/`)
 

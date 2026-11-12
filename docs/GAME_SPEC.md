@@ -132,6 +132,8 @@ Bots fill places so that one or two people can still play a full match (D-156). 
 - **Hazards.** Reacts only to what a human can see or read: once a hazard is announced (name and 3, 2, 1), it moves to a safe level, but not sooner. A late train that comes without a warning is a surprise for bots too.
 - **Human limits.** A medium bot reacts with a delay of about a fifth of a second (it acts on what it saw a few frames ago), sometimes misjudges a distance and does not press buttons faster than a person on a phone could. **Target strength:** a first-time player on a phone wins about every second one-on-one against it. The numbers are in `config.js` (`bots.medium`) for the team to tune by playing.
 
+**Details settled in the build** (D-166 to D-174). The bot sees the other fighters, items and hazards 0.2 s late and itself as it is now. The room keeps the bots as one ordered list whose first ones play and the rest wait on the bench; Remove bot also empties the bench. The roster gives each bot the slot it will get, and the server hands out the final slots at the start (`match_started`). A result line for a bot has no account and no points; the sheet's `matches` row lists only the humans, with `(bot)` as winner when a bot won.
+
 **During a match.** A bot is an ordinary fighter: it can be hit, picks up items, gets the phone-less version of every effect (nothing is sent to any phone for it). A human whose phone disconnects keeps standing still as before; a bot never takes over a human's fighter (D-164).
 
 ## 6. Controls (phone, landscape)

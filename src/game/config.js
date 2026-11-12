@@ -96,7 +96,7 @@ export const CONFIG = {
     maxS: 15,
     nameFrames: seconds(1), // the name alone, before the numbers
     countFrames: seconds(1), // each of 3, 2, 1
-    train: { lateChance: 0.25, lateFrames: seconds(5), speed: 20, length: 560, height: 104, damage: 20, baseKb: 8, kbGrowth: 7, angleDeg: 30 },
+    train: { lateChance: 0.25, lateFrames: seconds(5), speed: 20, length: 1260, height: 104, damage: 20, baseKb: 8, kbGrowth: 7, angleDeg: 30 },
     wifi: { delayFrames: 12, frames: seconds(6) }, // 12 frames = 200 ms
     rain: { frames: seconds(6) },
     wave: { riseFrames: 30, speed: 9, width: 200, height: 110, damage: 8 },

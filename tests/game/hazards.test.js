@@ -175,6 +175,7 @@ test('Cascais Line Train: still hits only at the terrace level, the main roof is
   const rect = hazardRect(state);
   assert.equal(rect.y + rect.h, state.stage.platforms[0].y + 30, 'the hit zone ends just below the terrace');
   assert.ok(rect.y > CONFIG.levels.roofBelow, 'and does not reach the roofs');
+  assert.equal(rect.w, 1260, 'three long carriages (D-150): the part that hits is the part that is drawn');
 });
 
 test('Bad Wi-Fi: inputs in the zone arrive 200 ms late, the other zone is unaffected', () => {

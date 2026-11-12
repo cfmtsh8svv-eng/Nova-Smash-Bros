@@ -244,26 +244,104 @@ export function createRenderer(canvas) {
   // The train runs on the rails at the bottom of the screen (y 678 to 720) and is tall enough
   // to reach up through the terrace level, where it hits (D-144).
   function drawTrain(rect, dir) {
+    // Three long, low carriages with a gangway between them; the leading one has a sloped nose.
     const cars = 3;
-    const carW = rect.w / cars;
-    const y = rect.y + 8;
-    const h = 690 - y;
+    const gap = 10;
+    const carW = (rect.w - gap * (cars - 1)) / cars;
+    const top = rect.y + 20;
+    const floor = 676; // just above the rails
+    const h = floor - top;
+    ctx.save();
+    ctx.lineJoin = 'round';
     for (let i = 0; i < cars; i++) {
-      const x = rect.x + i * carW;
+      const x = rect.x + i * (carW + gap);
+      const lead = dir > 0 ? i === cars - 1 : i === 0;
+      const noseAt = lead ? (dir > 0 ? x + carW : x) : null;
+      // body
       ctx.lineWidth = 4;
       ctx.strokeStyle = INK;
-      ctx.fillStyle = '#f1f5fa';
-      roundRect(ctx, x + 3, y, carW - 6, h, 12); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#e9eef4';
+      ctx.beginPath();
+      if (lead) {
+        const back = dir > 0 ? x : x + carW;
+        const s = dir;
+        ctx.moveTo(back, top + 10);
+        ctx.lineTo(noseAt - s * 70, top);
+        ctx.quadraticCurveTo(noseAt - s * 8, top + 4, noseAt, top + h * 0.55);
+        ctx.lineTo(noseAt, floor);
+        ctx.lineTo(back, floor);
+        ctx.closePath();
+      } else {
+        roundRect(ctx, x, top, carW, h, 14);
+      }
+      ctx.fill(); ctx.stroke();
+      ctx.save();
+      ctx.clip();
+      // a darker roof line, the yellow and red stripes of the Cascais Line
+      ctx.fillStyle = '#c9d1da';
+      ctx.fillRect(x - 10, top, carW + 20, 14);
       ctx.fillStyle = '#f6c343';
-      ctx.fillRect(x + 5, y + h * 0.62, carW - 10, h * 0.2);
-      ctx.fillStyle = '#1f3348';
-      for (let k = 0; k < 4; k++) roundRect(ctx, x + 16 + k * ((carW - 32) / 4), y + 12, (carW - 32) / 4 - 8, h * 0.36, 4), ctx.fill();
+      ctx.fillRect(x - 10, top + h * 0.66, carW + 20, 14);
+      ctx.fillStyle = '#e63946';
+      ctx.fillRect(x - 10, top + h * 0.66 + 14, carW + 20, 5);
+      // a long row of windows, broken by two doors
+      const doors = [0.28, 0.72].map((k) => x + carW * k);
+      const winTop = top + 26;
+      const winH = h * 0.32;
+      for (let wx = x + 22; wx < x + carW - 34; wx += 38) {
+        if (doors.some((d) => Math.abs(wx + 14 - d) < 34)) continue;
+        if (lead && Math.abs(wx + 14 - noseAt) < 90) continue;
+        ctx.fillStyle = '#1f3348';
+        roundRect(ctx, wx, winTop, 28, winH, 5); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.22)';
+        ctx.fillRect(wx + 4, winTop + 4, 6, winH - 8);
+      }
+      for (const d of doors) {
+        ctx.fillStyle = '#d5dbe2';
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 2.5;
+        roundRect(ctx, d - 22, winTop - 6, 44, floor - winTop + 2, 4); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#1f3348';
+        ctx.fillRect(d - 17, winTop, 14, winH);
+        ctx.fillRect(d + 3, winTop, 14, winH);
+      }
+      if (lead) {
+        // the driver's window and a headlight
+        ctx.fillStyle = '#1f3348';
+        ctx.beginPath();
+        ctx.moveTo(noseAt - dir * 66, top + 12);
+        ctx.quadraticCurveTo(noseAt - dir * 14, top + 14, noseAt - dir * 4, top + h * 0.42);
+        ctx.lineTo(noseAt - dir * 60, top + h * 0.42);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#fff2c8';
+        ctx.beginPath(); ctx.arc(noseAt - dir * 12, top + h * 0.6, 7, 0, 7); ctx.fill();
+      }
+      ctx.restore();
+      // pantograph on the middle carriage
+      if (i === 1) {
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 3;
+        const px = x + carW / 2;
+        ctx.beginPath();
+        ctx.moveTo(px - 26, top); ctx.lineTo(px, top - 22); ctx.lineTo(px + 26, top);
+        ctx.moveTo(px - 30, top - 22); ctx.lineTo(px + 30, top - 22);
+        ctx.stroke();
+      }
+      // bogies under each end
       ctx.fillStyle = INK;
-      for (const wx of [0.2, 0.8]) { ctx.beginPath(); ctx.arc(x + carW * wx, y + h + 6, 9, 0, 7); ctx.fill(); }
+      for (const k of [0.16, 0.84]) {
+        const bx = x + carW * k;
+        roundRect(ctx, bx - 34, floor - 2, 68, 10, 4); ctx.fill();
+        for (const dx of [-20, 20]) { ctx.beginPath(); ctx.arc(bx + dx, floor + 10, 8, 0, 7); ctx.fill(); }
+      }
+      // the gangway to the next carriage
+      if (i < cars - 1) {
+        ctx.fillStyle = '#3a3550';
+        ctx.fillRect(x + carW - 2, top + 30, gap + 4, h - 50);
+      }
     }
-    const front = dir > 0 ? rect.x + rect.w - 10 : rect.x + 10;
-    ctx.fillStyle = '#fff2c8';
-    ctx.beginPath(); ctx.arc(front, y + h * 0.75, 7, 0, 7); ctx.fill();
+    ctx.restore();
   }
 
   // The water rises from the bottom edge of the screen (D-146).
@@ -457,17 +535,36 @@ export function createRenderer(canvas) {
     ctx.restore();
   }
 
-  function drawRain(t) {
+  // Raindrops in no pattern: each has its own place, length, speed and brightness, and
+  // the wind turns them a little now and then. Drawn from a fixed random list, so a drop
+  // keeps its place from one picture to the next.
+  const DROPS = Array.from({ length: 170 }, () => ({
+    x: Math.random() * (SCREEN.w + 300), y: Math.random() * SCREEN.h,
+    speed: 14 + Math.random() * 14, len: 10 + Math.random() * 26, alpha: 0.25 + Math.random() * 0.5, width: Math.random() < 0.25 ? 2.5 : 1.5,
+  }));
+  function drawRain(t, state) {
+    const wind = 0.22 + 0.12 * Math.sin(t / 47) + 0.05 * Math.sin(t / 13);
     ctx.save();
-    ctx.strokeStyle = 'rgba(200,225,255,.55)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let i = 0; i < 140; i++) {
-      const x = (i * 97 + t * 3) % (SCREEN.w + 80) - 40;
-      const y = (i * 53 + t * 22) % (SCREEN.h + 40) - 20;
-      ctx.moveTo(x, y); ctx.lineTo(x - 6, y + 22);
+    ctx.lineCap = 'round';
+    for (const d of DROPS) {
+      const y = (d.y + t * d.speed) % (SCREEN.h + 60) - 30;
+      const x = ((d.x - y * wind - t * wind * 4) % (SCREEN.w + 300) + SCREEN.w + 300) % (SCREEN.w + 300) - 150;
+      ctx.strokeStyle = `rgba(205,228,255,${d.alpha})`;
+      ctx.lineWidth = d.width;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - d.len * wind, y + d.len); ctx.stroke();
     }
-    ctx.stroke();
+    // splashes on the platforms, at changing places
+    ctx.strokeStyle = 'rgba(220,238,255,.6)';
+    ctx.lineWidth = 1.5;
+    for (const p of state.stage.platforms) {
+      for (let k = 0; k < Math.ceil(p.w / 140); k++) {
+        const seed = Math.floor(t / 9) * 7 + k * 31 + p.x;
+        const sx = p.x + ((seed * 9301 + 49297) % 233280) / 233280 * p.w;
+        const age = (t % 9) / 9;
+        ctx.globalAlpha = 1 - age;
+        ctx.beginPath(); ctx.ellipse(sx, p.y - 1, 3 + age * 9, 1 + age * 2.5, 0, Math.PI, 0); ctx.stroke();
+      }
+    }
     ctx.restore();
   }
 
@@ -535,7 +632,7 @@ export function createRenderer(canvas) {
     if (hz.id === 'wave') drawWave(rect, hz.dir, t);
     if (hz.id === 'crowd') drawCrowd(rect, hz.dir, t);
     if (hz.id === 'gulls') drawGulls(hz, t);
-    if (hz.id === 'rain') drawRain(t);
+    if (hz.id === 'rain') drawRain(t, state);
     if (hz.id === 'fireworks') drawRockets(hz, t);
   }
 

@@ -71,7 +71,7 @@ export const CONFIG = {
   ledge: { reach: 20, hangFrames: seconds(1.5), climbInset: 30 },
   // The stomp: Attack in the air without Up (D-137).
   stomp: { diveSpeed: 18, radius: 130, damage: 9, baseKb: 6, kbGrowth: 9, angleDeg: 45, recovery: 14, maxAir: 60 },
-  // The nine items (D-140). Spawning numbers are a proposal (D-141).
+  // The nine items (D-140) and how often they appear (D-141).
   items: {
     spawnMinS: 6,
     spawnMaxS: 10,

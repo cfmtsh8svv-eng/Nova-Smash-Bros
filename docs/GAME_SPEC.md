@@ -200,7 +200,7 @@ The campus roof carries the **Nova SBE logo**, redrawn from the official mark (s
 
 ### 7.3 Items (9)
 
-A new one appears on a random platform every **6 to 10 s**, at most **4** at once, and each disappears after **25 s** (these three numbers are a proposal the team has not confirmed yet, D-141; they are in `config.js`). The chance of each kind is weighted: **Lucky Rooster 4 %**, the other eight **12 %** each. The Espresso was removed.
+A new one appears on a random platform every **6 to 10 s**, at most **4** at once, and each disappears after **25 s** (D-141; the numbers are in `config.js`). The chance of each kind is weighted: **Lucky Rooster 4 %**, the other eight **12 %** each. The Espresso was removed.
 
 | Item | Kind | Effect |
 |---|---|---|

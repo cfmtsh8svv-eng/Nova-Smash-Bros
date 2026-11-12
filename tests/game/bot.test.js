@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createMatch, step } from '../../src/game/match.js';
-import { createBot, botInput, BOT_NAMES } from '../../src/game/bot.js';
+import { createBot, botInput, BOT_NAMES, BOT_LEVELS } from '../../src/game/bot.js';
 import { CONFIG } from '../../src/game/config.js';
 import { neutralInput } from '../../src/game/input.js';
 import { beginWarning, WARN_FRAMES } from '../../src/game/hazards.js';
@@ -196,4 +196,132 @@ test('tuning: a scripted simple human with a quarter-second reaction wins some m
     }
   }
   assert.ok(humanWins >= 3 && humanWins <= played - 2, `the simple human won ${humanWins} of ${played}`);
+});
+
+// ---- the levels (GAME_SPEC §5a, D-175, D-176): the same tests for Easy, Medium and Hard ----
+
+const LEVEL_TUNING_FIGHTERS = ['finance_bro', 'maastricht_blondie', 'bairro_chad', 'surfer_girl', 'wannabe_influencer', 'house_dj', 'lisboa_og', 'carcavelos_gang_member'];
+
+test('levels: easy, medium and hard in order, each with the keys of medium and the human limits', () => {
+  assert.deepEqual(BOT_LEVELS, ['easy', 'medium', 'hard']);
+  const keys = Object.keys(M).sort();
+  for (const level of BOT_LEVELS) {
+    const cfg = CONFIG.bots[level];
+    assert.deepEqual(Object.keys(cfg).sort(), keys, level);
+    for (const key of keys) assert.equal(typeof cfg[key], 'number', `${level}.${key}`);
+    assert.ok(cfg.reactionFrames >= 6, `${level}: reactionFrames ${cfg.reactionFrames}`);
+    assert.equal(cfg.pressHold, 2, level);
+    assert.equal(cfg.pressGap, 8, level);
+  }
+  // Easy reacts later and attacks less than Medium, Hard sooner and more.
+  assert.ok(CONFIG.bots.easy.reactionFrames > M.reactionFrames && M.reactionFrames > CONFIG.bots.hard.reactionFrames);
+  assert.ok(CONFIG.bots.easy.attackChance < M.attackChance && M.attackChance < CONFIG.bots.hard.attackChance);
+});
+
+test('levels: a bot takes the numbers of its level, an unknown level plays as medium', () => {
+  for (const level of BOT_LEVELS) {
+    const bot = createBot({ slot: 0, level, seed: 1 });
+    assert.equal(bot.level, level);
+    assert.equal(bot.cfg, CONFIG.bots[level]);
+  }
+  assert.equal(createBot({ slot: 0, level: 'god', seed: 1 }).cfg, M);
+  assert.equal(createBot({ slot: 0, seed: 1 }).cfg, M);
+});
+
+for (const level of BOT_LEVELS) {
+  const L = CONFIG.bots[level];
+
+  test(`${level}: alone on each stage, the bot does not fall off by itself in 60 s`, () => {
+    for (const stage of STAGE_IDS) {
+      for (const corner of ['left', 'right']) {
+        const state = fresh({ stage });
+        const ground = state.stage.platforms[0];
+        const foe = state.fighters[1];
+        const bot = createBot({ slot: 0, level, seed: 3 });
+        let falls = 0;
+        for (let i = 0; i < 60 * SECOND; i++) {
+          Object.assign(foe, { x: corner === 'left' ? ground.x + 12 : ground.x + ground.w - 12, y: ground.y, vx: 0, vy: 0, onGround: true, groundId: 0, invincible: 99 });
+          for (const e of step(state, { 0: botInput(bot, state) })) if (e.type === 'ko' && e.slot === 0) falls += 1;
+        }
+        assert.equal(falls, 0, `${level}, ${stage}, ${corner} corner`);
+      }
+    }
+  });
+
+  test(`${level}: recovery from beside the main ground and below its level, on each stage`, () => {
+    for (const stage of STAGE_IDS) {
+      for (const side of [-1, 1]) {
+        const state = fresh({ stage });
+        const ground = state.stage.platforms[0];
+        const me = state.fighters[0];
+        Object.assign(state.fighters[1], { x: 640 });
+        const x = side < 0 ? ground.x - 70 : ground.x + ground.w + 70;
+        Object.assign(me, { x, y: ground.y + 50, vx: 0, vy: 0, onGround: false, groundId: -1, jumpsLeft: 1, facing: -side });
+        const bot = createBot({ slot: 0, level, seed: 9 });
+        let back = false;
+        for (let i = 0; i < 4 * SECOND && me.state === 'alive'; i++) {
+          step(state, { 0: botInput(bot, state) });
+          if (me.onGround && me.x >= ground.x && me.x <= ground.x + ground.w) back = true;
+        }
+        assert.ok(back && me.state === 'alive' && me.stats.falls === 0, `${level}, ${stage}, ${side < 0 ? 'left' : 'right'}`);
+      }
+    }
+  });
+
+  const beatSeconds = level === 'easy' ? 60 : 30;
+  test(`${level}: the bot beats a standing opponent (1 life) within ${beatSeconds} s on each stage`, () => {
+    for (const stage of STAGE_IDS) {
+      const state = botMatch({ stage, level, fighters: ['bairro_chad', 'lisboa_og'], bots: [0], seed: 21, settings: { lives: 1 }, frames: beatSeconds * SECOND + 200 });
+      assert.ok(state.phase === 'finalKo' || state.phase === 'ended', `${level}, ${stage}`);
+      assert.equal(state.winner, 0, `${level}, ${stage}`);
+    }
+  });
+
+  const endMinutes = level === 'easy' ? 4 : 3;
+  test(`${level}: two bots, 1 life, items and hazards on, end the match within ${endMinutes} minutes on each stage`, () => {
+    for (const stage of STAGE_IDS) {
+      const state = botMatch({ stage, level, fighters: ['finance_bro', 'wannabe_influencer'], bots: [0, 1], seed: 8, settings: { lives: 1, items: true, hazards: true }, frames: endMinutes * 60 * SECOND });
+      assert.ok(state.phase === 'finalKo' || state.phase === 'ended', `${level}, ${stage}: still running after ${endMinutes} minutes`);
+    }
+  });
+
+  test(`${level}: the first move towards a target comes no sooner than ${L.reactionFrames} frames`, () => {
+    const state = fresh();
+    const [me, foe] = state.fighters;
+    Object.assign(me, { x: 640 });
+    Object.assign(foe, { x: 200 });
+    const bot = createBot({ slot: 0, level, seed: 4 });
+    for (let i = 0; i < 30; i++) {
+      Object.assign(foe, { x: 200, vx: 0 });
+      step(state, { 0: botInput(bot, state) });
+    }
+    let firstRight = -1;
+    for (let i = 0; i < 90; i++) {
+      Object.assign(foe, { x: 1100, vx: 0 });
+      const inp = botInput(bot, state);
+      if (inp.right && firstRight < 0) firstRight = i;
+      step(state, { 0: inp });
+    }
+    assert.ok(firstRight >= L.reactionFrames, `${level}: first move right after ${firstRight} frames`);
+    assert.ok(firstRight < L.reactionFrames + L.hesitateFrames + 30, `${level}: it does turn round`);
+  });
+}
+
+test('tuning (D-176): the simple human wins most against Easy, some against Medium, few against Hard, on the same seeds', () => {
+  const wins = {};
+  for (const level of BOT_LEVELS) {
+    wins[level] = 0;
+    for (const stage of STAGE_IDS) {
+      for (let s = 1; s <= 5; s++) {
+        const F = LEVEL_TUNING_FIGHTERS;
+        const state = botMatch({ stage, level, bots: [0], fighters: [F[s % 8], F[(s * 3 + 1) % 8]], seed: s * 13, settings: { lives: 2, items: true, hazards: true }, frames: 300 * SECOND, others: simpleHuman({ reaction: 15 }) });
+        if (state.winner === 1) wins[level] += 1;
+      }
+    }
+  }
+  const msg = `the simple human won ${wins.easy} (easy), ${wins.medium} (medium), ${wins.hard} (hard) of 15`;
+  assert.ok(wins.easy >= 11, msg);
+  assert.ok(wins.medium >= 3 && wins.medium <= 13, msg);
+  assert.ok(wins.hard >= 1 && wins.hard <= 8, msg);
+  assert.ok(wins.easy > wins.medium && wins.medium > wins.hard, msg);
 });

@@ -32,6 +32,13 @@ export function poseOf(f) {
   return 'idle';
 }
 
+// The line at the bottom of the big screen that says how to pause (D-134). It sits in the
+// strip under the main ground, so it never covers a platform, and it is semi-transparent.
+export const PAUSE_HINT = { text: 'Press P or Esc to pause', y: 704, alpha: 0.55 };
+
+// Shown during the countdown and the fight; hidden from the final KO on.
+export const pauseHint = (state) => Boolean(state) && (state.phase === 'countdown' || state.phase === 'fight');
+
 // Lives as hearts. Both numbers are kept between 0 and 3, whatever is passed in.
 export function hearts(lives, max) {
   const clamp = (v) => Math.max(0, Math.min(3, Math.floor(Number(v)) || 0));

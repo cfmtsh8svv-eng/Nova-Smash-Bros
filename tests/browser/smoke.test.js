@@ -394,9 +394,17 @@ test('host page, an iPhone and an Android phone: register, pick, ready, start, p
   const frozen = await host.evaluate(() => window.novaBrawl.state.frame);
   await host.waitForTimeout(400);
   assert.equal(await host.evaluate(() => window.novaBrawl.state.frame), frozen, 'no step is taken while paused');
+  assert.equal(await host.textContent('#pauseHelp'), 'Press P or Esc to resume. Phones cannot pause.');
   await host.click('#resume');
   await iphone.waitForFunction(() => document.getElementById('overlay').hidden);
   await host.waitForFunction((f) => window.novaBrawl.state.frame > f + 20, frozen);
+  // P works the same way as Esc, both ways.
+  await host.keyboard.press('KeyP');
+  await host.waitForSelector('#pause:not([hidden])');
+  await iphone.waitForFunction(() => document.getElementById('overlayTitle').textContent === 'Paused');
+  await host.keyboard.press('KeyP');
+  await host.waitForSelector('#pause', { state: 'hidden' });
+  await iphone.waitForFunction(() => document.getElementById('overlay').hidden);
 
   // --- nothing went wrong anywhere, from the first page load on. The only complaints allowed are the
   // browser noting the two answers the third phone was meant to get: "taken" (409) and "wrong PIN" (401).

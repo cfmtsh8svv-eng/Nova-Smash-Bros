@@ -88,7 +88,7 @@ The **leaderboard** ranks players by **points**. Each match gives placement poin
 | Stage choice | The host picks on the laptop: a specific stage, or **Vote**. With Vote, every phone votes; a tie is decided at random between the tied stages. |
 | Starting | Only the laptop starts the match, once at least 2 players are logged in and have picked a fighter. The host can **close the room** so nobody else joins, and start with 2 or 3 players. |
 | Leaving | If a player leaves or loses connection, the match **keeps running**. Their fighter stands idle, **can still be hit**, and they can rejoin at any time until the match ends. |
-| Pause | Only on the laptop |
+| Pause | Only on the laptop: **P** or **Esc** pauses and resumes. Phones cannot pause. |
 
 **Knockback**
 
@@ -131,6 +131,7 @@ The phone header shows the player's **name tag in their player colour**, damage 
 | **Above each fighter** | A pill in the player colour with the name and hearts, and under it a thin damage bar |
 | **Top right** | The hazard countdown (name, then 3, 2, 1) |
 | Centre | KO texts and the final-KO sequence only |
+| **Bottom centre** | A small, semi-transparent line `Press P or Esc to pause`, in the strip under the main ground so it never covers a platform. It shows during the countdown and the fight and is hidden from the final KO on. |
 
 Whether the special is ready is shown **only on the phone** (a ring on the Special button). The phone header shows name, damage % and hearts, with no points and no placement.
 

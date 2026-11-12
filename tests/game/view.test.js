@@ -90,3 +90,23 @@ test('the roster and the stages match the spec', () => {
     }
   }
 });
+
+test('pause hint: "Press P or Esc to pause" under the main ground during the countdown and the fight, not in the final KO', async () => {
+  const { PAUSE_HINT, pauseHint } = await import('../../src/game/view.js');
+  assert.equal(PAUSE_HINT.text, 'Press P or Esc to pause');
+  for (const stage of STAGES) {
+    const ground = stage.platforms.find((p) => p.solid);
+    assert.ok(PAUSE_HINT.y > ground.y + 60, `${stage.id}: below the standing line of the main ground`);
+    for (const p of stage.platforms) assert.ok(PAUSE_HINT.y > p.y + 20, `${stage.id}: covers no platform`);
+  }
+  assert.ok(PAUSE_HINT.y < 720 && PAUSE_HINT.alpha > 0 && PAUSE_HINT.alpha < 1, 'on screen, semi-transparent');
+  const state = fight();
+  assert.equal(pauseHint(state), true);
+  state.phase = 'countdown';
+  assert.equal(pauseHint(state), true);
+  for (const phase of ['finalKo', 'ended']) {
+    state.phase = phase;
+    assert.equal(pauseHint(state), false, phase);
+  }
+  assert.equal(pauseHint(null), false);
+});

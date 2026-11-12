@@ -5,7 +5,7 @@
 // items - fighters - things that fly - hazards in front - effects - name tags -
 // the HUD (player cards, hazard countdown, big texts).
 import { CONFIG, PLAYER_COLORS, SCREEN } from '/game/config.js';
-import { damageColor, hearts, poseOf } from '/game/view.js';
+import { damageColor, hearts, PAUSE_HINT, pauseHint, poseOf } from '/game/view.js';
 import { hazardRect } from '/game/hazards.js';
 import { getFighter } from '/game/fighters.js';
 import { duplicateColour, SPRITE } from '/shared/art/characters.js';
@@ -630,6 +630,23 @@ export function createRenderer(canvas) {
     }
   }
 
+  // Bottom centre, under the main ground: how to pause. Subtle, and gone in the final KO.
+  function drawPauseHint(state) {
+    if (!pauseHint(state)) return;
+    ctx.save();
+    ctx.globalAlpha = PAUSE_HINT.alpha;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `800 16px ${BODY}`;
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = INK;
+    ctx.strokeText(PAUSE_HINT.text, SCREEN.w / 2, PAUSE_HINT.y);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(PAUSE_HINT.text, SCREEN.w / 2, PAUSE_HINT.y);
+    ctx.restore();
+  }
+
   function drawBanners(fx) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -732,6 +749,7 @@ export function createRenderer(canvas) {
     if (state) {
       drawCards(state);
       drawHazardText(state, view);
+      drawPauseHint(state);
       drawBanners(fx);
     }
     if (fx && fx.flash > 0) {

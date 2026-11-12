@@ -165,6 +165,7 @@ The team agreed the changes in [`BUILD_PROMPT_ROUND2.md`](BUILD_PROMPT_ROUND2.md
 |---|---|---|---|---|---|---|
 | D-132 | Keyboard players | Removed completely: no keyboard guests in the lobby, no `guests` or `guestSlots` in `match_start`, every fighter belongs to a logged-in phone. `createMatch` still takes any list of players, so bots can be added later without touching the rules. A `match_start` that still carries `guests` or `guestSlots` is refused as a bad message. | Keeping them as a hidden developer option | Bots will replace them; fewer paths to test | Team | Decided |
 | D-133 | Phone controls | **Joystick only.** The D-pad, the `modeToggle` button and the stored mode (`nb_mode`) are removed; the floating joystick is the only control. | Keeping both modes (D-091) | Round 2 decision of the team; one mode is less to explain and to test | Team | Decided |
+| D-134 | Pause hint | During a match the big screen shows `Press P or Esc to pause` at the bottom centre (y 704, under the main ground), white at 55 % opacity, hidden from the final KO on. P and Esc both pause and resume; the pause screen says "Press P or Esc to resume". | Hint in a corner | Nobody knew how to pause; P is free now that keyboard players are gone | Team | Decided |
 
 ### Proposals made by Claude while writing the docs
 

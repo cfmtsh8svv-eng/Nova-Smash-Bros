@@ -75,7 +75,7 @@ There is no database. That was a team decision: a sheet is something everyone ca
 - **The rules:** knockback, the 200 % burnout, every blast zone, respawn and invincibility, lives, how a match ends, jumping, aiming, each of the eight specials inside and outside its range, each item, each hazard with its safe platform, the vote, and that slow motion never changes a result.
 - **The server:** every way a registration or login is refused, the lockout, tampered and expired tokens, who may start a match and submit a result, implausible results, malformed, oversized and unknown messages, reconnects, and what happens when the sheet is down.
 - **End to end:** a real server, one host and four controllers over real WebSockets play a whole match with the real rules; the result arrives in the store and on the leaderboard.
-- **In a real browser** (`npm run test:browser`): the host page plus an emulated iPhone and an emulated Android phone register, pick, ready up, start and play; the fighters on the big screen follow the phones and no page logs an error. A second test plays a whole evening (stage vote, a keyboard player, a hazard announcement, an elimination with the hazard vote, results, a second match, removing a player, logging out). A third cuts the host's connection at the worst moments (around Start, in mid-match, when the match ends).
+- **In a real browser** (`npm run test:browser`): the host page plus an emulated iPhone and an emulated Android phone register, pick, ready up, start and play; the fighters on the big screen follow the phones and no page logs an error. A second test plays a whole evening (stage vote, three phones, a hazard announcement, an elimination with the hazard vote, results, a second match, removing a player, logging out). A third cuts the host's connection at the worst moments (around Start, in mid-match, when the match ends).
 
 **Not covered:**
 
@@ -243,7 +243,7 @@ At the end of a match the host page sends the result. The server:
 4. Works out **achievements** from the player's totals (First Win, Hat-Trick, Heavy Hitter, Untouchable, Comeback, Globetrotter, Regular, Special Delivery).
 5. Puts everything into the queue for the sheet and answers the host page at once.
 
-Keyboard players have no account and get no points. A match with fewer than two logged-in players is a "practice match" and is not stored.
+Every fighter belongs to a logged-in phone (keyboard players were removed in round 2, D-132). If fewer than two of the players' accounts can be read when the result arrives (the sheet is down), the match is a "practice match" and is not stored; a player whose account could not be read gets no points.
 
 ### The store (`store/`, `data.js`, `apps-script/Code.gs`)
 
@@ -283,7 +283,6 @@ The script in the sheet (`Code.gs`) is the last guard before a cell is written. 
 | `game.js` | Runs one match: collects the inputs, calls the rules, turns events into effects, sound and phone messages |
 | `render.js` | Draws one picture of the match |
 | `fx.js` | Particles, damage numbers, screen shake, big texts |
-| `keyboard.js` | The two keyboard players |
 
 **The loop.** The browser calls our function before every screen refresh (usually 60 times a second). Each time: ask the clock how many rule steps are due, run them, then draw the current state. Drawing never changes the state. If the laptop is slow, fewer pictures are drawn but the rules still take the same steps, so the game does not slow down or speed up.
 

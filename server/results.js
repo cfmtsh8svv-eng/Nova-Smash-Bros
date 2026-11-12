@@ -31,7 +31,7 @@ const RESPAWN_S = 2;
 const MAX_DAMAGE_PER_SECOND = 80; // far above what one fighter can deal, even hitting three opponents // there is no time limit; this only stops absurd numbers
 
 // Check a result the host sent against what the server knows about the match.
-// match: { id, stage, lives, slots: [..], guests, startedAt }
+// match: { id, stage, lives, slots: [..], startedAt }
 // Returns { ok: true, players } with cleaned numbers, or { ok: false, reason }.
 export function checkResult(match, result, now) {
   const bad = (reason) => ({ ok: false, reason });
@@ -47,7 +47,7 @@ export function checkResult(match, result, now) {
   if (result.durationS > elapsedS - COUNTDOWN_S + 1.5) return bad('The match cannot have lasted longer than the time since it started.');
   if (result.durationS < RESPAWN_S * (match.lives - 1)) return bad('The match is too short for the lives that were lost.');
 
-  const n = match.slots.length + match.guests;
+  const n = match.slots.length;
   if (!Array.isArray(result.players) || result.players.length !== n) return bad('The player list does not match the players who started.');
   const seen = new Set();
   const players = [];
@@ -118,7 +118,8 @@ export function scoreResult(match, checked, roster, endedAt) {
   for (const p of checked.players) {
     const row = roster.get(p.slot);
     if (!row) {
-      lines.push({ slot: p.slot, guest: true, place: p.place, points: 0, achievements: [] });
+      // The account could not be read (the sheet is down): this player's numbers are not saved.
+      lines.push({ slot: p.slot, unsaved: true, place: p.place, points: 0, achievements: [] });
       continue;
     }
     const points = matchPoints(p.place, p.damageDealt);
@@ -142,9 +143,9 @@ export function scoreResult(match, checked, roster, endedAt) {
     mode: 'stock',
     lives: match.lives,
     duration_s: checked.durationS,
-    winner: winnerRow ? winnerRow.gamertag : '(keyboard player)',
+    winner: winnerRow ? winnerRow.gamertag : '(unknown)',
     players_json: JSON.stringify(checked.players.map((p) => ({
-      gamertag: roster.get(p.slot)?.gamertag || '(keyboard player)', fighter: p.fighterId, place: p.place, kos: p.kos, falls: p.falls,
+      gamertag: roster.get(p.slot)?.gamertag || '(unknown)', fighter: p.fighterId, place: p.place, kos: p.kos, falls: p.falls,
       damage_dealt: p.damageDealt, damage_taken: p.damageTaken,
     }))),
   };

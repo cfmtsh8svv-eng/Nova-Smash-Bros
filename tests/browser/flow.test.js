@@ -1,5 +1,5 @@
 // Browser test: one whole evening in fast forward.
-// Stage vote, a keyboard player, a hazard announcement, a knocked-out player voting
+// Stage vote, three phones, a hazard announcement, a knocked-out player voting
 // for the next hazard, the final KO, results with points on the big screen and on
 // the phones, a second match, removing a player and logging out.
 //
@@ -81,6 +81,9 @@ test('a whole match from the stage vote to the results, a second match, removing
   await troll.click('#authSubmit');
   await troll.waitForFunction(() => /removed you/.test(document.getElementById('noticeText').textContent));
   await troll.close();
+  const zoe = await phone('Pixel 7', 'third phone');
+  await join(zoe, code, 'Zoe');
+  await host.waitForFunction(() => window.novaBrawl.roster.length === 3);
 
   // --- swiping to a fighter shows it on the big screen before Ready
   assert.equal(await text(host, '.slot.p2 .fighter'), 'Choosing…');
@@ -100,25 +103,26 @@ test('a whole match from the stage vote to the results, a second match, removing
   }
   await host.waitForFunction(() => /2 votes/.test(document.querySelector('#stageButtons button[data-value="beach"] small').textContent));
 
-  // --- one life, one keyboard player, both phones ready
+  // --- one life, three phones ready (there are no keyboard players any more)
   await host.click('#lifeButtons button[data-value="1"]');
-  await host.click('#guestMore');
-  assert.match(await text(host, '.slot.p3 .tag'), /P3 · KEY 1/);
+  assert.equal(await host.locator('#guestMore').count(), 0, 'no keyboard players in the lobby');
+  assert.match(await text(host, '.slot.p3 .tag'), /P3 · Zoe/);
   await ana.click('#ready');
   await max.click('#ready');
+  await zoe.click('#ready');
   await host.waitForFunction(() => !document.getElementById('startMatch').disabled && /3 players are ready/.test(document.getElementById('startHint').textContent));
   await host.click('#startMatch');
   await fight(host);
   const setup = await host.evaluate(() => ({ stage: window.novaBrawl.state.stage.id, lives: window.novaBrawl.state.settings.lives, names: window.novaBrawl.state.fighters.map((f) => f.name) }));
-  assert.deepEqual(setup, { stage: 'beach', lives: 1, names: ['Ana', 'Max', 'KEY 1'] });
+  assert.deepEqual(setup, { stage: 'beach', lives: 1, names: ['Ana', 'Max', 'Zoe'] });
   await ana.waitForSelector('#pad:not([hidden])');
 
-  // --- the keyboard player moves with W A S D
+  // --- keys on the laptop move nobody: W A S D was a keyboard player's
   const startX = await host.evaluate(() => window.novaBrawl.state.fighters[2].x);
   await host.keyboard.down('KeyD');
   await host.waitForTimeout(350);
   await host.keyboard.up('KeyD');
-  assert.ok(await host.evaluate(() => window.novaBrawl.state.fighters[2].x) > startX + 30, 'KEY 1 walked right');
+  assert.equal(await host.evaluate(() => window.novaBrawl.state.fighters[2].x), startX, 'Zoe stands still');
 
   // --- a hazard is announced on the big screen and on every phone: name, then 3, 2, 1
   await host.evaluate(() => {
@@ -144,15 +148,15 @@ test('a whole match from the stage vote to the results, a second match, removing
   await host.waitForFunction(() => window.novaBrawl.state.hazardVotes[1] === 'wave');
   assert.equal(await ana.isHidden('#overlay'), true, 'Ana is still playing');
 
-  // --- the keyboard player goes too: final KO, then the results
+  // --- Zoe goes too: final KO, then the results
   await knockOut(host, 2);
   await host.waitForSelector('#results:not([hidden])', { timeout: 15_000 });
   assert.equal(await text(host, '#winnerLine'), 'Ana graduates with honours!');
   await host.waitForFunction(() => document.getElementById('resultNote').textContent === 'Result saved.');
   const podium = await host.evaluate(() => [...document.querySelectorAll('#podium .place')].map((p) => [p.querySelector('.tag').textContent, p.querySelector('.n').textContent, p.querySelector('.pts').textContent]));
-  assert.deepEqual(podium, [['P3 · KEY 1', '2nd', 'Keyboard player: no points'], ['P1 · Ana', '1st', '+100 points'], ['P2 · Max', '3rd', '+40 points']]);
+  assert.deepEqual(podium, [['P3 · Zoe', '2nd', '+60 points'], ['P1 · Ana', '1st', '+100 points'], ['P2 · Max', '3rd', '+40 points']]);
   assert.match(await host.evaluate(() => document.querySelector('#podium .place.first .ach').textContent), /First Win/);
-  assert.deepEqual(await host.evaluate(() => [...document.querySelectorAll('#resultBoard li')].map((li) => li.textContent)), ['1.Ana100 pts', '2.Max40 pts']);
+  assert.deepEqual(await host.evaluate(() => [...document.querySelectorAll('#resultBoard li')].map((li) => li.textContent)), ['1.Ana100 pts', '2.Zoe60 pts', '3.Max40 pts']);
   assert.equal(await host.locator('#results button').count(), 1, 'only "Back to the lobby": no rematch button');
 
   // --- each phone shows its own result
@@ -174,7 +178,9 @@ test('a whole match from the stage vote to the results, a second match, removing
     assert.equal(await text(p, '#ready'), 'Ready!');
   }
   await host.click('#stageButtons button[data-value="bairro"]');
-  await host.click('#guestLess');
+  await zoe.waitForSelector('#select:not([hidden])');
+  await zoe.click('#leave');
+  await host.waitForFunction(() => window.novaBrawl.roster.length === 2);
   await ana.click('#ready');
   await max.click('#ready');
   await host.waitForFunction(() => !document.getElementById('startMatch').disabled);

@@ -33,7 +33,7 @@ Then open **http://localhost:3000** on the laptop and click **Open a room**.
 
 - Without any configuration the server keeps accounts and scores in memory (they are gone when it stops). To use the Google Sheet, follow [`docs/SETUP_SHEETS.md`](docs/SETUP_SHEETS.md).
 - **Phones** must be able to reach the laptop. Either use the deployed URL, or put laptop and phones in the same Wi-Fi and open the page through the laptop's network address (for example `http://192.168.1.20:3000`) instead of `localhost`, so the QR code points to an address the phones can open.
-- **No phones at hand?** In the lobby add one or two **keyboard players**: `W A S D` + `F` attack, `G` jump, `H` special, and arrow keys + `I` attack, `O` jump, `P` special.
+- Every fighter is played from a phone; there are no keyboard players. Two browser tabs on a computer can stand in for phones while developing: open `/play` in each.
 
 ## Run the tests
 

@@ -447,9 +447,7 @@ const NEW_HANDLERS = {
     let index = room.slots.findIndex((s) => s && s.lower === lower);
     if (index < 0) {
       if (room.closed) return this.fail(conn, 'room_closed');
-      // During a match the slots of keyboard players are taken too (the host told us which).
-      const reserved = room.match ? room.match.guestSlots : [];
-      index = room.slots.findIndex((s, i) => !s && !reserved.includes(i));
+      index = room.slots.findIndex((s) => !s);
       if (index < 0) return this.fail(conn, 'room_full');
     }
     // One phone per account: an older connection of this gamertag is signed out.
@@ -587,24 +585,20 @@ const HOST_HANDLERS = {
     const room = conn.room;
     const refuse = (why) => this.fail(conn, 'bad_start', { msg: why });
     if (room.phase !== 'lobby') return refuse('A match is already running.');
-    if (!STAGE_IDS.includes(msg.stage) || !isInt(msg.lives, 1, 3) || !isInt(msg.guests, 0, LIMITS.maxGuests)) return this.strike(conn);
+    // Keyboard players were removed (D-132): a start that still lists any is refused.
+    if (msg.guests !== undefined || msg.guestSlots !== undefined) return this.strike(conn);
+    if (!STAGE_IDS.includes(msg.stage) || !isInt(msg.lives, 1, 3)) return this.strike(conn);
     if (!Array.isArray(msg.slots) || msg.slots.length > 4 || new Set(msg.slots).size !== msg.slots.length || !msg.slots.every((s) => isInt(s, 0, 3))) return this.strike(conn);
     for (const index of msg.slots) {
       const slot = room.slots[index];
       if (!slot) return refuse('A player in the start list is not in the room.');
       if (!slot.fighter || !slot.ready) return refuse(`${slot.gamertag} has not picked a fighter yet.`);
     }
-    const total = msg.slots.length + msg.guests;
+    const total = msg.slots.length;
     if (total < 2) return refuse('At least 2 players are needed.');
     if (total > LIMITS.playersPerRoom) return refuse('At most 4 players can fight.');
-    // Optional: which slots the keyboard players sit in, so no phone is given one of them mid-match.
-    const guestSlots = msg.guestSlots === undefined ? [] : msg.guestSlots;
-    if (!Array.isArray(guestSlots) || guestSlots.length > msg.guests || new Set(guestSlots).size !== guestSlots.length
-      || !guestSlots.every((s) => isInt(s, 0, 3))) return this.strike(conn);
-    // A phone joined in the very moment Start was pressed and took a keyboard player's slot.
-    if (guestSlots.some((s) => room.slots[s])) return refuse('A player joined just now. Press Start again.');
     room.lastResult = null;
-    room.match = { id: randomUUID(), stage: msg.stage, lives: msg.lives, slots: [...msg.slots], guests: msg.guests, guestSlots: [...guestSlots], startedAt: this.now(), players: new Map(msg.slots.map((i) => [i, room.slots[i].lower])) };
+    room.match = { id: randomUUID(), stage: msg.stage, lives: msg.lives, slots: [...msg.slots], startedAt: this.now(), players: new Map(msg.slots.map((i) => [i, room.slots[i].lower])) };
     room.phase = 'match';
     room.lastActive = this.now();
     this.send(conn, { t: 'match_started', matchId: room.match.id });

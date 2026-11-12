@@ -6,7 +6,7 @@ import { emptyStats } from '../../server/store/memory.js';
 import { sampleResult } from '../helpers/server.js';
 
 const NOW = 1_800_000_000_000;
-const match = (over = {}) => ({ id: '11111111-2222-3333-4444-555555555555', stage: 'campus', lives: 3, slots: [0, 1], guests: 0, startedAt: NOW - 120_000, ...over });
+const match = (over = {}) => ({ id: '11111111-2222-3333-4444-555555555555', stage: 'campus', lives: 3, slots: [0, 1], startedAt: NOW - 120_000, ...over });
 const check = (result, m = match()) => checkResult(m, result, NOW);
 const change = (fn, opts) => {
   const r = sampleResult(opts);
@@ -89,11 +89,12 @@ test('huge damage in a few seconds is refused', () => {
   assert.match(res.reason, /Too much damage/);
 });
 
-test('keyboard guests are part of the player count but need not be in the room', () => {
-  const m = match({ slots: [0], guests: 1 });
+test('the players of a result are exactly the phones that started the match (no keyboard players)', () => {
+  const m = match({ slots: [0, 2] });
   assert.equal(check(sampleResult({ slots: [0, 2] }), m).ok, true);
-  assert.equal(check(sampleResult({ slots: [1, 2] }), m).ok, false, 'the logged-in player must be in it');
-  assert.equal(check(sampleResult({ slots: [0, 1, 2] }), m).ok, false, 'one guest too many');
+  assert.equal(check(sampleResult({ slots: [0, 1] }), m).ok, false, 'a slot that did not start');
+  assert.equal(check(sampleResult({ slots: [0, 1, 2] }), m).ok, false, 'one player too many');
+  assert.equal(check(sampleResult({ slots: [0, 2] }), match({ slots: [0, 2], guests: 1 })).ok, true, 'an old "guests" field changes nothing');
 });
 
 // ---- achievements ----
@@ -152,15 +153,15 @@ test('there are eight achievements and none has an effect on the result check', 
   assert.deepEqual(ACHIEVEMENT_IDS, ['first_win', 'hat_trick', 'heavy_hitter', 'untouchable', 'comeback', 'globetrotter', 'regular', 'special_delivery']);
 });
 
-test('scoring: places and damage become points, guests get none', () => {
-  const m = match({ slots: [0, 1], guests: 1 });
+test('scoring: places and damage become points; a player whose account could not be read gets none', () => {
+  const m = match({ slots: [0, 1, 2] });
   const checked = check(sampleResult({ slots: [0, 1, 2] }), m);
   assert.equal(checked.ok, true, checked.reason);
   const roster = new Map([[0, { gamertag: 'Ana', gamertag_lower: 'ana', ...emptyStats() }], [1, { gamertag: 'Max', gamertag_lower: 'max', ...emptyStats(), points: 500 }]]);
   const { matchRow, updates, lines } = scoreResult(m, checked, roster, NOW);
   assert.deepEqual(lines.map((l) => [l.slot, l.place, l.points]), [[0, 1, 130], [1, 2, 64], [2, 3, 0]]);
   assert.equal(lines[1].totalPoints, 564);
-  assert.equal(lines[2].guest, true);
+  assert.equal(lines[2].unsaved, true);
   assert.deepEqual(updates.map((u) => u.gamertag_lower), ['ana', 'max']);
   assert.deepEqual(updates[0].deltas, { matches: 1, wins: 1, points: 130, kos: 6, falls: 0, damage_dealt: 300, damage_taken: 80 });
   assert.ok(updates[0].achievements.includes('first_win') && updates[0].achievements.includes('untouchable'));

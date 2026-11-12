@@ -8,7 +8,6 @@ import { createAudio } from '/shared/audio.js';
 import { createLink, storage } from '/shared/net.js';
 import { paintSprite } from '/shared/art/sprites.js';
 import { duplicateColour } from '/shared/art/characters.js';
-import { KEYMAPS } from './keyboard.js';
 import { createGame } from './game.js';
 
 const $ = (id) => document.getElementById(id);
@@ -28,7 +27,6 @@ const lobby = {
   lives: 3,
   items: true,
   hazards: true,
-  guests: [], // keyboard players: [{ keys: 0 | 1, fighter: index into FIGHTERS }]
   stageVotes: new Map(), // slot -> stage id
   seen: new Set(), // gamertags already shown, to play the entrance only once
 };
@@ -167,8 +165,6 @@ const MESSAGES = {
       if (old && old.connected !== p.connected) game.setConnected(p.slot);
     }
     for (const slot of lobby.stageVotes.keys()) if (!msg.players.some((p) => p.slot === slot)) lobby.stageVotes.delete(slot);
-    // Keyboard players only fit into the slots that are left (decided in the lobby, not mid-match).
-    while (!match && lobby.guests.length && lobby.guests.length + msg.players.length > 4) lobby.guests.pop();
     renderLobby();
   },
 
@@ -235,24 +231,13 @@ const MESSAGES = {
 
 // ---- lobby ----
 
-function freeSlots() {
-  const taken = new Set(lobby.roster.map((p) => p.slot));
-  return [0, 1, 2, 3].filter((s) => !taken.has(s));
-}
-
-// Who would play if the match started now.
+// Who would play if the match started now: every phone with a fighter that tapped Ready.
 function lineup() {
-  const phones = lobby.roster.filter((p) => p.fighter && p.ready).map((p) => ({ slot: p.slot, name: p.gamertag, fighterId: p.fighter }));
-  const free = freeSlots();
-  const keys = lobby.guests.slice(0, free.length).map((g, i) => ({ slot: free[i], name: KEYMAPS[g.keys].name, fighterId: FIGHTERS[g.fighter].id, keys: g.keys }));
-  return { phones, keys, all: [...phones, ...keys] };
+  return lobby.roster.filter((p) => p.fighter && p.ready).map((p) => ({ slot: p.slot, name: p.gamertag, fighterId: p.fighter }));
 }
 
 function renderSlot(index) {
   const player = lobby.roster.find((p) => p.slot === index);
-  const free = freeSlots();
-  const guestIndex = free.indexOf(index);
-  const guest = !player && guestIndex >= 0 ? lobby.guests[guestIndex] : null;
   const card = el('div', `slot p${index + 1}`);
   card.style.setProperty('--p', PLAYER_COLORS[index]);
   const picture = el('canvas');
@@ -286,24 +271,6 @@ function renderSlot(index) {
       card.classList.add('joined');
       player.fresh = false;
     }
-  } else if (guest) {
-    const fighter = FIGHTERS[guest.fighter];
-    info.append(el('span', 'tag', `P${index + 1} · ${KEYMAPS[guest.keys].name}`));
-    paintSprite(picture, fighter.id, { mainColour: guestIsDuplicate(index, fighter.id) ? duplicateColour(fighter.id, PLAYER_COLORS[index]) : null }).catch(() => {});
-    info.append(el('div', 'fighter', fighter.name));
-    const pickers = el('div', 'pickers');
-    for (const [label, step] of [['◀', -1], ['▶', 1]]) {
-      const button = el('button', '', label);
-      button.setAttribute('aria-label', step < 0 ? 'Previous fighter' : 'Next fighter');
-      button.addEventListener('click', () => {
-        guest.fighter = (guest.fighter + step + FIGHTERS.length) % FIGHTERS.length;
-        audio.play('click');
-        renderLobby();
-      });
-      pickers.append(button);
-    }
-    info.append(pickers);
-    info.append(el('div', 'state', KEYMAPS[guest.keys].hint));
   } else {
     card.classList.add('empty');
     info.append(el('span', 'tag', `P${index + 1}`));
@@ -316,24 +283,16 @@ function renderSlot(index) {
 function isDuplicate(player) {
   return lobby.roster.some((p) => p.slot < player.slot && p.fighter === player.fighter);
 }
-function guestIsDuplicate(slot, fighterId) {
-  const { all } = lineup();
-  return all.some((p) => p.slot < slot && p.fighterId === fighterId) || lobby.roster.some((p) => p.slot < slot && p.fighter === fighterId);
-}
-
 function renderLobby() {
   const slots = $('slots');
   slots.replaceChildren(...[0, 1, 2, 3].map(renderSlot));
 
-  const { phones, all } = lineup();
-  const waiting = lobby.roster.length - phones.length;
+  const all = lineup();
+  const waiting = lobby.roster.length - all.length;
   $('startMatch').disabled = all.length < 2;
   $('startHint').textContent = all.length < 2
     ? (lobby.roster.length ? 'At least 2 players need to pick a fighter and tap Ready.' : 'Waiting for players…')
     : `${all.length} players are ready.${waiting > 0 ? ` ${waiting} still choosing will sit this one out.` : ''}`;
-  $('guestCount').textContent = String(lobby.guests.length);
-  $('guestLess').disabled = lobby.guests.length === 0;
-  $('guestMore').disabled = lobby.guests.length >= Math.min(2, freeSlots().length);
 
   const counts = new Map(STAGE_IDS.map((id) => [id, 0]));
   for (const id of lobby.stageVotes.values()) counts.set(id, counts.get(id) + 1);
@@ -373,14 +332,6 @@ function buildLobbyControls() {
   $('toggleItems').addEventListener('click', () => { lobby.items = !lobby.items; audio.play('click'); renderLobby(); });
   $('toggleHazards').addEventListener('click', () => { lobby.hazards = !lobby.hazards; audio.play('click'); renderLobby(); });
   $('toggleRoom').addEventListener('click', () => { audio.play('click'); link.send({ t: 'room_set', closed: !lobby.closed }); });
-  $('guestMore').addEventListener('click', () => {
-    if (lobby.guests.length >= Math.min(2, freeSlots().length)) return;
-    const keys = lobby.guests.some((g) => g.keys === 0) ? 1 : 0;
-    lobby.guests.push({ keys, fighter: Math.floor(Math.random() * FIGHTERS.length) });
-    audio.play('join');
-    renderLobby();
-  });
-  $('guestLess').addEventListener('click', () => { lobby.guests.pop(); audio.play('click'); renderLobby(); });
   $('volMusic').addEventListener('input', (e) => audio.setVolume('music', e.target.value / 100));
   $('volEffects').addEventListener('input', (e) => { audio.setVolume('effects', e.target.value / 100); });
   $('volEffects').addEventListener('change', () => audio.play('hit'));
@@ -419,13 +370,13 @@ function fillBoard(list, players, stale = false) {
 let pendingStart = null;
 
 function requestStart() {
-  const { phones, keys, all } = lineup();
+  const all = lineup();
   if (all.length < 2 || pendingStart) return;
   // With "Vote" the phones decide; a tie (or no vote at all) is settled by chance.
   const stageId = lobby.stage === 'vote' ? tallyVote(STAGE_IDS, [...lobby.stageVotes.values()], Math.random) : lobby.stage;
   pendingStart = { stageId, players: all, settings: { lives: lobby.lives, items: lobby.items, hazards: lobby.hazards } };
   audio.unlock();
-  const sent = link.send({ t: 'match_start', stage: stageId, lives: lobby.lives, slots: phones.map((p) => p.slot), guests: keys.length, guestSlots: keys.map((k) => k.slot) });
+  const sent = link.send({ t: 'match_start', stage: stageId, lives: lobby.lives, slots: all.map((p) => p.slot) });
   if (!sent) {
     pendingStart = null;
     toast('No connection to the server right now. Try again in a moment.');
@@ -446,7 +397,7 @@ function matchPhase(paused = false) {
   const stage = STAGES.find((s) => s.id === match.stageId);
   phase({
     name: 'match', stage: stage.id, stageName: stage.name, paused, lives: match.settings.lives,
-    slots: match.players.filter((p) => !Number.isInteger(p.keys)).map((p) => p.slot),
+    slots: match.players.map((p) => p.slot),
     // With hazards switched off there is nothing to vote for.
     hazards: match.settings.hazards ? stage.hazards.map((id) => ({ id, name: HAZARDS[id].short })) : [],
   });
@@ -480,9 +431,7 @@ function quitMatch() {
 }
 
 window.addEventListener('keydown', (event) => {
-  // P pauses too, unless the second keyboard player is in this match: then P is their special.
-  const pIsTaken = Boolean(match && match.players.some((p) => p.keys === 1));
-  if (event.code === 'Escape' || (event.code === 'KeyP' && !pIsTaken)) {
+  if (event.code === 'Escape' || event.code === 'KeyP') {
     if (screen === 'match') setPaused(true);
     else if (screen === 'pause') setPaused(false);
   }
@@ -550,7 +499,6 @@ function submitResult() {
 function sendResultPhases(result, saved) {
   const winner = result.players.find((p) => p.place === 1);
   for (const p of result.players) {
-    if (match.players.find((m) => m.slot === p.slot && Number.isInteger(m.keys))) continue;
     // Only to the phone of the player who played: somebody new may have taken that slot since.
     const now = lobby.roster.find((r) => r.slot === p.slot);
     if (!now || now.gamertag !== p.name) continue;
@@ -570,7 +518,7 @@ function renderResultExtras(saved) {
   for (const line of saved.players) {
     const box = $('podium').querySelector(`[data-slot="${line.slot}"]`);
     if (!box) continue;
-    box.querySelector('.pts').textContent = line.guest ? 'Keyboard player: no points' : `+${line.points} points`;
+    box.querySelector('.pts').textContent = line.unsaved ? 'Not saved: no points' : `+${line.points} points`;
     box.querySelector('.ach').textContent = line.achievements.length ? `New: ${line.achievements.map((a) => a.name).join(', ')}` : '';
   }
   fillBoard($('resultBoard'), saved.leaderboard, saved.stale);

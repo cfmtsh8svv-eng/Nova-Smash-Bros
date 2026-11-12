@@ -11,7 +11,7 @@ async function startedMatch(s, { lives = 3, stage = 'campus' } = {}) {
   const h = await s.host();
   const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
   const b = await s.player(h, 'Max', { fighter: 'house_dj' });
-  h.send({ t: 'match_start', stage, lives, slots: [a.slot, b.slot], guests: 0 });
+  h.send({ t: 'match_start', stage, lives, slots: [a.slot, b.slot] });
   const { matchId } = await h.next('match_started');
   await h.next('roster');
   return { h, a, b, matchId };
@@ -103,7 +103,7 @@ test('a player cannot start a match, submit a result, close the room or talk to 
   const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
   await s.player(h, 'Max', { fighter: 'house_dj' });
   const tries = [
-    { t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 },
+    { t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] },
     { t: 'match_result', matchId: 'x', result: sampleResult() },
     { t: 'match_abort', matchId: 'x' },
     { t: 'room_set', closed: true },
@@ -129,7 +129,7 @@ test('a socket that has not joined anything cannot send game messages', async (t
   const s = await startServer(t);
   const h = await s.host();
   const stranger = await s.open();
-  for (const msg of [{ t: 'input', m: 1, q: 1 }, { t: 'pick', fighter: 'house_dj', ready: true }, { t: 'match_start', stage: 'campus', lives: 3, slots: [], guests: 2 }, { t: 'to', slot: 'all', msg: { t: 'phase', name: 'match' } }]) {
+  for (const msg of [{ t: 'input', m: 1, q: 1 }, { t: 'pick', fighter: 'house_dj', ready: true }, { t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] }, { t: 'to', slot: 'all', msg: { t: 'phase', name: 'match' } }]) {
     stranger.send(msg);
     assert.equal((await stranger.next('error')).code, 'not_joined');
   }
@@ -144,7 +144,7 @@ test('a host cannot touch another host\'s room', async (t) => {
   const a = await s.player(h1, 'Ana', { fighter: 'finance_bro' });
   const b = await s.player(h1, 'Max', { fighter: 'house_dj' });
   // h2 has no players: starting with h1's slots fails, and nothing reaches h1's phones.
-  h2.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+  h2.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] });
   assert.equal((await h2.next('error')).code, 'bad_start');
   h2.send({ t: 'to', slot: 'all', msg: { t: 'phase', name: 'lobby' } });
   await h2.settle();
@@ -173,7 +173,7 @@ test('starting is refused with too few players, unready players or bad settings'
   const h = await s.host();
   const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
   const b = await s.player(h, 'Max'); // has not picked
-  const start = (over) => h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [a.slot, b.slot], guests: 0, ...over });
+  const start = (over) => h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [a.slot, b.slot], ...over });
 
   start({});
   let err = await h.next('error');
@@ -186,26 +186,32 @@ test('starting is refused with too few players, unready players or bad settings'
   start({ slots: [a.slot, 3] });
   assert.match((await h.next('error')).msg, /not in the room/);
 
-  for (const over of [{ stage: 'moon' }, { lives: 0 }, { lives: 4 }, { lives: '3' }, { guests: 3 }, { guests: -1 }, { slots: 'all' }, { slots: [0, 0] }, { slots: [0, 1, 2, 3, 0] }, { slots: [0, 9] }]) {
+  for (const over of [{ stage: 'moon' }, { lives: 0 }, { lives: 4 }, { lives: '3' }, { guests: 1 }, { guests: 0 }, { guestSlots: [] }, { slots: 'all' }, { slots: [0, 0] }, { slots: [0, 1, 2, 3, 0] }, { slots: [0, 9] }]) {
     start(over);
     assert.equal((await h.next('error')).code, 'bad_message', JSON.stringify(over));
   }
   assert.equal(s.app.rooms.rooms.get(h.code).phase, 'lobby');
 });
 
-test('a match can start with 2 or 3 of the players in the room, and with keyboard guests', async (t) => {
+test('a match can start with 2 or 3 of the players in the room; there are no keyboard players', async (t) => {
   const s = await startServer(t);
   const h = await s.host();
   const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
+  const b = await s.player(h, 'Ben', { fighter: 'house_dj' });
   await s.player(h, 'Max'); // still choosing: left out
+  // Keyboard players were removed (D-132): one phone plus a "guest" is not a match.
   h.send({ t: 'match_start', stage: 'beach', lives: 2, slots: [a.slot], guests: 1 });
+  assert.equal((await h.next('error')).code, 'bad_message');
+  h.send({ t: 'match_start', stage: 'beach', lives: 2, slots: [a.slot] });
+  assert.match((await h.next('error')).msg, /At least 2 players/);
+  h.send({ t: 'match_start', stage: 'beach', lives: 2, slots: [a.slot, b.slot] });
   assert.ok((await h.next('match_started')).matchId);
 });
 
 test('a second match cannot be started while one is running, and picks are frozen', async (t) => {
   const s = await startServer(t);
   const { h, a } = await startedMatch(s);
-  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] });
   assert.match((await h.next('error')).msg, /already running/);
   a.send({ t: 'pick', fighter: 'surfer_girl', ready: true });
   assert.match((await a.next('error')).msg, /after this match/);
@@ -255,7 +261,7 @@ test('a result for a match id that was never started is refused', async (t) => {
   h.send({ t: 'match_result', matchId: '11111111-2222-3333-4444-555555555555', result: sampleResult() });
   assert.equal((await h.next('error')).code, 'no_match');
   const { matchId } = await (async () => {
-    h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+    h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] });
     return h.next('match_started');
   })();
   for (const wrong of ['other', null, 5, matchId + 'x']) {
@@ -296,12 +302,17 @@ test('an implausible result is refused and nothing is stored', async (t) => {
   assert.equal((await h.next('result_saved')).stored, true);
 });
 
-test('a match with fewer than two logged-in players gives no points', async (t) => {
+test('a match with fewer than two players whose accounts can be read gives no points', async (t) => {
   const s = await startServer(t);
   const h = await s.host();
   const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
-  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [a.slot], guests: 1 });
+  await s.player(h, 'Max', { fighter: 'house_dj' });
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] });
   const { matchId } = await h.next('match_started');
+  // Max's account cannot be read when the result comes in (the sheet is down for him).
+  s.app.rooms.data.players.delete('max');
+  const getPlayer = s.store.getPlayer.bind(s.store);
+  s.store.getPlayer = async (lower) => (lower === 'max' ? Promise.reject(new Error('down')) : getPlayer(lower));
   s.clock.now += 90_000;
   h.send({ t: 'match_result', matchId, result: sampleResult({ slots: [0, 1] }) });
   const saved = await h.next('result_saved');
@@ -335,7 +346,7 @@ test('inputs travel from a phone to the host with the sender\'s slot; only durin
   await b.settle();
   await h.settle();
   assert.equal(h.inbox.filter((m) => m.t === 'input').length, 0, 'no inputs in the lobby');
-  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] });
   await h.next('match_started');
   b.send({ t: 'input', m: BIT.right | BIT.attack, q: 2, slot: 0 }); // a phone cannot pretend to be another slot
   assert.deepEqual(await h.next('input'), { t: 'input', slot: 1, m: BIT.right | BIT.attack, q: 2 });

@@ -59,7 +59,7 @@ test('with the store down a result is queued, the players see their points, and 
   const h = await s.host();
   const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
   const b = await s.player(h, 'Max', { fighter: 'house_dj' });
-  h.send({ t: 'match_start', stage: 'beach', lives: 3, slots: [a.slot, b.slot], guests: 0 });
+  h.send({ t: 'match_start', stage: 'beach', lives: 3, slots: [a.slot, b.slot] });
   const { matchId } = await h.next('match_started');
   s.clock.now += 90_000;
   s.store.failing = true;
@@ -79,7 +79,7 @@ test('with the store down a result is queued, the players see their points, and 
     p.send({ t: 'pick', fighter: 'finance_bro', ready: true });
     await h.next('roster', { match: (r) => r.players[p.slot].ready });
   }
-  h.send({ t: 'match_start', stage: 'bairro', lives: 1, slots: [0, 1], guests: 0 });
+  h.send({ t: 'match_start', stage: 'bairro', lives: 1, slots: [0, 1] });
   const second = await h.next('match_started');
   s.clock.now += 90_000;
   h.send({ t: 'match_result', matchId: second.matchId, result: sampleResult({ stage: 'bairro', lives: 1 }) });

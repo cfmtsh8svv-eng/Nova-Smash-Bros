@@ -1,8 +1,8 @@
-# NOVA Brawl: Game Spec v1.0
+# NOVA Brawl: Game Spec v2.0
 
-**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards). Where `CONCEPT.md` or `SPECS.md` say something different, this file wins. Brand voice, signature lines and humour rules in `CONCEPT.md` §3 still apply.
+**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards) and the round 2 changes of 2026-11-12 (D-132 onwards). Where `CONCEPT.md` or `SPECS.md` say something different, this file wins. Brand voice, signature lines and humour rules in `CONCEPT.md` §3 still apply.
 
-Sound: music per stage and effects are synthesised in the browser, with separate volume controls on the host. There are no bots.
+Sound: music per stage and effects are synthesised in the browser, with separate volume controls on the host. There are no bots and no keyboard players: every fighter is played from a phone (D-132). The rules still accept players that do not come from a phone, so bots can be added later.
 
 Final art reference: [`design/final/`](../design/final/) (`reference.html`, `characters.js`, `stages.js`).
 
@@ -223,7 +223,7 @@ Every error is shown in plain words next to where it happened ("That gamertag is
 
 | Criterion | Coverage |
 |---|---|
-| It works | Deployed, health check, reconnects, every invalid input handled, sheet outage handled, keyboard fallback for two players on the host |
+| It works | Deployed, health check, reconnects, every invalid input handled, sheet outage handled |
 | UI and UX | One-scan join, auto-login, clear errors, hazard warnings, phone feedback, rotate hint |
 | Scope | Real-time multiplayer over the network, phones as controllers, accounts, leaderboard, achievements, 8 fighters, 3 stages, hazards, items |
 | Verification | Unit tests for rules, combat, specials, items, hazards; rejected actions and edge cases; server and protocol tests; one browser smoke test; CI on `main` |

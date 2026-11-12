@@ -11,7 +11,6 @@ import { loadAllPoses, loadStage } from '/shared/art/sprites.js';
 import { duplicateColour } from '/shared/art/characters.js';
 import { createRenderer } from './render.js';
 import { createFx } from './fx.js';
-import { createKeyboard } from './keyboard.js';
 
 const STALE_MS = 600; // a phone that sent nothing for this long (six missed heartbeats) is treated as "let go of everything"
 const HAZARD_SOUND = { train: 'train', wave: 'wave', gulls: 'gulls', crowd: 'crowd', drinks: 'drinks', wifi: 'wifi' };
@@ -19,14 +18,12 @@ const HAZARD_SOUND = { train: 'train', wave: 'wave', gulls: 'gulls', crowd: 'cro
 export function createGame({ canvas, audio, sendTo, onEnd }) {
   const renderer = createRenderer(canvas);
   const fx = createFx();
-  const keyboard = createKeyboard();
   const view = { camera: { x: 640, y: 360, zoom: 1 }, fx, time: 0, countAt: 0 };
   let cameraGoal = { x: 640, y: 360, zoom: 1 };
   let loop = null;
   let state = null;
   let previewStage = 'campus';
   let phones = new Map(); // slot -> { buffer, lastSeen }
-  let guests = new Map(); // slot -> keyboard index
   let lastStatus = new Map();
   let lastTime = null;
   let lastPlaces = null; // where the fighters were one step ago (only kept during the slow motion)
@@ -41,7 +38,6 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
       if (now - phone.lastSeen > STALE_MS) phone.buffer.letGo();
       inputs[slot] = phone.buffer.consume();
     }
-    for (const [slot, index] of guests) inputs[slot] = keyboard.read(index);
     return inputs;
   }
 
@@ -216,7 +212,7 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
 
   // ---- control from the lobby ----
 
-  // players: [{ slot, name, fighterId, keys? }] where keys is 0 or 1 for a keyboard player.
+  // players: [{ slot, name, fighterId }], one per phone.
   async function start({ stageId, players, settings }) {
     stop();
     previewStage = stageId;
@@ -229,18 +225,13 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
       ...next.fighters.map((f) => loadAllPoses(f.fighterId, f.altColor ? duplicateColour(f.fighterId, PLAYER_COLORS[f.slot]) : null).catch(() => {})),
     ]);
     phones = new Map();
-    guests = new Map();
-    for (const p of ordered) {
-      if (Number.isInteger(p.keys)) guests.set(p.slot, p.keys);
-      else phones.set(p.slot, { buffer: new InputBuffer(), lastSeen: performance.now() });
-    }
+    for (const p of ordered) phones.set(p.slot, { buffer: new InputBuffer(), lastSeen: performance.now() });
     lastStatus = new Map();
     fx.clear();
     view.camera = { x: 640, y: 360, zoom: 1 };
     cameraGoal = { x: 640, y: 360, zoom: 1 };
     state = next;
     loop = createLoop({ state, getInputs, onEvent });
-    keyboard.setEnabled(guests.size > 0);
     audio.setMusic(stageId);
     lastTime = null;
   }
@@ -249,7 +240,6 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     clearTimeout(endTimer);
     loop = null;
     state = null;
-    keyboard.setEnabled(false);
     fx.clear();
     cameraGoal = { x: 640, y: 360, zoom: 1 };
   }

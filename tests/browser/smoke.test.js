@@ -41,10 +41,31 @@ test('host page, an iPhone and an Android phone: register, pick, ready, start, p
   const landscape = (page) => { const v = page.viewportSize(); return page.setViewportSize({ width: Math.max(v.width, v.height), height: Math.min(v.width, v.height) }); };
   const portrait = (page) => { const v = page.viewportSize(); return page.setViewportSize({ width: Math.min(v.width, v.height), height: Math.max(v.width, v.height) }); };
 
-  // A finger on a pad button. First make sure a finger could really reach it: the
-  // button must be the topmost element at its own centre.
+  // A finger on the pad. Directions are a thumb on the joystick (the only control, D-133):
+  // it lands in the middle of the joystick zone and is pushed 50 px that way.
+  // Attack, Jump and Special are buttons. First make sure a finger could really reach
+  // it: the button (or the joystick zone) must be the topmost element at that point.
   let nextPointer = 1;
+  const PUSH = { left: [-50, 0], right: [50, 0], up: [0, -50], down: [0, 50] };
   const finger = async (page, button) => {
+    if (PUSH[button]) {
+      const zone = await page.locator('#stickZone').boundingBox();
+      const at = { x: zone.x + zone.width / 2, y: zone.y + zone.height / 2 };
+      const reachable = await page.evaluate(([x, y]) => {
+        const el = document.elementFromPoint(x, y);
+        return Boolean(el && el.closest('#stickZone'));
+      }, [at.x, at.y]);
+      assert.ok(reachable, 'the joystick can be touched');
+      const event = { pointerId: nextPointer++, pointerType: 'touch', isPrimary: true, bubbles: true, clientX: at.x, clientY: at.y };
+      const pushed = { ...event, clientX: at.x + PUSH[button][0], clientY: at.y + PUSH[button][1] };
+      return {
+        down: async () => {
+          await page.dispatchEvent('#stickZone', 'pointerdown', event);
+          await page.dispatchEvent('#stickZone', 'pointermove', pushed);
+        },
+        up: () => page.dispatchEvent('#stickZone', 'pointerup', pushed),
+      };
+    }
     const box = await page.locator(`.key[data-b="${button}"]`).boundingBox();
     const at = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
     const reachable = await page.evaluate(([x, y, b]) => {
@@ -232,9 +253,10 @@ test('host page, an iPhone and an Android phone: register, pick, ready, start, p
   const right = await finger(iphone, 'right');
   await right.down();
   await host.waitForFunction(() => { const [a, b] = window.novaBrawl.state.fighters; return b.x - a.x < 75; }, null, { timeout: 8000 });
-  assert.equal(await iphone.evaluate(() => document.querySelector('.key[data-b="right"]').classList.contains('down')), true, 'the pressed button lights up');
+  assert.equal(await iphone.isVisible('#stickKnob'), true, 'the joystick shows under the thumb');
   await right.up();
-  assert.equal(await iphone.evaluate(() => document.querySelector('.key.down')), null, 'released');
+  assert.equal(await iphone.isVisible('#stickKnob'), false, 'released');
+  assert.equal(await iphone.evaluate(() => document.querySelector('.key.down')), null, 'no button is lit');
   await standsStill(host, 0);
   const anaNear = await fighter(host, 0);
   assert.ok(anaNear.x > anaStart.x + 300, `Ana walked right: ${anaStart.x} -> ${anaNear.x}`);
@@ -285,10 +307,9 @@ test('host page, an iPhone and an Android phone: register, pick, ready, start, p
   await iphone.waitForTimeout(700);
   assert.ok(await strip() > early + 0.05, 'and fills up again');
 
-  // --- the joystick mode produces the same inputs, and the choice is remembered
-  await android.click('#modeToggle');
+  // --- the joystick is the only control: no D-pad, no mode toggle, nothing stored
   assert.equal(await android.isVisible('#stickZone'), true);
-  assert.equal(await android.isVisible('#dpad'), false);
+  assert.equal(await android.locator('#dpad, #modeToggle').count(), 0);
   await standsStill(host, 1);
   const before = (await fighter(host, 1)).x;
   const zone = await android.locator('#stickZone').boundingBox();
@@ -301,7 +322,7 @@ test('host page, an iPhone and an Android phone: register, pick, ready, start, p
   await host.waitForFunction((x) => window.novaBrawl.state.fighters[1].x > x + 40, before, { timeout: 5000 });
   await android.dispatchEvent('#stickZone', 'pointerup', { ...start, clientX: start.clientX + 60 });
   await standsStill(host, 1);
-  assert.equal(await android.evaluate(() => localStorage.getItem('nb_mode')), 'stick');
+  assert.equal(await android.evaluate(() => localStorage.getItem('nb_mode')), null);
 
   // --- two fingers at once: hold a direction with one thumb, tap Jump with the other
   await standsStill(host, 0);
@@ -338,7 +359,7 @@ test('host page, an iPhone and an Android phone: register, pick, ready, start, p
   await back.up();
   await android.reload();
   await android.waitForSelector('#pad:not([hidden])', { timeout: 10_000 });
-  assert.equal(await android.isVisible('#stickZone'), true, 'the joystick is still chosen after a reload');
+  assert.equal(await android.isVisible('#stickZone'), true, 'the joystick is there after a reload');
   await android.waitForFunction(() => document.getElementById('padPct').textContent === '8%');
 
   // --- a phone whose connection drops (not a reload) comes back by itself, and a thumb that

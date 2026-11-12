@@ -479,7 +479,7 @@ const buildHazardVote = (hazards) => voteButtons($('hazardVote'), hazards, 'haza
 // ---- gamepad ----
 
 const controls = createControls({
-  root: $('controls'), dpad: $('dpad'), stickZone: $('stickZone'), ring: $('stickRing'), knob: $('stickKnob'),
+  root: $('controls'), stickZone: $('stickZone'), ring: $('stickRing'), knob: $('stickKnob'),
   onChange: sendInput,
 });
 
@@ -490,12 +490,6 @@ function sendInput(state = controls.state) {
 }
 // A heartbeat: the same state again, so the host notices quickly when a phone has gone quiet.
 setInterval(() => sendInput(), HEARTBEAT_MS);
-
-function setMode(mode) {
-  controls.setMode(mode);
-  $('modeToggle').textContent = mode === 'stick' ? 'D-PAD ⇄' : 'JOYSTICK ⇄';
-  storage.set('localStorage', 'nb_mode', mode);
-}
 
 // What covers the pad: knocked out, eliminated (with the hazard vote), or paused.
 function updateOverlay(paused) {
@@ -602,7 +596,6 @@ function showResults(msg) {
 // ---- start ----
 
 buildCarousel();
-setMode(storage.get('localStorage', 'nb_mode') === 'stick' ? 'stick' : 'dpad');
 requestAnimationFrame(drawCooldown);
 
 $('authForm').addEventListener('submit', submitAuth);
@@ -611,7 +604,6 @@ $('tabLogin').addEventListener('click', () => showAuth('login'));
 $('ready').addEventListener('click', toggleReady);
 // With the phone's rotation lock on, turning it does nothing: let the player carry on upright.
 $('rotateSkip').addEventListener('click', () => $('pad').classList.add('upright'));
-$('modeToggle').addEventListener('click', () => setMode(controls.mode === 'stick' ? 'dpad' : 'stick'));
 $('leave').addEventListener('click', () => { link.send({ t: 'leave' }); });
 // "Log out" also makes the stored login useless everywhere, for a phone that is passed on.
 $('logout').addEventListener('click', () => {

@@ -60,7 +60,7 @@ input.bad { border-color: var(--red); }
 
 /* gamepad */
 .pad { padding: 0; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; }
-.pad .bar { position: absolute; left: 0; right: 0; top: 0; height: 12%; min-height: 34px; background: rgba(22, 18, 42, 0.95); border-bottom: 3px solid var(--p, #5b5670); gap: 2vw; padding: 0 calc(max(10px, env(safe-area-inset-right)) + 112px) 0 max(10px, env(safe-area-inset-left)); z-index: 2; }
+.pad .bar { position: absolute; left: 0; right: 0; top: 0; height: 12%; min-height: 34px; background: rgba(22, 18, 42, 0.95); border-bottom: 3px solid var(--p, #5b5670); gap: 2vw; padding: 0 max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left)); z-index: 2; }
 .pad .bar .pct, .pad .bar .hearts, .pad .bar .item, .pad .bar .signal { flex: none; }
 .pct { font-family: var(--display); font-size: clamp(18px, 3.6vw, 34px); line-height: 1; }
 .hearts { color: var(--p, #fff); font-size: clamp(14px, 2.6vw, 24px); letter-spacing: 0.12em; }
@@ -68,17 +68,11 @@ input.bad { border-color: var(--red); }
 .signal { width: 10px; height: 10px; border-radius: 50%; background: var(--green); }
 .signal.slow { background: var(--yellow); }
 .signal.bad { background: var(--red); }
-#modeToggle { position: absolute; right: max(10px, env(safe-area-inset-right)); }
 .controls { position: absolute; inset: 12% 0 0 0; padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
 .key { position: absolute; display: flex; align-items: center; justify-content: center; font-family: var(--display); color: #fff; border-radius: 2.4vw; border: 0.5vw solid rgba(255, 255, 255, 0.2); box-shadow: 0 0.6vw 0 rgba(0, 0, 0, 0.45); background: #2b2148; font-size: 6vw; touch-action: none; }
 .key.down { transform: translateY(0.4vw); box-shadow: 0 0.2vw 0 rgba(0, 0, 0, 0.45); filter: brightness(1.45); }
-.dpad, .stickZone { position: absolute; left: 1.5%; top: 3%; width: 47%; height: 94%; }
-.dpad .key[data-b="up"] { left: 34%; top: 0; width: 32%; height: 31%; }
-.dpad .key[data-b="left"] { left: 0; top: 33%; width: 32%; height: 32%; }
-.dpad .key[data-b="right"] { left: 68%; top: 33%; width: 32%; height: 32%; }
-.dpad .key[data-b="down"] { left: 34%; top: 67%; width: 32%; height: 31%; }
+.stickZone { position: absolute; left: 1.5%; top: 3%; width: 47%; height: 94%; }
 .label { position: absolute; left: 0; right: 0; text-align: center; font-family: var(--body); font-weight: 800; font-size: 1.6vw; color: var(--mute); letter-spacing: 0.06em; pointer-events: none; }
-.dpad .label { top: 45%; }
 .stickZone { background: #1c1436; border: 0.5vw dashed rgba(255, 255, 255, 0.2); border-radius: 2.4vw; touch-action: none; }
 .stickZone .label { bottom: 6%; }
 .ring { position: absolute; width: 26vw; height: 26vw; margin: -13vw 0 0 -13vw; border-radius: 50%; border: 0.5vw solid rgba(255, 255, 255, 0.25); background: #231a40; pointer-events: none; }

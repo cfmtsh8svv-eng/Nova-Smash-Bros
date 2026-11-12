@@ -61,7 +61,7 @@ Only the server reaches the sheet, through a small script that lives inside the 
 
 A few more things are stored, in other places:
 
-- **On the phone** (the browser's local storage): the login token, the gamertag, and the chosen control mode. That is what logs a returning player in automatically.
+- **On the phone** (the browser's local storage): the login token and the gamertag. That is what logs a returning player in automatically.
 - **In the host page's tab** (session storage): the room code and the room's secret key, so a reload of the page keeps the room. It is gone when the tab is closed.
 - **In the server's memory**, only while it runs: the open rooms, results that are waiting to be written, wrong-PIN counters. These are lost on a restart.
 - **Nowhere:** the match itself. It exists only in the host page while it is played.
@@ -295,10 +295,10 @@ The script in the sheet (`Code.gs`) is the last guard before a cell is written. 
 | File | What it does |
 |---|---|
 | `main.js` | The screens: log in → fighter select → gamepad → results. Which one is shown is decided by `phase` messages from the host. |
-| `controls.js` | The D-pad and the joystick |
+| `controls.js` | The joystick and the three buttons |
 | `feedback.js` | Vibration, flash and sound |
 
-**Two control modes, one result.** Both the D-pad and the floating joystick produce the same seven buttons, so nothing else in the game knows which one a player uses. Touches are handled with Pointer Events: every finger is tracked separately, which is what makes "hold right and tap Jump" work. The joystick appears where the thumb lands; a small dead zone around that point keeps a resting thumb from moving the fighter, and the centre follows a thumb that drifts past the rim. The numbers are at the top of `controls.js`.
+**One control mode.** The floating joystick and the three buttons produce seven buttons (left, right, up, down, attack, jump, special); the game only sees those. There used to be a D-pad as a second mode; round 2 removed it (D-133). Touches are handled with Pointer Events: every finger is tracked separately, which is what makes "hold right and tap Jump" work. The joystick appears where the thumb lands; a small dead zone around that point keeps a resting thumb from moving the fighter, and the centre follows a thumb that drifts past the rim. The numbers are at the top of `controls.js`.
 
 **Sending input.** Whenever the buttons change, the phone sends all seven as one number together with a running counter. Ten times a second it sends the same state again as a heartbeat. If the host hears nothing from a phone for 0.6 seconds, it lets go of that phone's buttons, so a phone that fell asleep or lost its network for a moment cannot leave its fighter running off the stage. When the phone is heard again, a button that is still down simply carries on.
 
@@ -461,8 +461,8 @@ It trusts the host page for the result, because the match does not run on the se
 **1. How does a button on the phone become a movement on the big screen?**
 The phone sends its seven buttons as one small number to the server whenever they change. The server passes it to the host page, with the player's slot. The host page keeps the latest state per player and hands it to the rules at the next step, 60 times a second. A tap that is shorter than one step is still counted once.
 
-**2. Why are there two control modes, and how do they share code?**
-Players differ: some want buttons under the thumb, some want a stick. Both produce the same seven buttons, so the rest of the game cannot tell them apart. The choice is remembered on the phone.
+**2. Why is there only a joystick?**
+The first build had a D-pad as a second mode. The team chose the joystick as the only control in round 2 (D-133): one mode is less to explain to new players and less to test. The joystick turns the thumb's position into the same seven buttons the D-pad produced, so the game rules did not change.
 
 **3. How does the game give feedback on an iPhone, which cannot vibrate in the browser?**
 Always three things together: vibration where it exists, a flash of colour over the whole screen, and a short sound. Sound needs one tap first, so the first tap unlocks it. Each of the three is skipped quietly if the phone cannot do it.

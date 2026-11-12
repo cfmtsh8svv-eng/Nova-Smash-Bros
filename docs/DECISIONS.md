@@ -108,7 +108,7 @@ Decided by the team in the grilling session before the build. Full detail: [`GAM
 | D-088 | KO and winner texts | "LAUNCHED!", "SEE YA!", "DROPPED OUT!", "OUT OF OFFICE!", "BURNOUT!", "NEEDS A GAP YEAR!"; winner "{name} graduates with honours!". Final-KO slow motion lasts 2 s. | | | Team | Decided |
 | D-089 | Lobby | A joining player appears with an entrance effect; grey silhouette until a fighter is picked | | | Team | Decided |
 | D-090 | Results screen | Dimmed stage behind a podium for places 1 to 3, with damage dealt, damage taken and the other stats | Plain table | | Team | Decided |
-| D-091 | Phone controls | Two modes ship, **D-pad** and **joystick**, switchable on the phone; the team picks the default after playtesting. Three rectangular buttons: **Attack, Jump (with double jump), Special**; nearly the whole screen is touch surface. | Three round buttons (D-047); no jump button (tried and reverted the same day) | Team picked from visual options | Team | Decided |
+| D-091 | Phone controls | Two modes ship, **D-pad** and **joystick**, switchable on the phone; the team picks the default after playtesting. Three rectangular buttons: **Attack, Jump (with double jump), Special**; nearly the whole screen is touch surface. | Three round buttons (D-047); no jump button (tried and reverted the same day) | Team picked from visual options | Team | Superseded by D-133 |
 | D-092 | Fighter select | Swipe through fighters with the neighbours peeking in | Grid of eight | | Team | Decided |
 | D-093 | Fourth place | Lies flat on the ground beside the podium | Standing, or hidden | | Team | Decided |
 | D-094 | Build process | Built with Claude Fable, with independent reviewer agents after each package. If Fable usage runs too high, subagents move to Opus or Sonnet. | | Team request | Team | Decided |
@@ -164,6 +164,7 @@ The team agreed the changes in [`BUILD_PROMPT_ROUND2.md`](BUILD_PROMPT_ROUND2.md
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|
 | D-132 | Keyboard players | Removed completely: no keyboard guests in the lobby, no `guests` or `guestSlots` in `match_start`, every fighter belongs to a logged-in phone. `createMatch` still takes any list of players, so bots can be added later without touching the rules. A `match_start` that still carries `guests` or `guestSlots` is refused as a bad message. | Keeping them as a hidden developer option | Bots will replace them; fewer paths to test | Team | Decided |
+| D-133 | Phone controls | **Joystick only.** The D-pad, the `modeToggle` button and the stored mode (`nb_mode`) are removed; the floating joystick is the only control. | Keeping both modes (D-091) | Round 2 decision of the team; one mode is less to explain and to test | Team | Decided |
 
 ### Proposals made by Claude while writing the docs
 

@@ -54,16 +54,18 @@ The same commands run on every push in GitHub Actions (`.github/workflows/ci.yml
 4. **Laptop:** choose the stage (or let the phones vote), the number of lives, then *Start match*.
 5. **Fight.** Turn the phone sideways.
 
-| Button | What it does |
+The left half of the phone is a joystick: put your thumb down anywhere there and drag.
+
+| Control | What it does |
 |---|---|
-| ◀ ▶ | Move |
-| ▲ | Look up: attacks and specials then go upward |
-| ▼ | Drop through a platform, fall faster |
+| Joystick left / right | Move |
+| Joystick up | Look up: attacks and specials then go upward |
+| Joystick down | Drop through a platform, fall faster |
 | **Jump** | Jump; press again in the air for one double jump |
 | **Attack** | Normal attack in the direction you look |
 | **Special** | Your fighter's special; the yellow strip shows when it is ready again |
 
-Switch between **D-pad** and **joystick** with the button in the phone's header. Watch the top right corner of the big screen: every hazard is announced with its name and a 3, 2, 1. `Esc` pauses the match on the laptop.
+Watch the top right corner of the big screen: every hazard is announced with its name and a 3, 2, 1. `Esc` pauses the match on the laptop.
 
 ## Documentation
 

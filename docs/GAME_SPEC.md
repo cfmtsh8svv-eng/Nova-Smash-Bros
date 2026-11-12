@@ -101,14 +101,13 @@ Coordinates are a 1280×720 space at 60 Hz. Gravity 0.6 px/f². A single jump re
 
 ## 6. Controls (phone, landscape)
 
-Almost the whole screen is touch surface. Two control modes ship, and each player switches between them with a toggle in the phone header. The team decides after playtesting which one is the default.
+Almost the whole screen is touch surface. There is **one control mode** (D-133): the floating joystick. There is no D-pad and no mode toggle.
 
-| Mode | Left half | Right half |
-|---|---|---|
-| **D-pad** | Four large keys: ◀ ▶ move, ▲ look up, ▼ drop through a platform or fast fall | Three rectangular buttons: **Attack**, **Jump**, **Special** |
-| **Joystick** | The whole left half is a floating joystick that appears where the thumb lands: left/right to move, hold up to look up, down to drop | The same three buttons |
+| Left half | Right half |
+|---|---|
+| A floating **joystick** that appears where the thumb lands: left/right to move, hold up to look up, down to drop through a platform, fast fall or let go of a ledge | Three rectangular buttons: **Attack**, **Jump**, **Special** |
 
-Both modes produce the same input state (`left, right, up, down, attack, jump, special`), so the game logic does not know which one is used.
+The joystick produces the input state `left, right, up, down, attack, jump, special`; the game logic only sees that state.
 
 **Jump** jumps; pressing it again in the air is the **double jump** (one per airtime). It triggers on the press, so holding it does not repeat.
 

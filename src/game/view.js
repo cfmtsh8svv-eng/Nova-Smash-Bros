@@ -41,6 +41,21 @@ export const PAUSE_HINT = { text: 'Press P or Esc to pause', y: 704, alpha: 0.55
 // Shown during the countdown and the fight; hidden from the final KO on.
 export const pauseHint = (state) => Boolean(state) && (state.phase === 'countdown' || state.phase === 'fight');
 
+// The pose as drawn: an attack or special aimed up has its own picture.
+export function drawnPose(f) {
+  const pose = poseOf(f);
+  if (pose === 'attack' && f.attack && f.attack.dir === 'up') return 'attackUp';
+  if (pose === 'special' && f.special && f.special.dir === 'up') return 'specialUp';
+  return pose;
+}
+
+// Where a held item is drawn: in the back hand of the pose of the moment, mirrored with
+// the facing (D-139). handPoint(fighterId, pose) comes from the sprite generator.
+export function heldItemAt(f, handPoint) {
+  const hand = handPoint(f.fighterId, drawnPose(f));
+  return { x: f.x + f.facing * hand.x, y: f.y + hand.y };
+}
+
 // Lives as hearts. Both numbers are kept between 0 and 3, whatever is passed in.
 export function hearts(lives, max) {
   const clamp = (v) => Math.max(0, Math.min(3, Math.floor(Number(v)) || 0));

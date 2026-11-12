@@ -5,10 +5,10 @@
 // items - fighters - things that fly - hazards in front - effects - name tags -
 // the HUD (player cards, hazard countdown, big texts).
 import { CONFIG, PLAYER_COLORS, SCREEN } from '/game/config.js';
-import { damageColor, hearts, PAUSE_HINT, pauseHint, poseOf } from '/game/view.js';
+import { damageColor, drawnPose, hearts, heldItemAt, PAUSE_HINT, pauseHint } from '/game/view.js';
 import { hazardRect } from '/game/hazards.js';
 import { getFighter } from '/game/fighters.js';
-import { duplicateColour, SPRITE } from '/shared/art/characters.js';
+import { duplicateColour, handPoint, SPRITE } from '/shared/art/characters.js';
 import { getSprite, getStageImage, loadStage } from '/shared/art/sprites.js';
 
 const DISPLAY = '"Bungee", "Arial Black", sans-serif';
@@ -373,9 +373,7 @@ export function createRenderer(canvas) {
 
   function drawFighter(f, t) {
     if (f.state !== 'alive') return;
-    let pose = poseOf(f);
-    if (pose === 'attack' && f.attack.dir === 'up') pose = 'attackUp';
-    if (pose === 'special' && f.special.dir === 'up') pose = 'specialUp';
+    const pose = drawnPose(f);
     const main = f.altColor ? duplicateColour(f.fighterId, PLAYER_COLORS[f.slot]) : null;
     const sprite = getSprite(f.fighterId, main, pose) || getSprite(f.fighterId, main, 'idle');
 
@@ -405,8 +403,10 @@ export function createRenderer(canvas) {
     if (f.tipsy > 0) tilt += Math.sin(t / 9) * 0.12;
     if (f.slip > 0) tilt += Math.sin(t / 4) * 0.1;
 
+    // A hanging fighter is drawn with the hand on the corner of the ground.
+    const lift = f.hang ? f.hang.y - (f.y + handPoint(f.fighterId, 'hang').y) : 0;
     ctx.save();
-    ctx.translate(f.x, f.y);
+    ctx.translate(f.x, f.y + lift);
     ctx.rotate(tilt);
     ctx.scale(f.facing * sx * SPRITE.scale, sy * SPRITE.scale);
     if (f.invincible > 0 && Math.floor(t / 4) % 2 === 0) ctx.globalAlpha = 0.4;
@@ -422,9 +422,11 @@ export function createRenderer(canvas) {
 
     // What the fighter carries, and what is wrong with them.
     if (f.held) {
+      // In the back hand, following the arm (D-139).
+      const hand = heldItemAt(f, handPoint);
       ctx.save();
-      ctx.translate(f.x - f.facing * 26, f.y - 96 + Math.sin(t / 10) * 2);
-      ctx.scale(0.7, 0.7);
+      ctx.translate(hand.x, hand.y + lift);
+      ctx.scale(0.7 * f.facing, 0.7);
       drawItemShape(f.held.type, 0, 14, t);
       ctx.restore();
     }

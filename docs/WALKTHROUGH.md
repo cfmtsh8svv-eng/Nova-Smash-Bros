@@ -291,6 +291,8 @@ The script in the sheet (`Code.gs`) is the last guard before a cell is written. 
 
 **The loop.** The browser calls our function before every screen refresh (usually 60 times a second). Each time: ask the clock how many rule steps are due, run them, then draw the current state. Drawing never changes the state. If the laptop is slow, fewer pictures are drawn but the rules still take the same steps, so the game does not slow down or speed up.
 
+**Held items** are drawn in the fighter's back hand (D-139). `handPoint` in `public/shared/art/characters.js` works out where that hand is in each pose with the same arm and lean angles the sprite is drawn with, so the item follows the arm when running, jumping, attacking and hanging.
+
 **Drawing order**, back to front: the stage (one prepared picture), hazards behind the fighters, items, fighters, things that fly, hazards in front (train, wave, crowd), effects, name tags, and last the display on top: player cards top left, hazard countdown top right, big texts in the middle.
 
 **The lobby** shows the QR code, the four slots and the settings. A new player's card pops in with a flash in their colour; until they have chosen a fighter it shows a grey silhouette. The stage choice is **Vote (default)** or one of the three stages.

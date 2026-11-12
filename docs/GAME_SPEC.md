@@ -156,7 +156,7 @@ Whether the special is ready is shown **only on the phone** (a ring on the Speci
 
 ### 7.1 Fighters (8)
 
-Pixel sprites, 81 px tall, three tones per colour, dark outline (style "HD pixel"). Each fighter has its own colour and holds its item **in the hand**. During the special the fighter pulls out the special's own item. A **name tag in the player colour** floats above every fighter. If two players pick the same fighter, the later player's top is drawn in their player colour.
+Pixel sprites, 81 px tall, three tones per colour, dark outline (style "HD pixel"). Each fighter has its own colour and holds its item **in the hand**. During the special the fighter pulls out the special's own item. A **held item** (Book, Sardine, Group Project, Megaphone, Cork Shield, Azulejo) is drawn **in the fighter's other hand** (the back hand; the front hand holds the fighter's own item), mirrored with the facing, and follows the arm in every pose: run, jump, attack and hang (D-139). The phone header keeps its label for the held item. A **name tag in the player colour** floats above every fighter. If two players pick the same fighter, the later player's top is drawn in their player colour.
 
 **Normal attacks are identical for every fighter**: 8 % damage, 90 px range in the facing direction, base_kb 4, kb_growth 9, same timing. Only the look differs (a swing, a poke, or a short throw animation of the named item). Specials hit only inside their stated range, never the whole screen.
 

@@ -159,3 +159,11 @@ export function getStageImage(stageId, width = 1280, height = 720) {
   const hit = stageCache.get(`${stageId}|${width}x${height}`);
   return hit instanceof HTMLCanvasElement ? hit : null;
 }
+
+// Draw a stage small into a canvas element of the page: the preview on the map vote cards.
+export async function paintStage(target, stageId, width = 640, height = 360) {
+  const picture = await loadStage(stageId, width, height);
+  target.width = width;
+  target.height = height;
+  target.getContext('2d').drawImage(picture, 0, 0);
+}

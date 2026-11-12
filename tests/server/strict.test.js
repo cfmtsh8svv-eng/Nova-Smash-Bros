@@ -16,7 +16,7 @@ async function lobbyOfTwo(s) {
   return { h, a, b };
 }
 async function start(h, slots = [0, 1], extra = {}) {
-  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots, guests: 0, ...extra });
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots, ...extra });
   const { matchId } = await h.next('match_started');
   await h.next('roster', { match: (r) => r.phase === 'match' });
   return matchId;
@@ -111,7 +111,7 @@ async function playOne(s, h, a, b, stage = 'campus') {
   }
   await h.settle();
   h.drain();
-  h.send({ t: 'match_start', stage, lives: 3, slots: [a.slot, b.slot], guests: 0 });
+  h.send({ t: 'match_start', stage, lives: 3, slots: [a.slot, b.slot] });
   const { matchId } = await h.next('match_started');
   s.clock.now += 90_000;
   h.send({ t: 'match_result', matchId, result: sampleResult({ stage }) });
@@ -209,17 +209,17 @@ test('a player who picked a fighter but did not tap Ready blocks the start', asy
   const b = await s.player(h, 'Max');
   b.send({ t: 'pick', fighter: 'house_dj', ready: false });
   await h.next('roster', { match: (r) => r.players[1].fighter === 'house_dj' });
-  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [a.slot, b.slot], guests: 0 });
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [a.slot, b.slot] });
   assert.match((await h.next('error')).msg, /Max has not picked a fighter yet/);
 });
 
-test('never more than four fighters: four phones plus a keyboard player is refused', async (t) => {
+test('never more than four fighters: four phones plus anything extra is refused', async (t) => {
   const s = await startServer(t);
   const h = await s.host();
   for (const name of ['One', 'Two', 'Three', 'Four']) await s.player(h, name, { fighter: 'finance_bro' });
   h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1, 2, 3], guests: 1 });
-  assert.match((await h.next('error')).msg, /At most 4/);
-  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1, 2, 3], guests: 0 });
+  assert.equal((await h.next('error')).code, 'bad_message');
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1, 2, 3] });
   assert.ok((await h.next('match_started')).matchId);
 });
 
@@ -459,7 +459,7 @@ test('rooms are limited: 12 open at once per address, 200 on the whole server', 
 // ---- result checks, one reason each ----
 
 const NOW = 1_800_000_000_000;
-const match = (over = {}) => ({ id: 'x', stage: 'campus', lives: 3, slots: [0, 1], guests: 0, startedAt: NOW - 600_000, ...over });
+const match = (over = {}) => ({ id: 'x', stage: 'campus', lives: 3, slots: [0, 1], startedAt: NOW - 600_000, ...over });
 const reasonOf = (mutate, m = match()) => {
   const r = sampleResult();
   mutate(r);

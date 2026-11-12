@@ -61,7 +61,7 @@ Only the server reaches the sheet, through a small script that lives inside the 
 
 A few more things are stored, in other places:
 
-- **On the phone** (the browser's local storage): the login token, the gamertag, and the chosen control mode. That is what logs a returning player in automatically.
+- **On the phone** (the browser's local storage): the login token and the gamertag. That is what logs a returning player in automatically.
 - **In the host page's tab** (session storage): the room code and the room's secret key, so a reload of the page keeps the room. It is gone when the tab is closed.
 - **In the server's memory**, only while it runs: the open rooms, results that are waiting to be written, wrong-PIN counters. These are lost on a restart.
 - **Nowhere:** the match itself. It exists only in the host page while it is played.
@@ -70,12 +70,12 @@ There is no database. That was a team decision: a sheet is something everyone ca
 
 ### What do the tests cover, and what not?
 
-**Covered** (about 400 tests, `npm test`, a few seconds):
+**Covered** (about 470 tests, `npm test`, a few seconds):
 
 - **The rules:** knockback, the 200 % burnout, every blast zone, respawn and invincibility, lives, how a match ends, jumping, aiming, each of the eight specials inside and outside its range, each item, each hazard with its safe platform, the vote, and that slow motion never changes a result.
 - **The server:** every way a registration or login is refused, the lockout, tampered and expired tokens, who may start a match and submit a result, implausible results, malformed, oversized and unknown messages, reconnects, and what happens when the sheet is down.
 - **End to end:** a real server, one host and four controllers over real WebSockets play a whole match with the real rules; the result arrives in the store and on the leaderboard.
-- **In a real browser** (`npm run test:browser`): the host page plus an emulated iPhone and an emulated Android phone register, pick, ready up, start and play; the fighters on the big screen follow the phones and no page logs an error. A second test plays a whole evening (stage vote, a keyboard player, a hazard announcement, an elimination with the hazard vote, results, a second match, removing a player, logging out). A third cuts the host's connection at the worst moments (around Start, in mid-match, when the match ends).
+- **In a real browser** (`npm run test:browser`): the host page plus an emulated iPhone and an emulated Android phone register, pick, ready up, start and play; the fighters on the big screen follow the phones and no page logs an error. A second test plays a whole evening (stage vote, three phones, a hazard announcement, an elimination with the hazard vote, results, a second match, removing a player, logging out). A third cuts the host's connection at the worst moments (around Start, in mid-match, when the match ends).
 
 **Not covered:**
 
@@ -147,7 +147,7 @@ Nothing in here touches the screen, the network or the clock. Even chance comes 
 1. For every fighter: read the input, turn it into speed (`physics.js`), start an attack or special if a button was pressed.
 2. Move every fighter and sort out the platforms: land on them, bump into the ground's side wall.
 3. Work out which attacks hit (`attacks.js`, `specials.js`). The normal attacks of a step are collected first and applied together, so two players who hit each other at the same moment both get hit. (A special takes effect at once, in player order.)
-4. Move what flies (ball, book, mini tram), update items and the hazard.
+4. Move what flies (ball, book, tile and shards, mini tram), update items and the hazard.
 5. Check who left the screen (a KO), and whether only one player is left.
 
 ### The pieces
@@ -160,7 +160,9 @@ Nothing in here touches the screen, the network or the clock. Even chance comes 
 | `combat.js` | What a hit does: damage, knockback, KO |
 | `attacks.js` | The normal attack and things that fly |
 | `specials.js` | The eight specials, one small function each |
-| `items.js`, `hazards.js` | The four items; the six hazards and their warning |
+| `physics.js` (ledge grab) | `tryLedge` and `holdLedge`: grabbing the two corners of the main ground, hanging, climbing up, letting go (D-138) |
+| `stomp.js` | The stomp: Attack in the air without Up drops straight down; landing sends out a shockwave (D-137) |
+| `items.js`, `hazards.js` | The nine items (on touch, held, the forced Group Project with its fuse; D-140); the nine hazards, three per stage, with their warning, the late train and the next one 10 to 15 s after the last (D-143 to D-149) |
 | `input.js` | The buffer between "messages arrive whenever" and "the game looks once per step" |
 | `clock.js`, `loop.js` | Turning real time into steps; slow motion and hit pause |
 | `scoring.js`, `view.js` | Points; damage colour and which pose to show |
@@ -215,7 +217,8 @@ Every page has one **WebSocket** to the server: a connection that stays open so 
 |---|---|---|
 | Phone | `join` | "I am this player (token), let me into room CODE" |
 | Phone | `input` | The seven buttons, as one number, with a running counter |
-| Phone | `pick`, `vote` | Fighter and ready; stage or hazard vote |
+| Phone | `pick`, `vote` | Fighter and ready; stage vote (only in the map vote) or hazard vote (only during a match) |
+| Host | `vote_start`, `vote_cancel` | Open the map vote for the ready players; give it up |
 | Host | `match_start`, `match_result`, `match_abort` | Start, finish, cancel a match |
 | Host | `to` | "Pass this on to phone 2" or "to all": `phase` (which screen), `status` (damage, lives), `feedback` (vibrate, flash, text) |
 | Server | `roster` | To the host: who is in the room |
@@ -223,6 +226,8 @@ Every page has one **WebSocket** to the server: a connection that stays open so 
 **The server trusts nothing it receives.** Every message goes through one function that checks, in this order: is it text, is it small enough, is this sender sending too fast, is it valid JSON, is the type known, **is this sender allowed to send this type**, and are the fields what they should be. Anything else is dropped and counted; a sender that keeps doing it is disconnected. The server never crashes on a bad message.
 
 **Who may do what** is one table per role. A phone's table simply has no "start a match" entry. If a phone sends `match_start`, the answer is "Only the host screen can do that" and nothing else happens. The slot number of an input is taken from the connection, never from the message, so a phone cannot press another player's buttons.
+
+**The map vote** (round 2, D-135, D-136) is a room phase of its own: `lobby` → `vote` → `match` → `lobby`. The host's `vote_start` is checked like a match start (at least two ready players). In the `vote` phase the server accepts a stage vote only from a player in the vote and keeps the latest vote of each; a player who leaves or loses the connection loses their vote. The `match_start` that follows must name one of the stages with the most votes, so a host page cannot quietly ignore the vote.
 
 **Reconnecting.** A phone that drops keeps its slot: for 30 seconds in the lobby, and until the end of the match during a match. When it comes back with its token it gets the same slot, and the server replays the last screen and status so it is up to date at once. The host page can also reconnect: when it created the room it got a secret key, and with that key it takes the room back.
 
@@ -243,7 +248,7 @@ At the end of a match the host page sends the result. The server:
 4. Works out **achievements** from the player's totals (First Win, Hat-Trick, Heavy Hitter, Untouchable, Comeback, Globetrotter, Regular, Special Delivery).
 5. Puts everything into the queue for the sheet and answers the host page at once.
 
-Keyboard players have no account and get no points. A match with fewer than two logged-in players is a "practice match" and is not stored.
+Every fighter belongs to a logged-in phone (keyboard players were removed in round 2, D-132). If fewer than two of the players' accounts can be read when the result arrives (the sheet is down), the match is a "practice match" and is not stored; a player whose account could not be read gets no points.
 
 ### The store (`store/`, `data.js`, `apps-script/Code.gs`)
 
@@ -279,27 +284,30 @@ The script in the sheet (`Code.gs`) is the last guard before a cell is written. 
 
 | File | What it does |
 |---|---|
-| `main.js` | The screens: title → lobby → match → results → lobby. Talks to the server. |
+| `main.js` | The screens: title → lobby → map vote (with Vote) → match → results → lobby. Talks to the server. |
 | `game.js` | Runs one match: collects the inputs, calls the rules, turns events into effects, sound and phone messages |
 | `render.js` | Draws one picture of the match |
 | `fx.js` | Particles, damage numbers, screen shake, big texts |
-| `keyboard.js` | The two keyboard players |
 
 **The loop.** The browser calls our function before every screen refresh (usually 60 times a second). Each time: ask the clock how many rule steps are due, run them, then draw the current state. Drawing never changes the state. If the laptop is slow, fewer pictures are drawn but the rules still take the same steps, so the game does not slow down or speed up.
 
-**Drawing order**, back to front: the stage (one prepared picture), hazards behind the fighters, items, fighters, things that fly, hazards in front (train, wave, crowd), effects, name tags, and last the display on top: player cards top left, hazard countdown top right, big texts in the middle.
+**Held items** are drawn in the fighter's back hand (D-139). `handPoint` in `public/shared/art/characters.js` works out where that hand is in each pose with the same arm and lean angles the sprite is drawn with, so the item follows the arm when running, jumping, attacking and hanging.
 
-**The lobby** shows the QR code, the four slots and the settings. A new player's card pops in with a flash in their colour; until they have chosen a fighter it shows a grey silhouette.
+**Drawing order**, back to front: the stage (one prepared picture), hazards behind the fighters, items, fighters, things that fly, hazards in front (train, wave, crowd, rain, rockets), effects, name tags, and last the display on top: player cards top left, hazard countdown top right, big texts in the middle.
+
+**The lobby** shows the QR code, the four slots and the settings. A new player's card pops in with a flash in their colour; until they have chosen a fighter it shows a grey silhouette. The stage choice is **Vote (default)** or one of the three stages.
+
+**The map vote.** With Vote, Start opens the vote screen: the three stage pictures side by side, each with its live count and the small sprites of the players who voted for it, and a 10 s countdown. The host page counts the votes as they come in and ends the vote when every player who still counts has voted, or when the time is up. It draws the winner with `tallyVote` (a tie is random among the tied stages), shows it for 1.5 s, then starts the match. The stage pictures are the stage art drawn small (`paintStage` in `public/shared/art/sprites.js`).
 
 ### The phone page (`public/play/`)
 
 | File | What it does |
 |---|---|
-| `main.js` | The screens: log in → fighter select → gamepad → results. Which one is shown is decided by `phase` messages from the host. |
-| `controls.js` | The D-pad and the joystick |
+| `main.js` | The screens: log in → fighter select → map vote → gamepad → results. Which one is shown is decided by `phase` messages from the host. |
+| `controls.js` | The joystick and the three buttons |
 | `feedback.js` | Vibration, flash and sound |
 
-**Two control modes, one result.** Both the D-pad and the floating joystick produce the same seven buttons, so nothing else in the game knows which one a player uses. Touches are handled with Pointer Events: every finger is tracked separately, which is what makes "hold right and tap Jump" work. The joystick appears where the thumb lands; a small dead zone around that point keeps a resting thumb from moving the fighter, and the centre follows a thumb that drifts past the rim. The numbers are at the top of `controls.js`.
+**One control mode.** The floating joystick and the three buttons produce seven buttons (left, right, up, down, attack, jump, special); the game only sees those. There used to be a D-pad as a second mode; round 2 removed it (D-133). Touches are handled with Pointer Events: every finger is tracked separately, which is what makes "hold right and tap Jump" work. The joystick appears where the thumb lands; a small dead zone around that point keeps a resting thumb from moving the fighter, and the centre follows a thumb that drifts past the rim. The numbers are at the top of `controls.js`.
 
 **Sending input.** Whenever the buttons change, the phone sends all seven as one number together with a running counter. Ten times a second it sends the same state again as a heartbeat. If the host hears nothing from a phone for 0.6 seconds, it lets go of that phone's buttons, so a phone that fell asleep or lost its network for a moment cannot leave its fighter running off the stage. When the phone is heard again, a button that is still down simply carries on.
 
@@ -462,8 +470,8 @@ It trusts the host page for the result, because the match does not run on the se
 **1. How does a button on the phone become a movement on the big screen?**
 The phone sends its seven buttons as one small number to the server whenever they change. The server passes it to the host page, with the player's slot. The host page keeps the latest state per player and hands it to the rules at the next step, 60 times a second. A tap that is shorter than one step is still counted once.
 
-**2. Why are there two control modes, and how do they share code?**
-Players differ: some want buttons under the thumb, some want a stick. Both produce the same seven buttons, so the rest of the game cannot tell them apart. The choice is remembered on the phone.
+**2. Why is there only a joystick?**
+The first build had a D-pad as a second mode. The team chose the joystick as the only control in round 2 (D-133): one mode is less to explain to new players and less to test. The joystick turns the thumb's position into the same seven buttons the D-pad produced, so the game rules did not change.
 
 **3. How does the game give feedback on an iPhone, which cannot vibrate in the browser?**
 Always three things together: vibration where it exists, a flash of colour over the whole screen, and a short sound. Sound needs one tap first, so the first tap unlocks it. Each of the three is skipped quietly if the phone cannot do it.

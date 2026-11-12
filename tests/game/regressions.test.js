@@ -231,7 +231,7 @@ test('settings that arrive as text from a form are understood', () => {
   assert.equal(makeSettings({ items: 'true' }).items, true);
   assert.equal(makeSettings({ hazards: true }).hazards, true);
   const odd = makeSettings({ hazardMinS: Infinity, hazardMaxS: NaN, timeCapS: -3 });
-  assert.deepEqual([odd.hazardMinS, odd.hazardMaxS, odd.timeCapS], [25, 40, 0]);
+  assert.deepEqual([odd.hazardMinS, odd.hazardMaxS, odd.timeCapS], [10, 15, 0]); // the defaults (D-143)
   const state = fight({ settings: { hazards: true, hazardMinS: Infinity } });
   assert.ok(Number.isFinite(state.hazard.timer));
 });

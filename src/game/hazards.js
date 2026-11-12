@@ -1,19 +1,21 @@
-// Stage hazards. One at a time, every 25 to 40 seconds.
-// Each hazard goes through the same steps:
+// Stage hazards: three per stage, one at a time, the next one 10 to 15 seconds after
+// the last one ended. Each hazard goes through the same steps:
 //   idle -> warn (its name, then 3, 2, 1) -> active -> idle
+// (a late train goes warn -> late -> active, without a second warning).
 // and each one only touches one level or zone of the stage, so a player who
 // reads the warning can always get out of the way.
 import { CONFIG, SCREEN, seconds } from './config.js';
 import { HAZARDS, tallyVote } from './stages.js';
 import { applyHit, canBeHit, feedback, HIT, hurtbox, rectsOverlap, stunFighter } from './combat.js';
 import { nextRandom, pick, randomBetween } from './rng.js';
+import { ITEM_NAMES } from './items.js';
 
 const H = CONFIG.hazards;
 export const WARN_FRAMES = H.nameFrames + 3 * H.countFrames;
 export const nextHazardDelay = (state) => seconds(randomBetween(state, state.settings.hazardMinS, state.settings.hazardMaxS));
 
 export function newHazardState(state) {
-  return { phase: 'idle', timer: nextHazardDelay(state), id: null, name: '', t: 0, count: 0, zone: null, dir: 1, pos: 0, hit: [], drinks: [], text: '' };
+  return { phase: 'idle', timer: nextHazardDelay(state), id: null, name: '', t: 0, count: 0, zone: null, dir: 1, pos: 0, hit: [], drinks: [], spots: [], rockets: [], burnt: {}, text: '' };
 }
 
 const groundY = (state) => state.stage.platforms[0].y;
@@ -25,6 +27,7 @@ export function inZone(zone, f) {
   if (zone === 'roof') return f.y <= CONFIG.levels.roofBelow;
   if (zone === 'sand') return f.y > CONFIG.levels.groundAbove;
   if (zone === 'roofs') return f.y <= CONFIG.levels.groundAbove;
+  if (zone === 'all') return true;
   return false;
 }
 
@@ -47,10 +50,26 @@ function chooseHazard(state) {
 export function beginWarning(state, forced = {}) {
   const hz = state.hazard;
   const id = forced.id || chooseHazard(state);
-  Object.assign(hz, { phase: 'warn', id, t: 0, count: 0, zone: null, dir: nextRandom(state) < 0.5 ? 1 : -1, pos: 0, hit: [], drinks: [], text: '', stolen: false });
+  Object.assign(hz, { phase: 'warn', id, t: 0, count: 0, zone: null, dir: nextRandom(state) < 0.5 ? 1 : -1, pos: 0, hit: [], drinks: [], spots: [], rockets: [], burnt: {}, text: '', stolen: false });
   if (forced.dir) hz.dir = forced.dir;
   let name = HAZARDS[id].name;
-  if (id === 'train' || id === 'wave' || id === 'crowd') hz.zone = 'groundLevel';
+  if (id === 'train' || id === 'wave' || id === 'crowd' || id === 'fireworks') hz.zone = 'groundLevel';
+  if (id === 'rain') hz.zone = 'all';
+  if (id === 'sun') hz.zone = 'sand';
+  if (id === 'wave') {
+    // It rises at a random point in one half of the sandbank and rolls towards the far edge:
+    // rising in the left half, it rolls right (D-146).
+    const sand = state.stage.platforms[0];
+    const room = sand.w / 2 - H.wave.width;
+    const from = hz.dir > 0 ? sand.x : sand.x + sand.w / 2;
+    hz.pos = Math.round(forced.pos ?? from + nextRandom(state) * room);
+  }
+  if (id === 'fireworks') {
+    // One spot in each third of the street (D-149).
+    const street = state.stage.platforms[0];
+    const third = street.w / 3;
+    hz.spots = forced.spots || [0, 1, 2].map((i) => Math.round(street.x + i * third + 60 + nextRandom(state) * (third - 120)));
+  }
   if (id === 'wifi') {
     hz.zone = forced.zone || pick(state, ['roof', 'ground']);
     name += hz.zone === 'roof' ? ' ON THE ROOFS' : ' ON THE GROUND FLOOR';
@@ -72,17 +91,19 @@ function beginActive(state) {
   hz.phase = 'active';
   hz.t = 0;
   hz.count = 0;
-  if (hz.id === 'train' && nextRandom(state) < H.train.strikeChance) {
-    hz.phase = 'cancelled';
-    hz.timer = H.cancelledFrames;
-    hz.text = 'STRIKE! Train cancelled.';
-    state.events.push({ type: 'hazardCancel', hazard: hz.id, text: hz.text });
+  if (hz.id === 'train' && nextRandom(state) < H.train.lateChance) {
+    // A late train (D-144): after the 3, 2, 1 nothing happens and nothing is shown,
+    // and 5 s later it comes without any warning.
+    hz.phase = 'late';
+    hz.timer = H.train.lateFrames;
+    hz.name = '';
+    state.events.push({ type: 'hazardLate', hazard: hz.id });
     return;
   }
   if (hz.id === 'train') hz.pos = hz.dir > 0 ? -H.train.length : SCREEN.w;
-  if (hz.id === 'wave') hz.pos = hz.dir > 0 ? -H.wave.width : SCREEN.w;
   if (hz.id === 'crowd') hz.pos = hz.dir > 0 ? -H.crowd.width : SCREEN.w;
   if (hz.id === 'gulls') hz.pos = hz.dir > 0 ? -60 : SCREEN.w + 60;
+  if (hz.id === 'fireworks') hz.rockets = hz.spots.map((x) => ({ x, y: groundY(state), t: 0, riders: [], done: false }));
   if (hz.id === 'drinks') {
     const p = state.stage.platforms[hz.platform];
     const n = H.drinks.count;
@@ -94,7 +115,7 @@ function beginActive(state) {
 function endHazard(state) {
   const hz = state.hazard;
   state.events.push({ type: 'hazardEnd', hazard: hz.id });
-  Object.assign(hz, { phase: 'idle', timer: nextHazardDelay(state), id: null, name: '', zone: null, hit: [], drinks: [], text: '', count: 0 });
+  Object.assign(hz, { phase: 'idle', timer: nextHazardDelay(state), id: null, name: '', zone: null, hit: [], drinks: [], spots: [], rockets: [], burnt: {}, text: '', count: 0 });
 }
 
 // The rectangle a moving hazard (train, wave, crowd) covers right now.
@@ -103,7 +124,9 @@ export function hazardRect(state) {
   if (hz.phase !== 'active') return null;
   const size = { train: [H.train.length, H.train.height], wave: [H.wave.width, H.wave.height], crowd: [H.crowd.width, H.crowd.height] }[hz.id];
   if (!size) return null;
-  return { x: hz.pos, y: groundY(state) - size[1], w: size[0], h: size[1] + 30 };
+  // The wave rises from below first, then rolls at full height.
+  const height = hz.id === 'wave' ? Math.round(size[1] * Math.min(1, hz.t / H.wave.riseFrames)) : size[1];
+  return { x: hz.pos, y: groundY(state) - height, w: size[0], h: height + 30 };
 }
 
 // Bad Wi-Fi: how many frames of input delay this fighter has right now.
@@ -128,7 +151,102 @@ function sweep(state, cfg, text, flash) {
 
 const ACTIVE = {
   train: (state) => sweep(state, H.train, 'Hit by the Cascais Line train!', '#f6c343'),
-  wave: (state) => sweep(state, H.wave, 'Washed away by the big wave!', '#3fd0e0'),
+
+  // Big Wave (D-146): rises, then rolls to the far edge and drags whoever stands on the sand in it.
+  wave(state) {
+    const hz = state.hazard;
+    const W = H.wave;
+    const rolling = hz.t > W.riseFrames;
+    if (rolling) hz.pos += W.speed * hz.dir;
+    const rect = hazardRect(state);
+    for (const f of state.fighters) {
+      // Only fighters standing on the sand: a jump or a platform escapes it.
+      if (!canBeHit(f) || !f.onGround || !onGroundLevel(f) || !rectsOverlap(rect, hurtbox(f))) continue;
+      if (!hz.hit.includes(f.slot)) {
+        hz.hit.push(f.slot);
+        if (applyHit(state, f, { by: null, kind: 'hazard', source: 'wave', damage: W.damage }) === HIT) {
+          feedback(state, f.slot, 'hazard', 'Washed away by the big wave!', '#3fd0e0', { hazard: 'wave' });
+        }
+      }
+      // Carried with the wave, at its speed, as long as the fighter stands on the sand; past the
+      // stage edge nothing drags any more and the fighter flies on and falls.
+      if (rolling && f.state === 'alive') {
+        f.dragVx = W.speed * hz.dir;
+        f.dragGrip = 0;
+        f.vx = W.speed * hz.dir;
+      }
+    }
+    if ((hz.dir > 0 && hz.pos > SCREEN.w) || (hz.dir < 0 && hz.pos + W.width < 0)) endHazard(state);
+  },
+
+  // Sudden Rain (D-145): the whole map is slippery; no damage.
+  rain(state) {
+    const hz = state.hazard;
+    for (const f of state.fighters) {
+      if (f.state !== 'alive') continue;
+      f.slip = Math.max(f.slip, 2);
+      if (!hz.hit.includes(f.slot)) {
+        hz.hit.push(f.slot);
+        feedback(state, f.slot, 'hazard', "It's raining! Everything is slippery.", '#5a7fa8', { hazard: 'rain' });
+      }
+    }
+    if (hz.t >= H.rain.frames) endHazard(state);
+  },
+
+  // Midday Sun (D-147): 2 % every 0.5 s on the sand level, at most 20 %.
+  sun(state) {
+    const hz = state.hazard;
+    const S = H.sun;
+    if (hz.t % S.every === 0) {
+      for (const f of state.fighters) {
+        if (!canBeHit(f) || !inZone('sand', f) || (hz.burnt[f.slot] || 0) >= S.max) continue;
+        if (applyHit(state, f, { by: null, kind: 'hazard', source: 'sun', damage: S.damage }) !== HIT) continue;
+        hz.burnt[f.slot] = (hz.burnt[f.slot] || 0) + S.damage;
+        if (!hz.hit.includes(f.slot)) {
+          hz.hit.push(f.slot);
+          feedback(state, f.slot, 'hazard', 'Sunburn! Get in the shade.', '#ff7a3d', { hazard: 'sun' });
+        }
+      }
+    }
+    if (hz.t >= S.frames) endHazard(state);
+  },
+
+  // Fireworks (D-148): a rocket from each spot; a fighter in the street it touches rides up, then it explodes.
+  fireworks(state) {
+    const hz = state.hazard;
+    const F = H.fireworks;
+    for (const rocket of hz.rockets) {
+      if (rocket.done) continue;
+      rocket.t += 1;
+      rocket.y -= F.speed;
+      const box = { x: rocket.x - F.width / 2, y: rocket.y - F.height, w: F.width, h: F.height + F.speed };
+      for (const f of state.fighters) {
+        if (f.state !== 'alive' || f.invincible > 0 || rocket.riders.includes(f.slot) || !onGroundLevel(f) || !rectsOverlap(box, hurtbox(f))) continue;
+        if (hz.rockets.some((r) => r.riders.includes(f.slot))) continue;
+        rocket.riders.push(f.slot);
+      }
+      for (const slot of rocket.riders) {
+        const f = state.fighters.find((x) => x.slot === slot);
+        if (f.state !== 'alive') continue;
+        // Carried up with the rocket: no way to act until it explodes.
+        Object.assign(f, { x: rocket.x, y: rocket.y + 4, vx: 0, vy: -F.speed, onGround: false, groundId: -1, hang: null });
+        stunFighter(f, 2);
+      }
+      if (rocket.t >= F.carryFrames) {
+        rocket.done = true;
+        state.events.push({ type: 'fx', fx: 'firework', x: rocket.x, y: rocket.y - F.height / 2 });
+        for (const slot of rocket.riders) {
+          const f = state.fighters.find((x) => x.slot === slot);
+          const result = applyHit(state, f, {
+            by: null, kind: 'hazard', source: 'fireworks', damage: F.damage, baseKb: F.baseKb, kbGrowth: F.kbGrowth, angleDeg: F.angleDeg,
+            dirX: Math.sign(f.x - SCREEN.w / 2) || 1,
+          });
+          if (result === HIT) feedback(state, f.slot, 'hazard', 'Fireworks! Santos Populares came early.', '#e85d9c', { hazard: 'fireworks' });
+        }
+      }
+    }
+    if (hz.rockets.every((r) => r.done)) endHazard(state);
+  },
 
   wifi(state) {
     const hz = state.hazard;
@@ -148,12 +266,12 @@ const ACTIVE = {
     for (const f of state.fighters) {
       if (hz.hit.includes(f.slot) || !canBeHit(f) || !inZone(hz.zone, f) || Math.abs(f.x - hz.pos) > G.reach) continue;
       hz.hit.push(f.slot);
-      if (f.held) {
+      if (f.held && f.held.type !== 'project') { // the Group Project cannot be stolen
         const item = f.held.type;
         f.held = null;
-        if (f.attack && f.attack.kind === 'book') f.attack = null; // a book that is stolen mid-throw is not thrown
+        if (f.attack && (f.attack.kind === 'book' || f.attack.kind === 'azulejo')) f.attack = null; // a stolen item is not thrown
         state.events.push({ type: 'itemStolen', slot: f.slot, item, x: f.x, y: f.y });
-        feedback(state, f.slot, 'hazard', `A seagull stole your ${item}!`, '#eef3f8', { hazard: 'gulls' });
+        feedback(state, f.slot, 'hazard', `A seagull stole your ${ITEM_NAMES[item].toLowerCase()}!`, '#eef3f8', { hazard: 'gulls' });
       } else if (applyHit(state, f, { by: null, kind: 'hazard', source: 'gulls', damage: G.peckDamage }) === HIT) {
         stunFighter(f, G.peckStun);
         feedback(state, f.slot, 'hazard', 'Pecked by a seagull!', '#eef3f8', { hazard: 'gulls' });
@@ -224,8 +342,15 @@ export function updateHazards(state) {
   } else if (hz.phase === 'active') {
     hz.t += 1;
     ACTIVE[hz.id](state);
-  } else if (hz.phase === 'cancelled') {
+  } else if (hz.phase === 'late') {
     hz.timer -= 1;
-    if (hz.timer <= 0) endHazard(state);
+    if (hz.timer <= 0) {
+      // The late train arrives, without a warning.
+      hz.phase = 'active';
+      hz.t = 0;
+      hz.name = HAZARDS[hz.id].name;
+      hz.pos = hz.dir > 0 ? -H.train.length : SCREEN.w;
+      state.events.push({ type: 'hazardStart', hazard: hz.id, name: hz.name, zone: hz.zone, dir: hz.dir, late: true });
+    }
   }
 }

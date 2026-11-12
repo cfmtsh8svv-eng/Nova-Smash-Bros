@@ -31,7 +31,7 @@ const RESPAWN_S = 2;
 const MAX_DAMAGE_PER_SECOND = 80; // far above what one fighter can deal, even hitting three opponents // there is no time limit; this only stops absurd numbers
 
 // Check a result the host sent against what the server knows about the match.
-// match: { id, stage, lives, slots: [..], guests, startedAt }
+// match: { id, stage, lives, slots: [..], startedAt }
 // Returns { ok: true, players } with cleaned numbers, or { ok: false, reason }.
 export function checkResult(match, result, now) {
   const bad = (reason) => ({ ok: false, reason });
@@ -47,7 +47,7 @@ export function checkResult(match, result, now) {
   if (result.durationS > elapsedS - COUNTDOWN_S + 1.5) return bad('The match cannot have lasted longer than the time since it started.');
   if (result.durationS < RESPAWN_S * (match.lives - 1)) return bad('The match is too short for the lives that were lost.');
 
-  const n = match.slots.length + match.guests;
+  const n = match.slots.length;
   if (!Array.isArray(result.players) || result.players.length !== n) return bad('The player list does not match the players who started.');
   const seen = new Set();
   const players = [];
@@ -58,8 +58,9 @@ export function checkResult(match, result, now) {
     if (!isInt(p.falls, 0, match.lives) || !isInt(p.kos, 0, match.lives * (n - 1)) || !isInt(p.specialKos, 0, p.kos)) return bad('KOs or falls are out of range.');
     if (!isInt(p.endLives, 0, match.lives) || p.endLives !== match.lives - p.falls) return bad('Lives left do not fit the falls.');
     if (!isInt(p.damageDealt, 0, 100000) || !isInt(p.damageTaken, 0, 100000) || !isInt(p.endPercent, 0, 260)) return bad('Damage is out of range.');
-    // Per life at most 200 % plus the last hit; tarts can heal 20 % about every 12 s.
-    if (p.damageTaken > match.lives * 240 + result.durationS * 2) return bad('More damage taken than is possible.');
+    // Per life at most 200 % plus the last hit; a Pastel de Nata heals 20 % and can come about
+    // every 6 s, so up to 4 % a second can be healed and taken again (D-142).
+    if (p.damageTaken > match.lives * 240 + result.durationS * 4) return bad('More damage taken than is possible.');
     if (typeof p.fighterId !== 'string' || !FIGHTER_IDS.includes(p.fighterId)) return bad('Unknown fighter.');
     players.push({ slot: p.slot, place: p.place, falls: p.falls, kos: p.kos, specialKos: p.specialKos, endLives: p.endLives, endPercent: p.endPercent, damageDealt: p.damageDealt, damageTaken: p.damageTaken, fighterId: p.fighterId });
   }
@@ -118,7 +119,8 @@ export function scoreResult(match, checked, roster, endedAt) {
   for (const p of checked.players) {
     const row = roster.get(p.slot);
     if (!row) {
-      lines.push({ slot: p.slot, guest: true, place: p.place, points: 0, achievements: [] });
+      // The account could not be read (the sheet is down): this player's numbers are not saved.
+      lines.push({ slot: p.slot, unsaved: true, place: p.place, points: 0, achievements: [] });
       continue;
     }
     const points = matchPoints(p.place, p.damageDealt);
@@ -142,9 +144,9 @@ export function scoreResult(match, checked, roster, endedAt) {
     mode: 'stock',
     lives: match.lives,
     duration_s: checked.durationS,
-    winner: winnerRow ? winnerRow.gamertag : '(keyboard player)',
+    winner: winnerRow ? winnerRow.gamertag : '(unknown)',
     players_json: JSON.stringify(checked.players.map((p) => ({
-      gamertag: roster.get(p.slot)?.gamertag || '(keyboard player)', fighter: p.fighterId, place: p.place, kos: p.kos, falls: p.falls,
+      gamertag: roster.get(p.slot)?.gamertag || '(unknown)', fighter: p.fighterId, place: p.place, kos: p.kos, falls: p.falls,
       damage_dealt: p.damageDealt, damage_taken: p.damageTaken,
     }))),
   };

@@ -59,7 +59,7 @@ test('a room that is in use is never removed as idle: every message counts as ac
   const h = await s.host();
   const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
   await s.player(h, 'Max', { fighter: 'house_dj' });
-  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] });
   await h.next('match_started');
   // A very long match: only inputs travel.
   for (let i = 0; i < 4; i++) {
@@ -83,7 +83,7 @@ test('the result confirmation reaches a host page that reconnected while it was 
   const h = await s.host();
   await s.player(h, 'Ana', { fighter: 'finance_bro' });
   await s.player(h, 'Max', { fighter: 'house_dj' });
-  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] });
   const { matchId } = await h.next('match_started');
   s.clock.now += 90_000;
   h.send({ t: 'match_result', matchId, result: sampleResult() });
@@ -118,7 +118,7 @@ test('the results screen never waits for a slow sheet, and the leaderboard is ri
   const h = await s.host();
   await s.player(h, 'Ana', { fighter: 'finance_bro' });
   await s.player(h, 'Max', { fighter: 'house_dj' });
-  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] });
   const { matchId } = await h.next('match_started');
   s.clock.now += 90_000;
   const slowRead = s.api('/api/leaderboard'); // starts before the write, returns after it
@@ -178,7 +178,7 @@ test('a phone that reconnects in the lobby is not shown the screen or the number
   const h = await s.host();
   const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
   await s.player(h, 'Max', { fighter: 'house_dj' });
-  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] });
   const { matchId } = await h.next('match_started');
   h.send({ t: 'to', slot: 'all', msg: { t: 'phase', name: 'match' } });
   h.send({ t: 'to', slot: 0, msg: { t: 'status', pct: 187, lives: 0, state: 'out', cd: 0, cdMax: 420 } });
@@ -216,7 +216,7 @@ test('a result cannot arrive faster than the match could have been played', asyn
   await s.player(h, 'Ana', { fighter: 'finance_bro' });
   await s.player(h, 'Max', { fighter: 'house_dj' });
   const tryAfter = async (ms, durationS) => {
-    h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+    h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] });
     const { matchId } = await h.next('match_started');
     s.clock.now += ms;
     h.send({ t: 'match_result', matchId, result: sampleResult({ durationS }) });
@@ -244,7 +244,7 @@ test('a result cannot arrive faster than the match could have been played', asyn
 test('results that cannot be: KOs without a victim, more damage at the end than was taken, one player dealing it all in a second', async () => {
   const { checkResult } = await import('../../server/results.js');
   const NOW = 1_800_000_000_000;
-  const match = { id: 'x', stage: 'campus', lives: 3, slots: [0, 1], guests: 0, startedAt: NOW - 600_000 };
+  const match = { id: 'x', stage: 'campus', lives: 3, slots: [0, 1], startedAt: NOW - 600_000 };
   const reason = (mutate, over = {}) => {
     const r = sampleResult(over);
     mutate(r);
@@ -271,7 +271,7 @@ test('a player whose matches pile up within an hour stops earning points; the li
     await a.settle();
     await b.settle();
     h.drain();
-    h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+    h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] });
     const { matchId } = await h.next('match_started');
     s.clock.now += 20_000;
     h.send({ t: 'match_result', matchId, result: sampleResult({ durationS: 10 }) });
@@ -352,10 +352,12 @@ test('a phone that stops reading is cut off instead of filling the server\'s mem
 test('what the host may pass on is checked field by field: nothing a phone could choke on gets through', async (t) => {
   const { relayProblem } = await import('../../server/rooms.js');
   const good = [
-    { t: 'phase', name: 'lobby', vote: true, stages: [{ id: 'campus', name: 'Nova SBE Campus' }] },
+    { t: 'phase', name: 'lobby' },
     { t: 'phase', name: 'match', stage: 'beach', stageName: 'Carcavelos Beach', paused: false, lives: 3, slots: [0, 1, 2, 3], hazards: [{ id: 'wave', name: 'Big Wave' }] },
     { t: 'phase', name: 'results', place: 1, of: 4, won: true, winner: 'Ana', stats: { dealt: 310, taken: 44, kos: 6, falls: 0 }, points: 131, total: 500, achievements: [{ name: 'First Win', text: 'Win a match.' }], note: '' },
     { t: 'status', pct: 87, lives: 2, state: 'alive', cd: 120, cdMax: 420, held: 'sardine', tipsy: false },
+    { t: 'status', pct: 0, lives: 3, state: 'alive', cd: 0, cdMax: 420, held: 'project', tipsy: false, fuse: 4, buff: 'lucky' },
+    { t: 'status', pct: 0, lives: 3, state: 'alive', cd: 0, cdMax: 420, held: null, tipsy: false, fuse: null, buff: 'bifana' },
     { t: 'feedback', kind: 'out', text: "You're out! Grab a coffee and watch.", title: 'BURNOUT!', flash: '#e63946', vibrate: [300, 100, 300, 100, 900] },
     { t: 'feedback', kind: 'hazardCount', name: 'BIG WAVE', n: 2 },
   ];
@@ -374,6 +376,8 @@ test('what the host may pass on is checked field by field: nothing a phone could
     { t: 'phase', name: 'results', achievements: [{ name: 'x'.repeat(41) }] },
     { t: 'phase', name: 'match', url: 'javascript:alert(1)' }, // unknown keys are refused
     { t: 'status', pct: 1, lives: 1, state: 'alive', cd: 0, cdMax: 400, extra: 1 },
+    { t: 'status', pct: 1, lives: 1, state: 'alive', cd: 0, cdMax: 400, fuse: 60 },
+    { t: 'status', pct: 1, lives: 1, state: 'alive', cd: 0, cdMax: 400, buff: 'godmode' },
     { t: 'feedback', kind: '<b>k</b>' },
     { t: 'feedback', kind: 'ko', vibrate: [1000, 1000, 1000] }, // more than two seconds in total
     { t: 'feedback', kind: 'ko', vibrate: [10, 10, 10, 10, 10, 10, 10] },
@@ -441,43 +445,37 @@ test('when a match ends or is cancelled, each phone is told that it is no longer
   const h = await s.host();
   const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
   await s.player(h, 'Max', { fighter: 'house_dj' });
-  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] });
   const { matchId } = await h.next('match_started');
   h.send({ t: 'match_abort', matchId });
   assert.deepEqual(await a.next('slot'), { t: 'slot', fighter: 'finance_bro', ready: false });
 });
 
-test('a phone that joins during a match is not given the slot of a keyboard player', async (t) => {
+test('a phone that joins during a match gets a free slot and plays in the next match', async (t) => {
   const s = await startServer(t);
   const h = await s.host();
   await s.player(h, 'Ana', { fighter: 'finance_bro' });
-  // Ana on slot 0, keyboard players on slots 1 and 2.
-  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0], guests: 2, guestSlots: [1, 2] });
+  await s.player(h, 'Max', { fighter: 'house_dj' });
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] });
   const { matchId } = await h.next('match_started');
   const late = await s.open();
   late.send({ t: 'join', room: h.code, token: await s.register('Late') });
-  assert.equal((await late.next('joined')).slot, 3, 'the only slot nobody is playing in');
-  const later = await s.open();
-  later.send({ t: 'join', room: h.code, token: await s.register('Later') });
-  assert.equal((await later.next('error')).code, 'room_full');
-  // After the match the keyboard slots are free again.
+  const joined = await late.next('joined');
+  assert.equal(joined.slot, 2);
+  assert.equal(joined.phase, 'match');
   h.send({ t: 'match_abort', matchId });
   await h.next('roster', { match: (r) => r.phase === 'lobby' });
-  later.send({ t: 'join', room: h.code, token: await s.register('Third') });
-  assert.equal((await later.next('joined')).slot, 1);
+  assert.equal(s.app.rooms.rooms.get(h.code).slots[2].gamertag, 'Late');
 });
 
-test('the list of keyboard slots is checked: no duplicates, no taken slots, not more than there are keyboard players', async (t) => {
+test('keyboard players are gone: guests and guestSlots in match_start are refused', async (t) => {
   const s = await startServer(t);
   const h = await s.host();
   await s.player(h, 'Ana', { fighter: 'finance_bro' });
-  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0], guests: 2, guestSlots: [0, 1] });
-  const taken = await h.next('error');
-  assert.equal(taken.code, 'bad_start', 'a slot a phone has just taken: a clear refusal the host page can show');
-  assert.match(taken.msg, /joined just now/);
-  for (const guestSlots of [[1, 1], [1, 2, 3], [9], 'x', [1.5]]) {
-    h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0], guests: 2, guestSlots });
-    assert.equal((await h.next('error')).code, 'bad_message', JSON.stringify(guestSlots));
+  await s.player(h, 'Max', { fighter: 'house_dj' });
+  for (const extra of [{ guests: 2, guestSlots: [2, 3] }, { guests: 0 }, { guestSlots: [] }]) {
+    h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], ...extra });
+    assert.equal((await h.next('error')).code, 'bad_message', JSON.stringify(extra));
   }
   assert.equal(s.app.rooms.rooms.get(h.code).phase, 'lobby');
 });
@@ -521,7 +519,7 @@ test('a result is shown at once and confirmed as saved when a slow sheet has fin
   const h = await s.host();
   await s.player(h, 'Ana', { fighter: 'finance_bro' });
   await s.player(h, 'Max', { fighter: 'house_dj' });
-  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] });
   const { matchId } = await h.next('match_started');
   s.clock.now += 90_000;
   h.send({ t: 'match_result', matchId, result: sampleResult() });

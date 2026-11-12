@@ -41,6 +41,8 @@ export const POSES = {
   attackUp: { la: 20, ra: -158, ll: 4, rl: -4, lean: -2, item: 'prop' },
   special: { la: -30, ra: -84, ll: 10, rl: -12, lean: 5, item: 'special' },
   specialUp: { la: 30, ra: -150, ll: 4, rl: -4, lean: -3, item: 'special' },
+  hang: { la: 162, ra: -164, ll: 6, rl: -8, lean: 0, item: 'prop' }, // holding a ledge: both arms up
+  stomp: { la: 128, ra: -138, ll: -3, rl: 3, lean: 0, item: 'prop' }, // diving: arms up, legs straight down
   hurt: { la: 96, ra: -118, ll: -16, rl: 22, lean: -16, item: 'prop' },
   ko: { la: 118, ra: -128, ll: -28, rl: 28, lean: 0, item: 'none' },
 };
@@ -191,3 +193,28 @@ export const LOOKS = {
   lisboa_og: { color: '#22a36b', cfg: { skin: '#d9a877', hair: ['short', '#c9c9d1'], top: 'gilet', legs: ['trousers', '#5a4a3a'], extras: ['flatcap', 'moustache'], prop: 'espresso', specialProp: 'minitram' } },
   carcavelos_gang_member: { color: '#e0a81e', cfg: { skin: '#d9a877', hair: ['curly', '#3a2416'], top: 'tee', flag: 1, legs: ['trousers', CREAM], extras: ['moustache'], prop: 'pasta', specialProp: 'fork' } },
 };
+
+// Where the back (left) hand is in a pose, in screen pixels from the feet, for a fighter
+// facing right (D-139). Held items are drawn there. It repeats the geometry of buildSvg:
+// the hand sits at the end of the left arm, the arm turns around the shoulder by `la`,
+// and the whole body leans around (0, -20).
+const UNITS_TO_SCREEN = SPRITE.scale / UNITS_PER_PIXEL;
+const turn = (x, y, cx, cy, deg) => {
+  const a = (deg * Math.PI) / 180;
+  return { x: cx + (x - cx) * Math.cos(a) - (y - cy) * Math.sin(a), y: cy + (x - cx) * Math.sin(a) + (y - cy) * Math.cos(a) };
+};
+const handCache = new Map();
+export function handPoint(fighterId, poseName) {
+  const key = `${fighterId}|${poseName}`;
+  if (!handCache.has(key)) {
+    const c = (LOOKS[fighterId] || LOOKS.finance_bro).cfg;
+    const pose = POSES[poseName] || POSES.idle;
+    const bw = { slim: 42, normal: 50, buff: 62 }[c.build || 'normal'];
+    const aw = c.build === 'buff' ? 17 : 12;
+    const lx = -bw / 2 - aw + 6;
+    const arm = turn(lx + aw / 2, -36, -bw / 2 + 2, -70, pose.la);
+    const body = turn(arm.x, arm.y, 0, -20, pose.lean);
+    handCache.set(key, { x: Math.round(body.x * UNITS_TO_SCREEN * 10) / 10, y: Math.round(body.y * UNITS_TO_SCREEN * 10) / 10 });
+  }
+  return handCache.get(key);
+}

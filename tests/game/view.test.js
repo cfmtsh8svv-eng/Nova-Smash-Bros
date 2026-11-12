@@ -79,9 +79,9 @@ test('the roster and the stages match the spec', () => {
     'Carcavelos Gang Member': [100, 3, 'Pizza Throw', 'Spaghetti Lasso'],
   });
   assert.deepEqual(STAGES.map((s) => [s.name, s.platforms.length, s.hazards]), [
-    ['Nova SBE Campus', 5, ['train', 'wifi']],
-    ['Carcavelos Beach', 5, ['wave', 'gulls']],
-    ['Bairro Alto', 6, ['crowd', 'drinks']],
+    ['Nova SBE Campus', 5, ['train', 'wifi', 'rain']],
+    ['Carcavelos Beach', 5, ['wave', 'gulls', 'sun']],
+    ['Bairro Alto', 6, ['crowd', 'drinks', 'fireworks']],
   ]);
   for (const stage of STAGES) {
     assert.equal(stage.platforms.filter((p) => p.solid).length, 1, 'one solid main ground');
@@ -89,4 +89,24 @@ test('the roster and the stages match the spec', () => {
       assert.ok(stage.platforms.some((p) => p.y === spawn.y && spawn.x > p.x && spawn.x < p.x + p.w), 'spawns stand on a platform');
     }
   }
+});
+
+test('pause hint: "Press P or Esc to pause" under the main ground during the countdown and the fight, not in the final KO', async () => {
+  const { PAUSE_HINT, pauseHint } = await import('../../src/game/view.js');
+  assert.equal(PAUSE_HINT.text, 'Press P or Esc to pause');
+  for (const stage of STAGES) {
+    const ground = stage.platforms.find((p) => p.solid);
+    assert.ok(PAUSE_HINT.y > ground.y + 60, `${stage.id}: below the standing line of the main ground`);
+    for (const p of stage.platforms) assert.ok(PAUSE_HINT.y > p.y + 20, `${stage.id}: covers no platform`);
+  }
+  assert.ok(PAUSE_HINT.y < 720 && PAUSE_HINT.alpha > 0 && PAUSE_HINT.alpha < 1, 'on screen, semi-transparent');
+  const state = fight();
+  assert.equal(pauseHint(state), true);
+  state.phase = 'countdown';
+  assert.equal(pauseHint(state), true);
+  for (const phase of ['finalKo', 'ended']) {
+    state.phase = phase;
+    assert.equal(pauseHint(state), false, phase);
+  }
+  assert.equal(pauseHint(null), false);
 });

@@ -13,7 +13,8 @@ import { clearFighterEffects, feedback, knockOut } from './combat.js';
 import { controlFighter, moveFighter, pushApart } from './physics.js';
 import { startAttack, updateAttacks, updateProjectiles } from './attacks.js';
 import { startSpecial, updateSpecial } from './specials.js';
-import { nextItemDelay, updateItems } from './items.js';
+import { updateStomp } from './stomp.js';
+import { burnFuse, nextItemDelay, updateItems } from './items.js';
 import { newHazardState, updateHazards, wifiDelayFor } from './hazards.js';
 
 export const FINAL_KO_TEXT = 'FINAL KO!';
@@ -37,7 +38,7 @@ function createFighter(player, spawn, lives, index, players) {
     onGround: true, groundId: 0, jumpsLeft: 1, coyote: 0, dropTimer: 0, dropFrom: -1, gravityScale: 1, dragVx: 0,
     jumpBuffer: 0, attackBuffer: 0, specialBuffer: 0,
     percent: 0, finalPercent: 0, lives, state: 'alive', respawnTimer: 0, invincible: 0,
-    hitstun: 0, stun: 0, tipsy: 0, slip: 0, speedBoost: 0,
+    hitstun: 0, stun: 0, tipsy: 0, slip: 0, bifana: 0, rooster: 0, hang: null, ledgeUsed: false,
     attack: null, special: null, pull: null, held: null,
     cooldown: 0, cooldownMax: def.special.cooldown,
     lastHitBy: null, lastHitKind: null, lastHitTimer: 0, koFrame: -1,
@@ -143,8 +144,10 @@ export function step(state, inputs = {}) {
       }
       continue;
     }
-    for (const key of ['invincible', 'hitstun', 'stun', 'tipsy', 'slip', 'speedBoost', 'cooldown', 'lastHitTimer', 'dropTimer', 'coyote', 'squash', 'stretch']) tick(f, key);
+    for (const key of ['invincible', 'hitstun', 'stun', 'tipsy', 'slip', 'bifana', 'rooster', 'cooldown', 'lastHitTimer', 'dropTimer', 'coyote', 'squash', 'stretch']) tick(f, key);
 
+    if (fighting) burnFuse(state, f); // a Group Project in the hands burns down
+    if (f.state !== 'alive') continue; // ... and may have blown its holder out of the game
     const raw = inputs[f.slot] || neutralInput();
     let inp = withPresses(raw, f.prevRaw);
     f.prevRaw = heldOnly(raw);
@@ -153,10 +156,11 @@ export function step(state, inputs = {}) {
     if (f.tipsy > 0) inp = swapSides(inp);
 
     controlFighter(state, f, inp);
-    const free = f.hitstun <= 0 && f.stun <= 0 && !f.pull && !f.attack && !f.special;
+    const free = f.hitstun <= 0 && f.stun <= 0 && !f.pull && !f.attack && !f.special && !f.hang;
     if (free && f.specialBuffer > 0 && f.cooldown <= 0) startSpecial(state, f);
     else if (free && f.attackBuffer > 0) startAttack(state, f);
     updateSpecial(state, f);
+    updateStomp(state, f);
     moveFighter(state, f, inp);
   }
 
@@ -250,5 +254,8 @@ export function phoneStatus(state, slot) {
     cdMax: f.cooldownMax,
     held: f.held ? f.held.type : null,
     tipsy: f.tipsy > 0,
+    // The Group Project's fuse in whole seconds, and what the phone header shows when nothing is held.
+    fuse: f.held && f.held.type === 'project' ? Math.ceil(f.held.fuse / 60) : null,
+    buff: f.rooster > 0 ? 'lucky' : f.bifana > 0 ? 'bifana' : null,
   };
 }

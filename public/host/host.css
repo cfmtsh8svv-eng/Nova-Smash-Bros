@@ -47,16 +47,11 @@ button.plain { background: transparent; box-shadow: none; color: var(--mute); }
 .slot .state.away { color: var(--yellow); }
 .slot .remove { position: absolute; top: 0.4cqw; right: 0.4cqw; padding: 0 0.5cqw; font-size: 0.95cqw; line-height: 1.5; background: transparent; box-shadow: none; border-color: transparent; color: var(--mute); }
 .slot .remove:hover, .slot .remove[data-sure] { color: #fff; background: var(--red); border-color: rgba(255, 255, 255, 0.4); }
-.slot .pickers { display: flex; gap: 0.4cqw; margin-top: 0.3cqw; }
-.slot .pickers button { padding: 0.1cqw 0.7cqw; font-size: 1cqw; }
 .slot.joined { animation: joined 0.6s ease-out; }
 .slot.joined::after { content: ""; position: absolute; inset: 0; background: var(--p); animation: flash 0.6s ease-out forwards; pointer-events: none; }
 @keyframes joined { 0% { transform: scale(0.6); } 55% { transform: scale(1.08); } 100% { transform: scale(1); } }
 @keyframes flash { 0% { opacity: 0.9; } 100% { opacity: 0; } }
 
-.keys { display: flex; align-items: center; gap: 0.8cqw; font-size: 1.15cqw; color: var(--mute); }
-.keys b { font-family: var(--display); font-weight: 400; font-size: 1.5cqw; color: var(--ink); min-width: 1.5cqw; text-align: center; }
-.keys button { padding: 0 0.9cqw; font-size: 1.4cqw; }
 
 .choice { display: grid; gap: 0.5cqw; }
 .choice.four { grid-template-columns: repeat(2, 1fr); }
@@ -94,10 +89,26 @@ button.plain { background: transparent; box-shadow: none; color: var(--mute); }
 .place.fourth canvas { transform: rotate(90deg); margin: -2.4cqw 0 -1.6cqw; }
 .resultsBottom { display: flex; align-items: flex-end; gap: 3cqw; }
 
+/* map vote: the three stages side by side, large */
+#vote { gap: 1.4cqw; }
+.voteCards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6cqw; width: 100%; }
+.voteCard { display: flex; flex-direction: column; align-items: center; gap: 0.5cqw; padding: 0.9cqw; background: rgba(22, 18, 42, 0.88); border: 0.3cqw solid var(--line); border-radius: 1.2cqw; transition: transform 0.3s, opacity 0.3s, border-color 0.3s; }
+.voteCard canvas { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 0.7cqw; background: #1b1330; }
+.voteCard h2 { font-size: 1.7cqw; text-align: center; color: var(--ink); }
+.voteCard .small { text-align: center; }
+.voteCard .count { font-family: var(--display); font-weight: 400; font-size: 2.6cqw; color: var(--yellow); }
+.voteCard .faces { display: flex; gap: 0.4cqw; min-height: 6.5cqw; align-items: flex-end; }
+.voteCard .faces canvas { width: 4.5cqw; height: auto; aspect-ratio: auto; background: none; image-rendering: pixelated; }
+.voteCard.winner { border-color: var(--yellow); transform: scale(1.05); box-shadow: 0 0 2.5cqw rgba(246, 195, 67, 0.55); }
+.voteCard.lost { opacity: 0.35; transform: scale(0.95); }
+.voteBottom { display: flex; align-items: center; gap: 2cqw; }
+.voteTimer { font-family: var(--display); font-weight: 400; font-size: 5cqw; line-height: 1; color: #fff; min-width: 6cqw; }
+
 #toast, #offline { position: absolute; left: 50%; bottom: 3cqw; transform: translateX(-50%); background: var(--dark); border: 0.25cqw solid var(--yellow); border-radius: 0.9cqw; padding: 0.6cqw 1.4cqw; font-size: 1.3cqw; max-width: 80%; }
 #offline { bottom: auto; top: 1.2cqw; border-color: var(--red); }
 
 @media (prefers-reduced-motion: reduce) {
   .slot.joined, .slot.joined::after { animation: none; }
+  .voteCard { transition: none; }
   #dim { transition: none; }
 }

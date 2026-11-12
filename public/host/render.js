@@ -5,10 +5,10 @@
 // items - fighters - things that fly - hazards in front - effects - name tags -
 // the HUD (player cards, hazard countdown, big texts).
 import { CONFIG, PLAYER_COLORS, SCREEN } from '/game/config.js';
-import { damageColor, hearts, poseOf } from '/game/view.js';
+import { damageColor, drawnPose, hearts, heldItemAt, PAUSE_HINT, pauseHint } from '/game/view.js';
 import { hazardRect } from '/game/hazards.js';
 import { getFighter } from '/game/fighters.js';
-import { duplicateColour, SPRITE } from '/shared/art/characters.js';
+import { duplicateColour, handPoint, SPRITE } from '/shared/art/characters.js';
 import { getSprite, getStageImage, loadStage } from '/shared/art/sprites.js';
 
 const DISPLAY = '"Bungee", "Arial Black", sans-serif';
@@ -78,25 +78,14 @@ export function createRenderer(canvas) {
     ctx.translate(x, y);
     ctx.lineWidth = 3;
     ctx.strokeStyle = INK;
-    if (type === 'tart') {
+    if (type === 'nata') {
+      // Pastel de Nata: a golden tart with a burnt-sugar top
       ctx.fillStyle = '#c98a3a';
       ctx.beginPath(); ctx.ellipse(0, -11, 17, 12, 0, 0, 7); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#f6c343';
       ctx.beginPath(); ctx.ellipse(0, -13, 12, 7, 0, 0, 7); ctx.fill();
       ctx.fillStyle = '#8a4f1e';
       for (const [dx, dy] of [[-5, -14], [4, -12], [0, -16]]) { ctx.beginPath(); ctx.arc(dx, dy, 2.2, 0, 7); ctx.fill(); }
-    } else if (type === 'espresso') {
-      ctx.fillStyle = '#eef3f8';
-      roundRect(ctx, -11, -20, 20, 16, 4); ctx.fill(); ctx.stroke();
-      ctx.beginPath(); ctx.arc(11, -12, 5, -1.4, 1.4); ctx.stroke();
-      ctx.fillStyle = '#5a3320';
-      ctx.fillRect(-8, -18, 14, 4);
-      ctx.strokeStyle = 'rgba(255,255,255,.75)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(-4, -24); ctx.quadraticCurveTo(-8 + Math.sin(t / 9) * 3, -30, -4, -36);
-      ctx.moveTo(4, -24); ctx.quadraticCurveTo(8 + Math.sin(t / 9 + 2) * 3, -30, 4, -36);
-      ctx.stroke();
     } else if (type === 'sardine') {
       ctx.rotate(-0.25);
       ctx.fillStyle = '#8fb4d9';
@@ -111,6 +100,69 @@ export function createRenderer(canvas) {
       ctx.fillRect(-8, -24, 16, 4);
       ctx.fillStyle = '#eef3f8';
       ctx.fillRect(-11, -5, 22, 3);
+    } else if (type === 'project') {
+      // Group Project: a stuffed folder with a lit fuse
+      ctx.fillStyle = '#f6c343';
+      roundRect(ctx, -16, -28, 32, 26, 3); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#eef3f8';
+      ctx.fillRect(-12, -32, 22, 6);
+      ctx.fillStyle = INK;
+      ctx.font = `800 8px ${BODY}`;
+      ctx.textAlign = 'center';
+      ctx.fillText('GROUP', 0, -16);
+      ctx.fillText('WORK', 0, -8);
+      ctx.strokeStyle = INK;
+      ctx.beginPath(); ctx.moveTo(12, -28); ctx.quadraticCurveTo(20, -36, 16, -42); ctx.stroke();
+      ctx.fillStyle = Math.floor(t / 4) % 2 ? '#ff7a3d' : '#f6c343';
+      ctx.beginPath(); ctx.arc(16, -43, 3.5, 0, 7); ctx.fill();
+    } else if (type === 'bifana') {
+      // Bifana: a pork sandwich in a crusty roll
+      ctx.fillStyle = '#d9a35c';
+      ctx.beginPath(); ctx.ellipse(0, -16, 19, 8, 0, Math.PI, 0); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#9a5a32';
+      ctx.fillRect(-18, -16, 36, 5);
+      ctx.fillStyle = '#d9a35c';
+      ctx.beginPath(); ctx.ellipse(0, -10, 18, 5, 0, 0, Math.PI); ctx.fill(); ctx.stroke();
+    } else if (type === 'megaphone') {
+      ctx.fillStyle = '#e63946';
+      ctx.beginPath(); ctx.moveTo(-14, -20); ctx.lineTo(10, -30); ctx.lineTo(10, -4); ctx.lineTo(-14, -12); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#eef3f8';
+      ctx.fillRect(-20, -20, 7, 8);
+      ctx.strokeRect(-20, -20, 7, 8);
+      ctx.fillStyle = INK;
+      ctx.fillRect(-10, -10, 4, 9);
+    } else if (type === 'cork') {
+      // Cork Shield: a round cork board with a darker rim
+      ctx.fillStyle = '#c98a3a';
+      ctx.beginPath(); ctx.arc(0, -16, 15, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#a86b2c';
+      for (const [dx, dy] of [[-6, -20], [5, -12], [3, -23], [-3, -9], [8, -19]]) { ctx.beginPath(); ctx.arc(dx, dy, 1.6, 0, 7); ctx.fill(); }
+      ctx.strokeStyle = '#7a4a2c';
+      ctx.beginPath(); ctx.arc(0, -16, 11, 0, 7); ctx.stroke();
+    } else if (type === 'azulejo') {
+      // Azulejo: a white tile with a blue pattern
+      ctx.fillStyle = '#eef3f8';
+      roundRect(ctx, -14, -30, 28, 28, 2); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = '#2f5fb0';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(0, -16, 7, 0, 7); ctx.stroke();
+      for (const [dx, dy] of [[-10, -26], [10, -26], [-10, -6], [10, -6]]) { ctx.beginPath(); ctx.arc(dx, dy, 3.5, 0, 7); ctx.stroke(); }
+    } else if (type === 'rooster') {
+      // Lucky Rooster (Galo de Barcelos): black body, red comb, coloured hearts
+      ctx.fillStyle = '#16122a';
+      ctx.beginPath(); ctx.ellipse(-2, -14, 13, 10, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(9, -27, 5, 7, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-12, -16); ctx.lineTo(-20, -30); ctx.lineTo(-8, -22); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#e63946';
+      ctx.beginPath(); ctx.arc(9, -35, 3.5, 0, 7); ctx.arc(13, -33, 3, 0, 7); ctx.fill();
+      ctx.fillStyle = '#f6c343';
+      ctx.beginPath(); ctx.moveTo(13, -28); ctx.lineTo(18, -27); ctx.lineTo(13, -25); ctx.fill();
+      ctx.fillStyle = '#f6c343';
+      ctx.beginPath(); ctx.arc(-4, -14, 3, 0, 7); ctx.fill();
+      ctx.fillStyle = '#e63946';
+      ctx.beginPath(); ctx.arc(3, -11, 2.5, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#f6c343';
+      ctx.beginPath(); ctx.moveTo(-2, -4); ctx.lineTo(-2, 0); ctx.moveTo(4, -4); ctx.lineTo(4, 0); ctx.stroke();
     }
     ctx.restore();
   }
@@ -163,6 +215,20 @@ export function createRenderer(canvas) {
         ctx.strokeStyle = INK;
         ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, 7); ctx.fill(); ctx.stroke();
+      } else if (p.kind === 'tile' || p.kind === 'shard') {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.age * 0.4);
+        if (p.kind === 'tile') drawItemShape('azulejo', 0, 16, t);
+        else {
+          ctx.fillStyle = '#eef3f8';
+          ctx.strokeStyle = INK;
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(-8, -6); ctx.lineTo(8, -3); ctx.lineTo(-2, 8); ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = '#2f5fb0';
+          ctx.fillRect(-3, -3, 4, 4);
+        }
+        ctx.restore();
       } else {
         ctx.save();
         ctx.translate(p.x, p.y);
@@ -175,33 +241,131 @@ export function createRenderer(canvas) {
 
   // ---- hazards ----
 
+  // The train runs on the rails at the bottom of the screen (y 678 to 720) and is tall enough
+  // to reach up through the terrace level, where it hits (D-144).
   function drawTrain(rect, dir) {
+    // A Linha de Cascais unit: ribbed stainless steel, one long dark window band, a few
+    // silver doors, grey boxes on the roof, and a flat yellow cab front.
     const cars = 3;
-    const carW = rect.w / cars;
-    const y = rect.y + 8;
-    const h = rect.h - 30 - 20;
+    const gap = 10;
+    const carW = (rect.w - gap * (cars - 1)) / cars;
+    const top = rect.y + 30;
+    const floor = 664;
+    const h = floor - top;
+    const STEEL = '#c9c6bd';
+    const STEEL_DARK = '#a7a49b';
+    const YELLOW = '#f2b51d';
+    ctx.save();
+    ctx.lineJoin = 'round';
     for (let i = 0; i < cars; i++) {
-      const x = rect.x + i * carW;
-      ctx.lineWidth = 4;
+      const x = rect.x + i * (carW + gap);
+      const lead = dir > 0 ? i === cars - 1 : i === 0;
+      const tail = dir > 0 ? i === 0 : i === cars - 1;
+      if (i < cars - 1) {
+        ctx.fillStyle = '#2b2d33';
+        ctx.fillRect(x + carW - 4, top + 24, gap + 8, h - 40);
+      }
+      // roof units first, so the body covers their lower edge
+      ctx.fillStyle = '#9b988f';
       ctx.strokeStyle = INK;
-      ctx.fillStyle = '#f1f5fa';
-      roundRect(ctx, x + 3, y, carW - 6, h, 12); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#f6c343';
-      ctx.fillRect(x + 5, y + h * 0.62, carW - 10, h * 0.2);
-      ctx.fillStyle = '#1f3348';
-      for (let k = 0; k < 4; k++) roundRect(ctx, x + 16 + k * ((carW - 32) / 4), y + 12, (carW - 32) / 4 - 8, h * 0.36, 4), ctx.fill();
-      ctx.fillStyle = INK;
-      for (const wx of [0.2, 0.8]) { ctx.beginPath(); ctx.arc(x + carW * wx, y + h + 6, 9, 0, 7); ctx.fill(); }
+      ctx.lineWidth = 3;
+      for (const k of [0.12, 0.62]) { roundRect(ctx, x + carW * k, top - 16, carW * 0.26, 22, 4); ctx.fill(); ctx.stroke(); }
+      // body
+      const body = ctx.createLinearGradient(0, top, 0, floor);
+      body.addColorStop(0, '#dedbd2');
+      body.addColorStop(0.5, STEEL);
+      body.addColorStop(1, STEEL_DARK);
+      ctx.fillStyle = body;
+      ctx.lineWidth = 4;
+      roundRect(ctx, x, top, carW, h, 12); ctx.fill(); ctx.stroke();
+      ctx.save();
+      roundRect(ctx, x, top, carW, h, 12); ctx.clip();
+      // ribs over the whole side
+      ctx.strokeStyle = 'rgba(80,76,68,.28)';
+      ctx.lineWidth = 1.5;
+      for (let fy = top + 8; fy < floor; fy += 6) { ctx.beginPath(); ctx.moveTo(x, fy); ctx.lineTo(x + carW, fy); ctx.stroke(); }
+      // one long dark window band
+      const bandTop = top + 22;
+      const bandH = h * 0.3;
+      ctx.fillStyle = '#2a2d31';
+      ctx.fillRect(x, bandTop, carW, bandH);
+      ctx.strokeStyle = '#4a4e55';
+      ctx.lineWidth = 2;
+      for (let wx = x + 60; wx < x + carW; wx += 60) { ctx.beginPath(); ctx.moveTo(wx, bandTop); ctx.lineTo(wx, bandTop + bandH); ctx.stroke(); }
+      ctx.fillStyle = 'rgba(255,255,255,.12)';
+      for (let wx = x + 14; wx < x + carW; wx += 60) ctx.fillRect(wx, bandTop + 5, 10, bandH - 10);
+      // silver doors with two narrow windows, near the ends of the carriage
+      const doors = [0.14, 0.86].map((k) => x + carW * k);
+      for (const d of doors) {
+        ctx.fillStyle = '#d9d7d0';
+        ctx.strokeStyle = '#3a3c42';
+        ctx.lineWidth = 2.5;
+        roundRect(ctx, d - 26, bandTop - 6, 52, floor - bandTop + 4, 4); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(d, bandTop - 6); ctx.lineTo(d, floor); ctx.stroke();
+        ctx.fillStyle = '#2a2d31';
+        roundRect(ctx, d - 20, bandTop + 2, 14, bandH + 16, 3); ctx.fill();
+        roundRect(ctx, d + 6, bandTop + 2, 14, bandH + 16, 3); ctx.fill();
+      }
+      // yellow cab ends: flat, with a wide dark windscreen and a headlight
+      for (const end of [lead ? 'front' : null, tail ? 'back' : null]) {
+        if (!end) continue;
+        const atRight = (end === 'front') === (dir > 0);
+        const cabW = 92;
+        const cx = atRight ? x + carW - cabW : x;
+        ctx.fillStyle = YELLOW;
+        ctx.fillRect(cx, top, cabW, h);
+        ctx.strokeStyle = 'rgba(120,80,0,.35)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(atRight ? cx : cx + cabW, top); ctx.lineTo(atRight ? cx : cx + cabW, floor); ctx.stroke();
+        ctx.fillStyle = '#1c1e22';
+        roundRect(ctx, cx + 10, bandTop - 2, cabW - 20, bandH + 10, 8); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.18)';
+        ctx.fillRect(cx + 18, bandTop + 4, 8, bandH - 4);
+        const lampX = atRight ? x + carW - 22 : x + 22;
+        ctx.fillStyle = end === 'front' ? '#fff3c4' : '#e63946';
+        ctx.beginPath(); ctx.arc(lampX, top + h * 0.72, 7, 0, 7); ctx.fill();
+        if (end === 'front') {
+          ctx.fillStyle = 'rgba(255,243,196,.4)';
+          ctx.beginPath(); ctx.arc(lampX, top + h * 0.72, 15, 0, 7); ctx.fill();
+        }
+        // the coupler and a dark lower edge
+        ctx.fillStyle = '#2b2d33';
+        ctx.fillRect(cx, floor - 12, cabW, 12);
+      }
+      ctx.restore();
+      // pantograph on the middle carriage
+      if (i === 1) {
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 3;
+        const px = x + carW / 2;
+        ctx.beginPath();
+        ctx.moveTo(px - 28, top); ctx.lineTo(px + 6, top - 28); ctx.lineTo(px - 16, top - 28);
+        ctx.moveTo(px - 32, top - 28); ctx.lineTo(px + 34, top - 28);
+        ctx.stroke();
+      }
+      // dark skirt and bogies
+      ctx.fillStyle = '#2b2d33';
+      ctx.fillRect(x + 8, floor, carW - 16, 8);
+      for (const k of [0.15, 0.85]) {
+        const bx = x + carW * k;
+        roundRect(ctx, bx - 38, floor + 2, 76, 12, 4); ctx.fill();
+        for (const dx of [-22, 22]) {
+          ctx.fillStyle = '#16171b';
+          ctx.beginPath(); ctx.arc(bx + dx, floor + 14, 9, 0, 7); ctx.fill();
+          ctx.fillStyle = '#8a8f9c';
+          ctx.beginPath(); ctx.arc(bx + dx, floor + 14, 3, 0, 7); ctx.fill();
+          ctx.fillStyle = '#2b2d33';
+        }
+      }
     }
-    const front = dir > 0 ? rect.x + rect.w - 10 : rect.x + 10;
-    ctx.fillStyle = '#fff2c8';
-    ctx.beginPath(); ctx.arc(front, y + h * 0.75, 7, 0, 7); ctx.fill();
+    ctx.restore();
   }
 
+  // The water rises from the bottom edge of the screen (D-146).
   function drawWave(rect, dir, t) {
     ctx.save();
     const top = rect.y + 6;
-    const bottom = rect.y + rect.h;
+    const bottom = SCREEN.h;
     const grad = ctx.createLinearGradient(0, top, 0, bottom);
     grad.addColorStop(0, '#bfeeff');
     grad.addColorStop(0.3, '#3fb6d8');
@@ -323,7 +487,8 @@ export function createRenderer(canvas) {
     drawWifiIcon(84, band.y + 96, 0.55 + 0.4 * Math.sin(t / 4));
   }
 
-  // During the countdown the place where the hazard will strike gives a hint:
+  // During the countdown the place where the hazard will strike gives a hint (not for the
+  // Big Wave and the Midday Sun, D-151):
   // a soft pulsing glow, part of the scene and not a box or a bar.
   function drawTelegraph(state, t) {
     const hz = state.hazard;
@@ -341,7 +506,24 @@ export function createRenderer(canvas) {
     };
     const edge = hz.dir > 0 ? 0 : SCREEN.w;
     if (hz.id === 'train') glow(edge, ground - 50, 170, '#fff2c8');
-    if (hz.id === 'wave') glow(edge, ground - 40, 190, '#7fe0ff');
+    if (hz.id === 'rain') {
+      ctx.save();
+      ctx.globalAlpha = 0.18 + 0.12 * pulse;
+      ctx.fillStyle = '#2a3346';
+      ctx.fillRect(0, 0, SCREEN.w, SCREEN.h);
+      ctx.restore();
+    }
+    if (hz.id === 'fireworks') {
+      for (const x of hz.spots) {
+        glow(x, ground - 6, 44, '#ff7a3d');
+        // a lit fuse lying on the street
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(x - 14, ground - 3); ctx.quadraticCurveTo(x, ground - 9, x + 12, ground - 4); ctx.stroke();
+        ctx.fillStyle = Math.floor(t / 3) % 2 ? '#f6c343' : '#ff7a3d';
+        ctx.beginPath(); ctx.arc(x + 12 + Math.sin(t / 2) * 2, ground - 6, 4, 0, 7); ctx.fill();
+      }
+    }
     if (hz.id === 'crowd') glow(edge, ground - 50, 170, '#ffd98a');
     if (hz.id === 'gulls') glow(edge, hz.zone === 'sand' ? 520 : 360, 150, '#ffffff');
     if (hz.id === 'wifi') drawWifiIcon(84, wifiBand(hz).y + 96, pulse);
@@ -351,12 +533,111 @@ export function createRenderer(canvas) {
     }
   }
 
+  // Sudden Rain: a darker sky and a wet shine on every platform (the drops are drawn in front).
+  function drawRainBack(state, t) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(30,38,58,.38)';
+    ctx.fillRect(0, 0, SCREEN.w, SCREEN.h);
+    for (const p of state.stage.platforms) {
+      const g = ctx.createLinearGradient(p.x, 0, p.x + p.w, 0);
+      const k = (t * 4) % (p.w + 200);
+      g.addColorStop(0, 'rgba(255,255,255,0)');
+      g.addColorStop(Math.max(0, Math.min(1, (k - 100) / p.w)), 'rgba(255,255,255,.08)');
+      g.addColorStop(Math.max(0, Math.min(1, k / p.w)), 'rgba(220,240,255,.55)');
+      g.addColorStop(1, 'rgba(255,255,255,.1)');
+      ctx.fillStyle = g;
+      ctx.fillRect(p.x, p.y - 3, p.w, 6);
+    }
+    ctx.restore();
+  }
+
+  // Raindrops in no pattern: each has its own place, length, speed and brightness, and
+  // the wind turns them a little now and then. Drawn from a fixed random list, so a drop
+  // keeps its place from one picture to the next.
+  const DROPS = Array.from({ length: 170 }, () => ({
+    x: Math.random() * (SCREEN.w + 300), y: Math.random() * SCREEN.h,
+    speed: 14 + Math.random() * 14, len: 10 + Math.random() * 26, alpha: 0.25 + Math.random() * 0.5, width: Math.random() < 0.25 ? 2.5 : 1.5,
+  }));
+  function drawRain(t, state) {
+    const wind = 0.22 + 0.12 * Math.sin(t / 47) + 0.05 * Math.sin(t / 13);
+    ctx.save();
+    ctx.lineCap = 'round';
+    for (const d of DROPS) {
+      const y = (d.y + t * d.speed) % (SCREEN.h + 60) - 30;
+      const x = ((d.x - y * wind - t * wind * 4) % (SCREEN.w + 300) + SCREEN.w + 300) % (SCREEN.w + 300) - 150;
+      ctx.strokeStyle = `rgba(205,228,255,${d.alpha})`;
+      ctx.lineWidth = d.width;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - d.len * wind, y + d.len); ctx.stroke();
+    }
+    // splashes on the platforms, at changing places
+    ctx.strokeStyle = 'rgba(220,238,255,.6)';
+    ctx.lineWidth = 1.5;
+    for (const p of state.stage.platforms) {
+      for (let k = 0; k < Math.ceil(p.w / 140); k++) {
+        const seed = Math.floor(t / 9) * 7 + k * 31 + p.x;
+        const sx = p.x + ((seed * 9301 + 49297) % 233280) / 233280 * p.w;
+        const age = (t % 9) / 9;
+        ctx.globalAlpha = 1 - age;
+        ctx.beginPath(); ctx.ellipse(sx, p.y - 1, 3 + age * 9, 1 + age * 2.5, 0, Math.PI, 0); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  // Midday Sun: a bright glare over the sand and heat shimmer on it.
+  function drawSun(state, t) {
+    const ground = state.stage.platforms[0].y;
+    const top = CONFIG.levels.groundAbove - 60;
+    ctx.save();
+    const g = ctx.createLinearGradient(0, top, 0, ground + 20);
+    g.addColorStop(0, 'rgba(255,240,170,0)');
+    g.addColorStop(1, `rgba(255,236,150,${0.38 + 0.08 * Math.sin(t / 8)})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, top, SCREEN.w, ground + 20 - top);
+    ctx.strokeStyle = 'rgba(255,255,255,.35)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 16; i++) {
+      const x = 140 + i * 66;
+      const y = ground - 20 - ((t * 1.5 + i * 13) % 50);
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 6 * Math.sin(t / 4 + i), y - 10, x, y - 20); ctx.stroke();
+    }
+    const sun = ctx.createRadialGradient(1120, 70, 10, 1120, 70, 150);
+    sun.addColorStop(0, 'rgba(255,255,230,.9)');
+    sun.addColorStop(1, 'rgba(255,240,170,0)');
+    ctx.fillStyle = sun;
+    ctx.fillRect(970, 0, 310, 230);
+    ctx.restore();
+  }
+
+  function drawRockets(hz, t) {
+    const F = CONFIG.hazards.fireworks;
+    for (const r of hz.rockets) {
+      if (r.done) continue;
+      ctx.save();
+      ctx.translate(r.x, r.y);
+      // the trail of sparks below
+      for (let i = 0; i < 8; i++) {
+        ctx.fillStyle = ['#f6c343', '#ff7a3d', '#ffffff'][i % 3];
+        ctx.fillRect(-3 + Math.sin(t + i) * 4, 6 + i * 9, 5, 5);
+      }
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = INK;
+      ctx.fillStyle = '#e63946';
+      roundRect(ctx, -F.width / 4, -F.height, F.width / 2, F.height - 6, 4); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#f6c343';
+      ctx.beginPath(); ctx.moveTo(-F.width / 4, -F.height); ctx.lineTo(0, -F.height - 14); ctx.lineTo(F.width / 4, -F.height); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   function drawHazardBack(state, t) {
     const hz = state.hazard;
     if (hz.phase === 'warn') drawTelegraph(state, t);
     if (hz.phase !== 'active') return;
     if (hz.id === 'wifi') drawWifi(hz, t);
     if (hz.id === 'drinks') drawDrinks(hz, t);
+    if (hz.id === 'rain') drawRainBack(state, t);
+    if (hz.id === 'sun') drawSun(state, t);
   }
 
   function drawHazardFront(state, t) {
@@ -367,18 +648,26 @@ export function createRenderer(canvas) {
     if (hz.id === 'wave') drawWave(rect, hz.dir, t);
     if (hz.id === 'crowd') drawCrowd(rect, hz.dir, t);
     if (hz.id === 'gulls') drawGulls(hz, t);
+    if (hz.id === 'rain') drawRain(t, state);
+    if (hz.id === 'fireworks') drawRockets(hz, t);
   }
 
   // ---- fighters ----
 
   function drawFighter(f, t) {
     if (f.state !== 'alive') return;
-    let pose = poseOf(f);
-    if (pose === 'attack' && f.attack.dir === 'up') pose = 'attackUp';
-    if (pose === 'special' && f.special.dir === 'up') pose = 'specialUp';
+    const pose = drawnPose(f);
     const main = f.altColor ? duplicateColour(f.fighterId, PLAYER_COLORS[f.slot]) : null;
     const sprite = getSprite(f.fighterId, main, pose) || getSprite(f.fighterId, main, 'idle');
 
+    // Lucky Rooster: a golden glow around the fighter.
+    if (f.rooster > 0) {
+      const glow = ctx.createRadialGradient(f.x, f.y - 50, 10, f.x, f.y - 50, 80);
+      glow.addColorStop(0, `rgba(246,195,67,${0.55 + 0.15 * Math.sin(t / 5)})`);
+      glow.addColorStop(1, 'rgba(246,195,67,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(f.x - 80, f.y - 130, 160, 160);
+    }
     if (f.onGround) {
       ctx.fillStyle = 'rgba(12,20,32,.3)';
       ctx.beginPath(); ctx.ellipse(f.x, f.y + 2, 30, 6, 0, 0, 7); ctx.fill();
@@ -399,14 +688,17 @@ export function createRenderer(canvas) {
     let sx = 1;
     let sy = 1;
     if (f.squash > 0) { const k = f.squash / 8; sx += 0.2 * k; sy -= 0.18 * k; }
+    if (f.bifana > 0) sx *= 1.14; // a Bifana: a bit wider
     if (f.stretch > 0) { const k = f.stretch / 8; sx -= 0.13 * k; sy += 0.17 * k; }
     let tilt = 0;
     if (f.hitstun > 0) tilt = Math.max(-0.5, Math.min(0.5, f.vx * 0.035));
     if (f.tipsy > 0) tilt += Math.sin(t / 9) * 0.12;
     if (f.slip > 0) tilt += Math.sin(t / 4) * 0.1;
 
+    // A hanging fighter is drawn with the hand on the corner of the ground.
+    const lift = f.hang ? f.hang.y - (f.y + handPoint(f.fighterId, 'hang').y) : 0;
     ctx.save();
-    ctx.translate(f.x, f.y);
+    ctx.translate(f.x, f.y + lift);
     ctx.rotate(tilt);
     ctx.scale(f.facing * sx * SPRITE.scale, sy * SPRITE.scale);
     if (f.invincible > 0 && Math.floor(t / 4) % 2 === 0) ctx.globalAlpha = 0.4;
@@ -422,11 +714,24 @@ export function createRenderer(canvas) {
 
     // What the fighter carries, and what is wrong with them.
     if (f.held) {
+      // In the back hand, following the arm (D-139).
+      const hand = heldItemAt(f, handPoint);
       ctx.save();
-      ctx.translate(f.x - f.facing * 26, f.y - 96 + Math.sin(t / 10) * 2);
-      ctx.scale(0.7, 0.7);
+      ctx.translate(hand.x, hand.y + lift);
+      ctx.scale(0.7 * f.facing, 0.7);
       drawItemShape(f.held.type, 0, 14, t);
       ctx.restore();
+      if (f.held.type === 'project') {
+        // The fuse above the holder: the seconds left, red in the last two.
+        const left = Math.ceil(f.held.fuse / 60);
+        ctx.save();
+        ctx.font = `30px ${DISPLAY}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const bob = Math.sin(t / 3) * 2;
+        outlined(ctx, `${left}`, f.x, f.y - H - 62 + lift + bob, left <= 2 ? '#e63946' : '#f6c343', 6);
+        ctx.restore();
+      }
     }
     if (f.stun > 0 && f.hitstun <= 0) {
       for (let i = 0; i < 3; i++) {
@@ -445,23 +750,42 @@ export function createRenderer(canvas) {
         ctx.beginPath(); ctx.arc(f.x + Math.sin(t / 8 + i * 2) * 18, f.y - H - k * 34, 4 + k * 4, 0, 7); ctx.stroke();
       }
     }
-    if (f.speedBoost > 0 && Math.abs(f.vx) > 2) {
-      ctx.strokeStyle = 'rgba(255,255,255,.6)';
-      ctx.lineWidth = 3;
-      for (let i = 0; i < 3; i++) {
-        const y = f.y - 20 - i * 26;
-        ctx.beginPath(); ctx.moveTo(f.x - f.facing * 34, y); ctx.lineTo(f.x - f.facing * (58 + ((t * 5 + i * 9) % 20)), y); ctx.stroke();
-      }
-    }
   }
 
   // The normal attack does the same for everyone; only its look differs:
   // a swing (an arc), a poke (a stick with the item at its tip) or a short throw.
   function drawAttack(f) {
     const attack = f.attack;
-    if (!attack || attack.kind === 'book') return;
+    if (attack && attack.kind === 'stomp' && attack.phase === 'dive') {
+      // Speed lines above the diving fighter.
+      ctx.strokeStyle = 'rgba(255,255,255,.7)';
+      ctx.lineWidth = 3;
+      for (const dx of [-16, 0, 16]) {
+        ctx.beginPath(); ctx.moveTo(f.x + dx, f.y - H - 6); ctx.lineTo(f.x + dx, f.y - H - 30 - Math.abs(dx)); ctx.stroke();
+      }
+      return;
+    }
+    if (!attack || attack.kind === 'book' || attack.kind === 'azulejo' || attack.kind === 'stomp') return;
     const A = CONFIG.attack;
     const k = Math.min(1, attack.t / (A.startup + A.active)); // 0 at the start, 1 when the hit is over
+    if (attack.kind === 'megaphone') {
+      // A wide cone of sound waves, as long and as high as the blast reaches.
+      const M = CONFIG.items.megaphone;
+      ctx.save();
+      ctx.translate(f.x, f.y - 48);
+      if (attack.dir === 'up') ctx.rotate(-Math.PI / 2);
+      else ctx.scale(attack.facing, 1);
+      ctx.globalAlpha = Math.max(0, 1 - Math.max(0, attack.t - A.startup - A.active) / 6);
+      ctx.lineCap = 'round';
+      for (let i = 0; i < 4; i++) {
+        const r = 30 + ((k * M.range + i * 45) % M.range);
+        ctx.strokeStyle = i % 2 ? 'rgba(255,255,255,.8)' : 'rgba(246,195,67,.85)';
+        ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.arc(0, 0, r, -0.45, 0.45); ctx.stroke();
+      }
+      ctx.restore();
+      return;
+    }
     const style = attack.kind === 'sardine' ? 'swing' : getFighter(f.fighterId).normalStyle;
     ctx.save();
     ctx.translate(f.x, f.y - 58);
@@ -624,10 +948,24 @@ export function createRenderer(canvas) {
         outlined(ctx, String(hz.count), 0, 0, '#ffffff', 9);
         ctx.restore();
       }
-    } else if (hz.phase === 'cancelled') {
-      ctx.font = `24px ${DISPLAY}`;
-      outlined(ctx, hz.text, SCREEN.w - 30, 44, '#f6c343', 6);
     }
+  }
+
+  // Bottom centre, under the main ground: how to pause. Subtle, and gone in the final KO.
+  function drawPauseHint(state) {
+    if (!pauseHint(state)) return;
+    ctx.save();
+    ctx.globalAlpha = PAUSE_HINT.alpha;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `800 16px ${BODY}`;
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = INK;
+    ctx.strokeText(PAUSE_HINT.text, SCREEN.w / 2, PAUSE_HINT.y);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(PAUSE_HINT.text, SCREEN.w / 2, PAUSE_HINT.y);
+    ctx.restore();
   }
 
   function drawBanners(fx) {
@@ -732,6 +1070,7 @@ export function createRenderer(canvas) {
     if (state) {
       drawCards(state);
       drawHazardText(state, view);
+      drawPauseHint(state);
       drawBanners(fx);
     }
     if (fx && fx.flash > 0) {

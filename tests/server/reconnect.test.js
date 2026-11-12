@@ -51,7 +51,7 @@ test('during a match a dropped player keeps the slot until the match ends and ca
   const h = await s.host();
   const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
   await s.player(h, 'Max', { fighter: 'house_dj' });
-  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] });
   const { matchId } = await h.next('match_started');
   await h.next('roster');
   h.send({ t: 'to', slot: 'all', msg: { t: 'phase', name: 'match', stage: 'campus' } });
@@ -162,7 +162,7 @@ test('the host page can reconnect with its key and gets its room back', async (t
   const h = await s.host();
   const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
   await s.player(h, 'Max', { fighter: 'house_dj' });
-  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1], guests: 0 });
+  h.send({ t: 'match_start', stage: 'campus', lives: 3, slots: [0, 1] });
   const { matchId } = await h.next('match_started');
   await h.close();
   assert.deepEqual(await a.next('host'), { t: 'host', connected: false });

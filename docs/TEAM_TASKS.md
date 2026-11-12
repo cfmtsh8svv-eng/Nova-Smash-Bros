@@ -21,7 +21,6 @@ Rule from [`AGENTS.md`](../AGENTS.md): never change a test just to make it pass.
 |---|---|---|---|
 | G1 | **Tune one fighter.** After playtesting, change one number of one special (for example Bass Drop's radius or Wave Rider's cooldown) and write down why in `docs/DECISIONS.md`. | `SPECIAL_TUNING` in `src/game/config.js` | The matching "reach of ..." case in `tests/game/exact.test.js` (the inside and outside distances) |
 | G2 | **A new KO text.** Add one more line to the launch texts or the burnout texts, in the game's voice (`docs/CONCEPT.md` §3.4). | `LAUNCH_TEXTS` / `BURNOUT_TEXTS` in `src/game/combat.js` | A test in `tests/game/rules.test.js` that over many seeds every text in the list shows up at least once |
-| G3 | **Make the Custard Tart rarer.** Items are picked evenly at random. Give each item a weight so the tart appears half as often as the others. | `spawnRandomItem` in `src/game/items.js`, weights in `config.js` | A test that counts item types over a few thousand spawns and checks the tart's share |
 
 ## Owner of the server (`server/`, `apps-script/`, `tests/server/`)
 
@@ -35,14 +34,13 @@ Rule from [`AGENTS.md`](../AGENTS.md): never change a test just to make it pass.
 
 | # | Task | Where | Test to add or change |
 |---|---|---|---|
-| C1 | **Choose the default control mode.** After playtesting with real phones, decide between D-pad and joystick as the default for new players, and write the decision into `docs/DECISIONS.md`. | Near the end of `public/play/main.js`, the line that calls `setMode(...)` | In `tests/browser/smoke.test.js`: a fresh phone starts in the chosen mode |
 | C2 | **Tune the joystick.** Try the dead zone and the up/down thresholds on a real phone until looking up does not happen by accident while running. | `STICK` in `public/play/controls.js` | In the smoke test: a small drag inside the dead zone does not move the fighter |
 | C3 | **A copy pass on the phone.** Read every message a player can see on the phone and make each one shorter or clearer where you can (keep the meaning; errors must still say what to do). | Texts in `public/play/main.js` and `public/play/index.html`; error texts in `server/rooms.js` and `server/app.js` belong to the server owner, so agree on those together | Update the texts the smoke test checks (for example "Room not found", "too short") |
 
 ## For everyone
 
 - The team tested the deployed app with iPhones in Safari after the deployment and it works (the build itself only used Chromium). Still worth doing before the demo: the same on one Android phone, and in the demo room on its Wi-Fi and projector.
-- Things the game-feel review noticed that were left for you to judge on real phones: the two arrows ◀ and ▶ are far apart (`public/play/play.css`); the D-pad/joystick switch sits just above Attack and can be hit in a fight; every hit freezes the whole game for a moment (`hitPauseMs` in `src/game/config.js`), which is a lot with four players; getting back to the stage after being launched is hard with one air jump (`doubleJumpSpeed`); Bass Drop and the up-attack launch too steeply to ever knock anyone out (`upAngleDeg`).
+- Things the game-feel review noticed that were left for you to judge on real phones: every hit freezes the whole game for a moment (`hitPauseMs` in `src/game/config.js`), which is a lot with four players; getting back to the stage after being launched is hard with one air jump (`doubleJumpSpeed`); Bass Drop and the up-attack launch too steeply to ever knock anyone out (`upAngleDeg`).
 - Play five matches on real phones and write down what felt wrong. Each note is either a tuning value (see G1, C2) or a row for `docs/DECISIONS.md`.
 - Read your section of [`WALKTHROUGH.md`](WALKTHROUGH.md) out loud once. If a sentence is hard to say, rewrite it in your own words and commit that.
 - Demo mode is described in [`DEMO.md`](DEMO.md). It is a good bigger task if there is time: the settings and the time-cap rule already exist; the lobby toggle, sending the cap to the server and letting the server accept a time-capped result are what is left.

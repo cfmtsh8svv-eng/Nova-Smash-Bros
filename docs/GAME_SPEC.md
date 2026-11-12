@@ -1,8 +1,8 @@
-# NOVA Brawl: Game Spec v1.0
+# NOVA Brawl: Game Spec v2.0
 
-**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards). Where `CONCEPT.md` or `SPECS.md` say something different, this file wins. Brand voice, signature lines and humour rules in `CONCEPT.md` §3 still apply.
+**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards) and the round 2 changes of 2026-11-12 (D-132 onwards). Where `CONCEPT.md` or `SPECS.md` say something different, this file wins. Brand voice, signature lines and humour rules in `CONCEPT.md` §3 still apply.
 
-Sound: music per stage and effects are synthesised in the browser, with separate volume controls on the host. There are no bots.
+Sound: music per stage and effects are synthesised in the browser, with separate volume controls on the host. There are no bots and no keyboard players: every fighter is played from a phone (D-132). The rules still accept players that do not come from a phone, so bots can be added later.
 
 Final art reference: [`design/final/`](../design/final/) (`reference.html`, `characters.js`, `stages.js`).
 
@@ -85,10 +85,10 @@ The **leaderboard** ranks players by **points**. Each match gives placement poin
 | KO "BURNOUT!" | Reaching **200 %** |
 | After a KO | Lose a life, respawn after 2 s at the top centre at 0 %, 2 s of invincibility |
 | Eliminated | Phone shows "You're out!" and a **vote for the next hazard** |
-| Stage choice | The host picks on the laptop: a specific stage, or **Vote**. With Vote, every phone votes; a tie is decided at random between the tied stages. |
+| Stage choice | The host picks on the laptop: **Vote** (the default) or one fixed stage. With a fixed stage the host presses Start as before. With Vote, Start opens the **map vote** (§10a); a tie or no vote at all is decided at random between the tied stages. |
 | Starting | Only the laptop starts the match, once at least 2 players are logged in and have picked a fighter. The host can **close the room** so nobody else joins, and start with 2 or 3 players. |
 | Leaving | If a player leaves or loses connection, the match **keeps running**. Their fighter stands idle, **can still be hit**, and they can rejoin at any time until the match ends. |
-| Pause | Only on the laptop |
+| Pause | Only on the laptop: **P** or **Esc** pauses and resumes. Phones cannot pause. |
 
 **Knockback**
 
@@ -97,22 +97,32 @@ launch_speed = (base_kb + kb_growth * target.percent / 100) * (100 / target.weig
 hitstun_frames = round(launch_speed * 2.5)
 ```
 
+**Ledge grab** (D-138). Getting back after a fall takes some skill:
+
+- Only the two outer corners of the **solid main ground** of each stage can be grabbed.
+- A grab happens only when the fighter is **falling** (moving down), **faces the wall**, is **not in hitstun or stun** (and not in a special, a stomp dive or a lasso pull), and the fighter's hand point (the top of the hurtbox, on the wall side) comes within **20 px** of the corner.
+- **Once per airtime:** after letting go, there is no new grab until the fighter has stood on a platform again or respawned.
+- Hanging lasts at most **1.5 s**, then the fighter drops. **Jump** climbs up onto the ground (standing on it, 30 px from the edge). **Down** lets go, and so does pushing left or right **away from the wall**. Attack and Special do nothing while hanging.
+- **No invincibility** while hanging: any hit knocks the fighter off as usual.
+- The fighter is drawn in a hanging pose (arms up) at the corner.
+
 Coordinates are a 1280×720 space at 60 Hz. Gravity 0.6 px/f². A single jump reaches about 160 px, so every platform level (130 px apart) is reachable; one double jump. All tuning values live in one `config.js`.
 
 ## 6. Controls (phone, landscape)
 
-Almost the whole screen is touch surface. Two control modes ship, and each player switches between them with a toggle in the phone header. The team decides after playtesting which one is the default.
+Almost the whole screen is touch surface. There is **one control mode** (D-133): the floating joystick. There is no D-pad and no mode toggle.
 
-| Mode | Left half | Right half |
-|---|---|---|
-| **D-pad** | Four large keys: ◀ ▶ move, ▲ look up, ▼ drop through a platform or fast fall | Three rectangular buttons: **Attack**, **Jump**, **Special** |
-| **Joystick** | The whole left half is a floating joystick that appears where the thumb lands: left/right to move, hold up to look up, down to drop | The same three buttons |
+| Left half | Right half |
+|---|---|
+| A floating **joystick** that appears where the thumb lands: left/right to move, hold up to look up, down to drop through a platform, fast fall or let go of a ledge | Three rectangular buttons: **Attack**, **Jump**, **Special** |
 
-Both modes produce the same input state (`left, right, up, down, attack, jump, special`), so the game logic does not know which one is used.
+The joystick produces the input state `left, right, up, down, attack, jump, special`; the game logic only sees that state.
 
 **Jump** jumps; pressing it again in the air is the **double jump** (one per airtime). It triggers on the press, so holding it does not repeat.
 
 **Facing.** A fighter faces left or right (the last direction pressed) or **up while up is held**. **Attack and Special go where the fighter looks**, so holding up hits or reaches an opponent who is above or jumping over. A yellow strip in the Special button shows the cooldown.
+
+**Attack in the air** (D-137): **Up + Attack** is the normal upward attack. **Attack without Up is the stomp**: the fighter stops moving sideways and drops straight down fast (18 px per frame); on landing a ring-shaped **shockwave** hits every opponent within **130 px** (centre to centre): 9 %, base_kb 6, kb_growth 9, 45° away from the stomper. Then the fighter needs **14 frames** to recover. It is a normal attack, not a special, so it has no cooldown; the recovery is its cost. If the fighter has not landed after **60 frames** (they fell past the stage), the stomp ends without a shockwave. Items: a held Book is still thrown in the air (no stomp); a held Sardine powers the stomp (it uses one swing, and the Sardine's damage and knockback apply). Attack on the ground is unchanged.
 
 Reference: `design/options/round9-phone-final.html`.
 
@@ -132,6 +142,7 @@ The phone header shows the player's **name tag in their player colour**, damage 
 | **Above each fighter** | A pill in the player colour with the name and hearts, and under it a thin damage bar |
 | **Top right** | The hazard countdown (name, then 3, 2, 1) |
 | Centre | KO texts and the final-KO sequence only |
+| **Bottom centre** | A small, semi-transparent line `Press P or Esc to pause`, in the strip under the main ground so it never covers a platform. It shows during the countdown and the fight and is hidden from the final KO on. |
 
 Whether the special is ready is shown **only on the phone** (a ring on the Special button). The phone header shows name, damage % and hearts, with no points and no placement.
 
@@ -145,7 +156,7 @@ Whether the special is ready is shown **only on the phone** (a ring on the Speci
 
 ### 7.1 Fighters (8)
 
-Pixel sprites, 81 px tall, three tones per colour, dark outline (style "HD pixel"). Each fighter has its own colour and holds its item **in the hand**. During the special the fighter pulls out the special's own item. A **name tag in the player colour** floats above every fighter. If two players pick the same fighter, the later player's top is drawn in their player colour.
+Pixel sprites, 81 px tall, three tones per colour, dark outline (style "HD pixel"). Each fighter has its own colour and holds its item **in the hand**. During the special the fighter pulls out the special's own item. A **held item** (Book, Sardine, Group Project, Megaphone, Cork Shield, Azulejo) is drawn **in the fighter's other hand** (the back hand; the front hand holds the fighter's own item), mirrored with the facing, and follows the arm in every pose: run, jump, attack and hang (D-139). The phone header keeps its label for the held item. A **name tag in the player colour** floats above every fighter. If two players pick the same fighter, the later player's top is drawn in their player colour.
 
 **Normal attacks are identical for every fighter**: 8 % damage, 90 px range in the facing direction, base_kb 4, kb_growth 9, same timing. Only the look differs (a swing, a poke, or a short throw animation of the named item). Specials hit only inside their stated range, never the whole screen.
 
@@ -168,24 +179,42 @@ Detailed illustration, drawn in code, true to the real places. Platforms are **p
 
 | Stage | Time | Platforms | Hazards |
 |---|---|---|---|
-| **Nova SBE Campus** | Day | Terrace, CTT Student Hall canopy, Pingo Doce & Go roof, main roof, tower roof | **Cascais Line Train** across the terrace level (25 % chance: "STRIKE! Train cancelled.") · **Bad Wi-Fi**: inputs delayed 200 ms for 6 s |
-| **Carcavelos Beach** | Day | Sandbank, surf-bar roof, açaí kiosk roof, lifeguard deck, lifeguard roof. Fort, Ponte 25 de Abril and Cristo Rei in the background. | **Big Wave** sweeps the sand level · **Seagulls** steal an item |
-| **Bairro Alto** | Night | Street without tram rails or overhead wires (with Erasmus Corner and its "BEER €1.50" sign), two balconies, the roof terrace of the bar The Spot, two roofs | **Drunk Crowd** pushes along the street and drags players with it · **Drinks** that make you tipsy for 8 s |
+| **Nova SBE Campus** | Day | Terrace, CTT Student Hall canopy, Pingo Doce & Go roof, main roof, tower roof | **Cascais Line Train** across the terrace level · **Bad Wi-Fi**: inputs delayed 200 ms for 6 s · **Sudden Rain**: the whole map is slippery for 6 s |
+| **Carcavelos Beach** | Day | Sandbank, surf-bar roof, açaí kiosk roof, lifeguard deck, lifeguard roof. Fort, Ponte 25 de Abril and Cristo Rei in the background. | **Big Wave** rises from the bottom and rolls across the sand · **Seagulls** steal an item · **Midday Sun** burns everyone on the sand |
+| **Bairro Alto** | Night | Street without tram rails or overhead wires (with Erasmus Corner and its "BEER €1.50" sign), two balconies, the roof terrace of the bar The Spot, two roofs | **Drunk Crowd** pushes along the street and drags players with it · **Drinks** that make you tipsy for 8 s · **Fireworks** shoot up from three spots in the street |
 
-One hazard at a time, every 25 to 40 s. Every hazard is **announced as animated text only**: the hazard's name, then a large **3, 2, 1** where each number pops in on its own, on the big screen and on every phone. No box and no bar. On the big screen it sits in the **top right corner**, over open sky, so it never covers a platform or a fighter. **Every hazard can be escaped** by moving or jumping: each one only affects one level or zone, and at least one platform is always safe.
+**Three hazards per stage** (D-143 to D-148):
+
+- **Cascais Line Train.** The train is drawn on the rails at the bottom of the screen (y 678 to 720), tall enough to reach up through the terrace level, where it hits (20 %). It looks like a Linha de Cascais unit: three long, low carriages of ribbed steel with a yellow cab front, **1,260 px** in all (D-150), so it covers most of the terrace while it passes. **25 % of trains are late:** the warning and 3, 2, 1 run as usual, then nothing happens and nothing is shown; **5 s later** the train arrives **without any warning**.
+- **Bad Wi-Fi.** Unchanged: inputs in one zone (the roofs or the ground floor) arrive 200 ms late for 6 s.
+- **Sudden Rain.** Rain over the whole map for **6 s**: every fighter slips as with Cash Rain, on every platform. No damage, so it may cover everything. Rain over the stage, a darker sky, wet shine on the platforms; phone line "It's raining! Everything is slippery."
+- **Big Wave.** It **rises from the bottom of the screen** at a random point in one random half of the sandbank, then rolls towards the far edge of the stage (the edge on the other side) and off it. Fighters standing on the sand that it touches are **dragged along** with it, strongly enough to carry them over the edge, and take 8 % once. Jumping onto a platform or over the wave escapes it. It stops dragging at the stage edge, so a dragged fighter flies on and falls, with a chance to grab the ledge. The water is drawn from the bottom edge of the screen up.
+- **Seagulls.** Unchanged.
+- **Midday Sun.** For **5 s** every fighter on the **sand level** takes **2 % every 0.5 s** (at most 20 %). The roofs and the lifeguard tower are safe. Bright glare over the sand, heat shimmer; phone line "Sunburn! Get in the shade."
+- **Drunk Crowd** and **Drinks.** Unchanged.
+- **Fireworks.** Three marked spots in the street (a glowing fuse on the ground during the warning). When it fires, a rocket shoots straight up from each spot. A fighter it touches in the street is **carried upward** with it for about **0.5 s**, then the rocket **explodes**: 12 % and a launch (base_kb 6, kb_growth 8, 80°). Fighters on the balconies and roofs are safe (the rockets start in the street). Coloured explosion particles; phone line "Fireworks! Santos Populares came early."
+
+One hazard at a time. After a hazard ends, the next warning starts at a random point **10 to 15 s** later. The Big Wave and the Midday Sun show no hint in the picture during their warning, only the text in the top right (D-151). Every hazard is **announced as animated text only**: the hazard's name, then a large **3, 2, 1** where each number pops in on its own, on the big screen and on every phone. No box and no bar. On the big screen it sits in the **top right corner**, over open sky, so it never covers a platform or a fighter. **Every hazard can be escaped** by moving or jumping: each one only affects one level or zone, and at least one platform is always safe. (Sudden Rain is the one exception: it covers the whole map but does no damage.)
 
 The campus roof carries the **Nova SBE logo**, redrawn from the official mark (source: Wikimedia Commons, `Nova_logo.png`, author Nova SBE, CC BY-SA 4.0). It is credited in `CREDITS.md` and stays the school's trademark.
 
-### 7.3 Items (4)
+### 7.3 Items (9)
 
-Spawn every 12 to 20 s, at most 3 at once.
+A new one appears on a random platform every **6 to 10 s**, at most **4** at once, and each disappears after **25 s** (D-141; the numbers are in `config.js`). The chance of each kind is weighted: **Lucky Rooster 4 %**, the other eight **12 %** each. The Espresso was removed.
 
-| Item | Effect |
-|---|---|
-| Custard Tart | Heals 20 % on touch |
-| Espresso | +30 % speed for 8 s on touch |
-| Sardine | Picked up on touch. The next 5 normal attacks do 6 % with very high knockback. |
-| Book | Picked up on touch. The next normal attack throws it: 14 %. |
+| Item | Kind | Effect |
+|---|---|---|
+| **Pastel de Nata** | on touch | Heals 20 %, never below 0 %. (The old Custard Tart, renamed.) |
+| **Sardine** | held | The next 5 normal attacks do 6 % with very high knockback. Also powers the stomp (§6). |
+| **Book** | held | The next attack throws it: 14 %. Thrown in the air too (no stomp). |
+| **Group Project** | held, forced | Hot potato. Whoever touches it is stuck with it: it is taken even with full hands, and the item held before drops to the ground. A **5 s fuse** starts at the first pick-up and never resets. A normal attack (or a stomp) that hits an opponent passes it to them. When the fuse runs out it explodes on whoever holds it: 18 %, strong launch (base_kb 8, kb_growth 10, 70° upward). The holder's phone shows "Group project! Pass it on before the deadline!" and the seconds left; the big screen shows the fuse above the holder. |
+| **Bifana** | on touch | Eaten at once: weight +40 for 10 s (harder to launch); the fighter looks a bit wider. |
+| **Megaphone** | held | The next 3 normal attacks become a wide sound cone forward (200 px long, 140 px high): 3 % and a strong push (base_kb 9, kb_growth 6, 15°). Up + Attack blasts upward. In the air without Up the stomp is unchanged and does not use the Megaphone. |
+| **Cork Shield** | held | Blocks the next hit of any kind (attack, special, projectile, hazard) completely: no damage, no knockback, no status effect. Then it breaks. It does not protect against falling out of the stage or the Group Project explosion. |
+| **Azulejo** | held | The next attack throws the tile (in the air too); after 12 frames it shatters into 3 shards that fan out forward at -12°, 0° and +12°, each 5 % with small knockback; each shard hits one opponent once. |
+| **Lucky Rooster** | on touch, rare | Invincible for 5 s (a golden glow): hits pass through without effect. Hazards still move the fighter (crowd, wave) but do no damage. |
+
+Rules for all held items: one held item at a time (the Group Project is the exception: it is forced on whoever touches it); seagulls can steal any held item except the Group Project; a KO drops everything (held items and the Bifana and Rooster effects are gone).
 
 ## 8. Security
 
@@ -209,9 +238,20 @@ Both are free. `docs/DEPLOY.md` has the steps for each.
 
 ## 10. Screens
 
-**Host (laptop):** Title (no team names) → Lobby (QR code, room code, player cards, stage select or vote, close room, lives 1/2/3, items and hazards on/off, **separate volume sliders for music and effects**, leaderboard) → Countdown → Match (HUD with one card per player at the top) → Results (winner, per-player stats, points, new achievements, leaderboard) → back to the lobby. There is no rematch button.
+**Host (laptop):** Title (no team names) → Lobby (QR code, room code, player cards, stage choice: Vote or one of the three stages, close room, lives 1/2/3, items and hazards on/off, **separate volume sliders for music and effects**, leaderboard) → Map vote (with Vote only, §10a) → Countdown → Match (HUD with one card per player at the top) → Results (winner, per-player stats, points, new achievements, leaderboard) → back to the lobby. There is no rematch button.
 
-**Phone:** Register / log in → Fighter select (swipe through the 8 fighters one at a time, with the neighbours peeking in at the sides; each card shows the sprite, the two attacks and **Speed and Weight as five-step bars, without numbers**) → Ready → Gamepad → KO'd → Eliminated + hazard vote → Results.
+**Phone:** Register / log in → Fighter select (swipe through the 8 fighters one at a time, with the neighbours peeking in at the sides; each card shows the sprite, the two attacks and **Speed and Weight as five-step bars, without numbers**) → Ready → Map vote (with Vote only, §10a) → Gamepad → KO'd → Eliminated + hazard vote → Results.
+
+### 10a. Map vote
+
+Voting is the default; the host can still pick one fixed stage in the lobby (D-135).
+
+- **Start.** With Vote chosen, the host's Start button opens the vote as soon as at least 2 players are Ready (the same rule as starting a match). The fighter select has no stage buttons.
+- **Phone vote screen.** It looks and works like the fighter select: a swipe carousel of the three stages with the neighbours peeking in, dots under it, and a big **Vote!** button. Each card shows a preview picture of the stage (the stage art drawn small), the stage name, day or night, and the stage's hazards by name. A player may change the vote until the vote ends.
+- **Big screen vote view.** The three stage previews side by side, large, each with its live vote count and the small sprites of the players who voted for it, and a 10 s countdown.
+- **End.** When every player in the vote has voted, or after **10 s**, whichever comes first. A tie or no votes is decided at random between the tied stages. The winning stage is shown for about 1.5 s on both screens, then the match starts on it with the players of the vote.
+- Players who join during the vote sit it out and play in the next match. A player who disconnects during the vote no longer counts: their vote is dropped and the vote does not wait for them.
+- **Server.** The room has a `vote` phase between `lobby` and `match`. Stage votes are accepted only in that phase and only from players in the vote; a second vote replaces the first. The match that follows must use one of the stages with the most votes.
 
 Every error is shown in plain words next to where it happened ("That gamertag is taken", "Wrong PIN, 3 tries left", "Room not found", "Connection lost, reconnecting…").
 
@@ -223,7 +263,7 @@ Every error is shown in plain words next to where it happened ("That gamertag is
 
 | Criterion | Coverage |
 |---|---|
-| It works | Deployed, health check, reconnects, every invalid input handled, sheet outage handled, keyboard fallback for two players on the host |
+| It works | Deployed, health check, reconnects, every invalid input handled, sheet outage handled |
 | UI and UX | One-scan join, auto-login, clear errors, hazard warnings, phone feedback, rotate hint |
 | Scope | Real-time multiplayer over the network, phones as controllers, accounts, leaderboard, achievements, 8 fighters, 3 stages, hazards, items |
 | Verification | Unit tests for rules, combat, specials, items, hazards; rejected actions and edge cases; server and protocol tests; one browser smoke test; CI on `main` |

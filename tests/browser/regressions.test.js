@@ -36,12 +36,15 @@ test('the host page loses its connection around Start, in mid-match and when the
     await page.waitForSelector('#select:not([hidden])');
     await page.click('#ready');
   };
-  const hold = async (page, button, ms) => {
-    const box = await page.locator(`.key[data-b="${button}"]`).boundingBox();
+  // A thumb on the joystick (the only control), pushed 50 px to the left or right for a while.
+  const hold = async (page, direction, ms) => {
+    const box = await page.locator('#stickZone').boundingBox();
     const at = { pointerId: 7, pointerType: 'touch', isPrimary: true, bubbles: true, clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 };
-    await page.dispatchEvent(`.key[data-b="${button}"]`, 'pointerdown', at);
+    const pushed = { ...at, clientX: at.clientX + (direction === 'left' ? -50 : 50) };
+    await page.dispatchEvent('#stickZone', 'pointerdown', at);
+    await page.dispatchEvent('#stickZone', 'pointermove', pushed);
     await page.waitForTimeout(ms);
-    await page.dispatchEvent(`.key[data-b="${button}"]`, 'pointerup', at);
+    await page.dispatchEvent('#stickZone', 'pointerup', pushed);
   };
 
   const hostContext = await browser.newContext({ viewport: { width: 1280, height: 720 } });
@@ -70,6 +73,7 @@ test('the host page loses its connection around Start, in mid-match and when the
   await join(max, code, 'Max');
   await host.waitForFunction(() => !document.getElementById('startMatch').disabled);
   await host.click('#lifeButtons button[data-value="1"]');
+  await host.click('#stageButtons button[data-value="campus"]'); // a fixed stage: Start begins the match at once
 
   // --- Start is pressed while the connection is down: a clear message, and Start works afterwards
   await cutHost();

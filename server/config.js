@@ -27,7 +27,6 @@ export const LIMITS = {
   authPerMinutePerAddress: 120,
   apiPerMinutePerAddress: 600,
   playersPerRoom: 4,
-  maxGuests: 2, // keyboard players on the host page
   slotHoldMs: 30_000, // a dropped phone keeps its slot this long in the lobby
   hostQuietMs: 5_000, // a host page that said nothing for this long (it pings every second) counts as offline for the phones
   hostHoldMs: 60_000, // a room without its host page lives this long

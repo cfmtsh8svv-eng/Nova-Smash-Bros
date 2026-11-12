@@ -33,12 +33,12 @@ Then open **http://localhost:3000** on the laptop and click **Open a room**.
 
 - Without any configuration the server keeps accounts and scores in memory (they are gone when it stops). To use the Google Sheet, follow [`docs/SETUP_SHEETS.md`](docs/SETUP_SHEETS.md).
 - **Phones** must be able to reach the laptop. Either use the deployed URL, or put laptop and phones in the same Wi-Fi and open the page through the laptop's network address (for example `http://192.168.1.20:3000`) instead of `localhost`, so the QR code points to an address the phones can open.
-- **No phones at hand?** In the lobby add one or two **keyboard players**: `W A S D` + `F` attack, `G` jump, `H` special, and arrow keys + `I` attack, `O` jump, `P` special.
+- Every fighter is played from a phone; there are no keyboard players. Two browser tabs on a computer can stand in for phones while developing: open `/play` in each.
 
 ## Run the tests
 
 ```bash
-npm test                          # game rules and server (about 400 tests, a few seconds)
+npm test                          # game rules and server (about 470 tests, a few seconds)
 npx playwright install chromium   # once, for the browser test
 npm run test:browser              # host page + emulated iPhone + emulated Android phone
 npm audit --audit-level=high      # dependency check
@@ -51,19 +51,23 @@ The same commands run on every push in GitHub Actions (`.github/workflows/ci.yml
 1. **Laptop:** open the URL, click *Open a room*. A QR code and a 4-letter room code appear.
 2. **Phones:** scan the QR code. New players choose a gamertag (3 to 12 letters, numbers or `_`) and a 4-digit PIN; returning players are logged in automatically.
 3. **Pick a fighter** by swiping, tap **Ready!**
-4. **Laptop:** choose the stage (or let the phones vote), the number of lives, then *Start match*.
+4. **Laptop:** leave the stage on **Vote** (the default) or pick one, choose the number of lives, then press *Start*. With Vote, every phone shows the three stages: swipe, tap **Vote!**; the vote ends when everyone has voted or after 10 s.
 5. **Fight.** Turn the phone sideways.
 
-| Button | What it does |
+The left half of the phone is a joystick: put your thumb down anywhere there and drag.
+
+| Control | What it does |
 |---|---|
-| ◀ ▶ | Move |
-| ▲ | Look up: attacks and specials then go upward |
-| ▼ | Drop through a platform, fall faster |
-| **Jump** | Jump; press again in the air for one double jump |
-| **Attack** | Normal attack in the direction you look |
+| Joystick left / right | Move |
+| Joystick up | Look up: attacks and specials then go upward |
+| Joystick down | Drop through a platform, fall faster |
+| **Jump** | Jump; press again in the air for one double jump. Falling next to the main ground while facing it, you grab its corner: Jump climbs up, down lets go |
+| **Attack** | Normal attack in the direction you look. In the air without up: the **stomp**, a straight drop with a shockwave on landing |
 | **Special** | Your fighter's special; the yellow strip shows when it is ready again |
 
-Switch between **D-pad** and **joystick** with the button in the phone's header. Watch the top right corner of the big screen: every hazard is announced with its name and a 3, 2, 1. `Esc` pauses the match on the laptop.
+**Items** appear on the platforms every few seconds: walk into them. Pastel de Nata heals, Bifana makes you heavier, the Lucky Rooster makes you invincible for 5 s; Sardine, Book, Megaphone, Cork Shield and Azulejo are held and change your next attacks. Whoever touches the **Group Project** is stuck with it: hit someone to pass it on before its 5 s fuse runs out.
+
+Each stage has three **hazards**: the Cascais Line train (sometimes late!), Bad Wi-Fi and Sudden Rain on the campus; the Big Wave, Seagulls and the Midday Sun at the beach; the Drunk Crowd, Drinks and Fireworks in Bairro Alto. Watch the top right corner of the big screen: every hazard is announced with its name and a 3, 2, 1. `P` or `Esc` pauses and resumes the match on the laptop (the line at the bottom of the big screen says so); phones cannot pause.
 
 ## Documentation
 

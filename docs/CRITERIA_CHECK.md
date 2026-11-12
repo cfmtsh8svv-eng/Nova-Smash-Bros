@@ -8,7 +8,7 @@ Run on the build machine (macOS, Node 26.13.0; the unit and server tests also un
 
 | Command | Result |
 |---|---|
-| `npm test` | 410 tests, 410 pass, 0 fail (about 7 seconds). Same result under Node 22.23.4 |
+| `npm test` | 474 tests, 474 pass, 0 fail (round 2 branch, Node 22.23.4, about 11 seconds) |
 | `npm run test:browser` | 3 tests, 3 pass, 0 fail (Chromium through Playwright, about 30 seconds) |
 | `npm audit --audit-level=high` | `found 0 vulnerabilities` |
 | GitHub Actions on the pushed branch (commit `1c6eac0`, Ubuntu, Node 22), for the push and for the pull request | Both runs succeeded: `npm test` 410 of 410, `npm audit --audit-level=high` 0 vulnerabilities, `npm run test:browser` 3 of 3 |
@@ -45,7 +45,7 @@ Missing for the top level: one pass through every workflow on a real phone, a re
 > "The interface fits the problem; workflows are direct, and results and errors are clearly shown to the user."
 
 - **The interface fits the problem.** The laptop shows the game, each phone is a gamepad. Joining is one QR scan (`public/host/main.js`, `/api/qr` in `server/app.js`), then gamertag and PIN, pick a fighter, Ready. The host page needs the mouse only for Start.
-- **Two ways to steer**, a D-pad and a floating joystick, chosen on the pad and remembered (`public/play/controls.js`).
+- **A floating joystick** that appears where the thumb lands, with a dead zone and a centre that follows the thumb (`public/play/controls.js`).
 - **Results are shown where the player looks.** Damage, lives, held item and the special's cooldown are on the player's own phone (`status` in `public/play/main.js`); every hit and KO gives a vibration, a flash and a sound together, because iPhones cannot vibrate in the browser (`public/play/feedback.js`). The big screen shows the damage cards, the final-KO slow motion and the results with points, new achievements and the all-time leaderboard.
 - **Errors say what to do.** Messages are written for the player ("That gamertag is taken. Log in with 'I have an account'.", "Wrong PIN, 4 tries left.", "The host closed the room.") and are checked word for word in `tests/browser/smoke.test.js`. Connection trouble is always visible: "Weak connection", "Connection lost, reconnecting…", "The big screen lost its connection…".
 - **Checked by looking.** Every screen of the host page and the phone page was captured at laptop size and at iPhone and Android sizes and reviewed; long names, the landscape fighter select and overlapping banners were fixed after that.
@@ -56,11 +56,11 @@ The team has played it on iPhones in Safari and reports that it works. Readabili
 
 > "Substantial features that go well beyond a solo project, implemented consistently."
 
-- **A real-time multiplayer game across devices**: one host page, two to four phones, a relay server with rooms, reconnection in every phase, and optional keyboard players on the laptop.
-- **Game content**: 8 fighters with different weight, speed and a special each (`src/game/fighters.js`, `specials.js`), 3 stages with 2 hazards each (`stages.js`, `hazards.js`), 4 items (`items.js`), a stage vote, a hazard vote for eliminated players, lives, the 200 % burnout.
+- **A real-time multiplayer game across devices**: one host page, two to four phones, a relay server with rooms, and reconnection in every phase.
+- **Game content**: 8 fighters with different weight, speed and a special each (`src/game/fighters.js`, `specials.js`), 3 stages with 3 hazards each (`stages.js`, `hazards.js`), 9 items (`items.js`), a map vote with stage previews, a hazard vote for eliminated players, lives, the 200 % burnout.
 - **Accounts and persistence**: gamertag and PIN, session tokens, points, 8 achievements, an all-time leaderboard, stored in a Google Sheet through Apps Script (`server/store/sheets.js`, `apps-script/Code.gs`) with an in-memory store for development and outages.
 - **Original art and sound made in code**: all sprites and stages are drawn from SVG at start-up (`public/shared/art/`), all sounds and the music are synthesised (`public/shared/audio.js`). No downloaded assets except two open fonts ([`CREDITS.md`](../CREDITS.md)).
-- **Consistent**: one configuration file holds every number of the rules (`src/game/config.js`); the stage art draws exactly the platforms the rules use; both control modes produce the same seven buttons.
+- **Consistent**: one configuration file holds every number of the rules (`src/game/config.js`); the stage art draws exactly the platforms the rules use; the joystick and the buttons produce the seven buttons the rules read.
 
 Left out on purpose: demo mode ([`DEMO.md`](DEMO.md) describes what is prepared and what is missing).
 
@@ -68,7 +68,7 @@ Left out on purpose: demo mode ([`DEMO.md`](DEMO.md) describes what is prepared 
 
 > "Tests cover accepted and rejected actions and edge cases, and all pass on `main`."
 
-- **413 automated tests**: 410 with `node:test` for the rules and the server, 3 browser tests. All pass on `main` (see the table at the top).
+- **477 automated tests**: 474 with `node:test` for the rules and the server, 3 browser tests. All pass on `main` (see the table at the top).
 - **Accepted actions**: each rule (`tests/game/rules.test.js`, `movement.test.js`), each of the eight specials inside its range (`specials.test.js`), each item (`items.test.js`), each hazard with its safe platform (`hazards.test.js`), registration, login, rooms, a full match (`tests/server/`).
 - **Rejected actions**: specials and items out of range, votes from the wrong player or for the wrong stage, wrong PINs and the lockout, tampered and expired tokens, a player trying host actions, a host touching another host's room, forged and implausible results, oversized and malformed messages (`tests/server/rooms.test.js`, `strict.test.js`, `results.test.js`, `accounts.test.js`).
 - **Edge cases**: a tap shorter than one frame, presses bunched by a network hiccup, simultaneous hits, the last player standing, a KO in the same step as a burnout, exact boundaries of every limit (`tests/game/exact.test.js`, `input.test.js`, `tests/server/strict.test.js`), and a regression test for every defect the reviews found (`tests/*/regressions.test.js`).

@@ -25,11 +25,35 @@ export function damageColor(percent) {
 export function poseOf(f) {
   if (f.state !== 'alive') return 'ko';
   if (f.hitstun > 0 || f.stun > 0 || f.pull) return 'hurt';
+  if (f.hang) return 'hang';
   if (f.special) return 'special';
+  if (f.attack && f.attack.kind === 'stomp') return f.attack.phase === 'dive' ? 'stomp' : 'idle';
   if (f.attack) return 'attack';
   if (!f.onGround) return f.vy < 0 ? 'jump' : 'fall';
   if (Math.abs(f.vx) > 0.6) return Math.floor(f.runPhase / 26) % 2 === 0 ? 'run1' : 'run2';
   return 'idle';
+}
+
+// The line at the bottom of the big screen that says how to pause (D-134). It sits in the
+// strip under the main ground, so it never covers a platform, and it is semi-transparent.
+export const PAUSE_HINT = { text: 'Press P or Esc to pause', y: 704, alpha: 0.55 };
+
+// Shown during the countdown and the fight; hidden from the final KO on.
+export const pauseHint = (state) => Boolean(state) && (state.phase === 'countdown' || state.phase === 'fight');
+
+// The pose as drawn: an attack or special aimed up has its own picture.
+export function drawnPose(f) {
+  const pose = poseOf(f);
+  if (pose === 'attack' && f.attack && f.attack.dir === 'up') return 'attackUp';
+  if (pose === 'special' && f.special && f.special.dir === 'up') return 'specialUp';
+  return pose;
+}
+
+// Where a held item is drawn: in the back hand of the pose of the moment, mirrored with
+// the facing (D-139). handPoint(fighterId, pose) comes from the sprite generator.
+export function heldItemAt(f, handPoint) {
+  const hand = handPoint(f.fighterId, drawnPose(f));
+  return { x: f.x + f.facing * hand.x, y: f.y + hand.y };
 }
 
 // Lives as hearts. Both numbers are kept between 0 and 3, whatever is passed in.

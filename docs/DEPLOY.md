@@ -97,4 +97,4 @@ Both servers use the same sheet, so accounts work on both. Only one of them shou
 | Big screen: "Connection lost, reconnecting…" | The match keeps running on the laptop; phones are back in control when it reconnects. |
 | "Can't reach the player list right now" | The sheet is unreachable. Players who already logged in can play; new ones cannot register. Results are written later. |
 | Nothing works on Render | Switch to the Mac mini URL. |
-| No network at all | `npm start` on the laptop, add two keyboard players in the lobby. |
+| No network at all | `npm start` on the laptop and a phone hotspot: the phones join the laptop's address in that hotspot. |

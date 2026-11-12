@@ -37,7 +37,7 @@ test('four phones register, join, pick, play a full match to a winner; the resul
   assert.deepEqual(roster.players.map((p) => p.fighter), fighters);
 
   // --- start: only the host can, and it gets a match id
-  host.send({ t: 'match_start', stage: 'beach', lives: 2, slots: [0, 1, 2, 3], guests: 0 });
+  host.send({ t: 'match_start', stage: 'beach', lives: 2, slots: [0, 1, 2, 3] });
   const { matchId } = await host.next('match_started');
   host.send({ t: 'to', slot: 'all', msg: { t: 'phase', name: 'match', stage: 'beach' } });
   for (const phone of phones) assert.equal((await phone.next('phase')).name, 'match');

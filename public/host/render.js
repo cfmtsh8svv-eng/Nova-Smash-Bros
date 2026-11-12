@@ -78,25 +78,14 @@ export function createRenderer(canvas) {
     ctx.translate(x, y);
     ctx.lineWidth = 3;
     ctx.strokeStyle = INK;
-    if (type === 'tart') {
+    if (type === 'nata') {
+      // Pastel de Nata: a golden tart with a burnt-sugar top
       ctx.fillStyle = '#c98a3a';
       ctx.beginPath(); ctx.ellipse(0, -11, 17, 12, 0, 0, 7); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#f6c343';
       ctx.beginPath(); ctx.ellipse(0, -13, 12, 7, 0, 0, 7); ctx.fill();
       ctx.fillStyle = '#8a4f1e';
       for (const [dx, dy] of [[-5, -14], [4, -12], [0, -16]]) { ctx.beginPath(); ctx.arc(dx, dy, 2.2, 0, 7); ctx.fill(); }
-    } else if (type === 'espresso') {
-      ctx.fillStyle = '#eef3f8';
-      roundRect(ctx, -11, -20, 20, 16, 4); ctx.fill(); ctx.stroke();
-      ctx.beginPath(); ctx.arc(11, -12, 5, -1.4, 1.4); ctx.stroke();
-      ctx.fillStyle = '#5a3320';
-      ctx.fillRect(-8, -18, 14, 4);
-      ctx.strokeStyle = 'rgba(255,255,255,.75)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(-4, -24); ctx.quadraticCurveTo(-8 + Math.sin(t / 9) * 3, -30, -4, -36);
-      ctx.moveTo(4, -24); ctx.quadraticCurveTo(8 + Math.sin(t / 9 + 2) * 3, -30, 4, -36);
-      ctx.stroke();
     } else if (type === 'sardine') {
       ctx.rotate(-0.25);
       ctx.fillStyle = '#8fb4d9';
@@ -111,6 +100,69 @@ export function createRenderer(canvas) {
       ctx.fillRect(-8, -24, 16, 4);
       ctx.fillStyle = '#eef3f8';
       ctx.fillRect(-11, -5, 22, 3);
+    } else if (type === 'project') {
+      // Group Project: a stuffed folder with a lit fuse
+      ctx.fillStyle = '#f6c343';
+      roundRect(ctx, -16, -28, 32, 26, 3); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#eef3f8';
+      ctx.fillRect(-12, -32, 22, 6);
+      ctx.fillStyle = INK;
+      ctx.font = `800 8px ${BODY}`;
+      ctx.textAlign = 'center';
+      ctx.fillText('GROUP', 0, -16);
+      ctx.fillText('WORK', 0, -8);
+      ctx.strokeStyle = INK;
+      ctx.beginPath(); ctx.moveTo(12, -28); ctx.quadraticCurveTo(20, -36, 16, -42); ctx.stroke();
+      ctx.fillStyle = Math.floor(t / 4) % 2 ? '#ff7a3d' : '#f6c343';
+      ctx.beginPath(); ctx.arc(16, -43, 3.5, 0, 7); ctx.fill();
+    } else if (type === 'bifana') {
+      // Bifana: a pork sandwich in a crusty roll
+      ctx.fillStyle = '#d9a35c';
+      ctx.beginPath(); ctx.ellipse(0, -16, 19, 8, 0, Math.PI, 0); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#9a5a32';
+      ctx.fillRect(-18, -16, 36, 5);
+      ctx.fillStyle = '#d9a35c';
+      ctx.beginPath(); ctx.ellipse(0, -10, 18, 5, 0, 0, Math.PI); ctx.fill(); ctx.stroke();
+    } else if (type === 'megaphone') {
+      ctx.fillStyle = '#e63946';
+      ctx.beginPath(); ctx.moveTo(-14, -20); ctx.lineTo(10, -30); ctx.lineTo(10, -4); ctx.lineTo(-14, -12); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#eef3f8';
+      ctx.fillRect(-20, -20, 7, 8);
+      ctx.strokeRect(-20, -20, 7, 8);
+      ctx.fillStyle = INK;
+      ctx.fillRect(-10, -10, 4, 9);
+    } else if (type === 'cork') {
+      // Cork Shield: a round cork board with a darker rim
+      ctx.fillStyle = '#c98a3a';
+      ctx.beginPath(); ctx.arc(0, -16, 15, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#a86b2c';
+      for (const [dx, dy] of [[-6, -20], [5, -12], [3, -23], [-3, -9], [8, -19]]) { ctx.beginPath(); ctx.arc(dx, dy, 1.6, 0, 7); ctx.fill(); }
+      ctx.strokeStyle = '#7a4a2c';
+      ctx.beginPath(); ctx.arc(0, -16, 11, 0, 7); ctx.stroke();
+    } else if (type === 'azulejo') {
+      // Azulejo: a white tile with a blue pattern
+      ctx.fillStyle = '#eef3f8';
+      roundRect(ctx, -14, -30, 28, 28, 2); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = '#2f5fb0';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(0, -16, 7, 0, 7); ctx.stroke();
+      for (const [dx, dy] of [[-10, -26], [10, -26], [-10, -6], [10, -6]]) { ctx.beginPath(); ctx.arc(dx, dy, 3.5, 0, 7); ctx.stroke(); }
+    } else if (type === 'rooster') {
+      // Lucky Rooster (Galo de Barcelos): black body, red comb, coloured hearts
+      ctx.fillStyle = '#16122a';
+      ctx.beginPath(); ctx.ellipse(-2, -14, 13, 10, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(9, -27, 5, 7, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-12, -16); ctx.lineTo(-20, -30); ctx.lineTo(-8, -22); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#e63946';
+      ctx.beginPath(); ctx.arc(9, -35, 3.5, 0, 7); ctx.arc(13, -33, 3, 0, 7); ctx.fill();
+      ctx.fillStyle = '#f6c343';
+      ctx.beginPath(); ctx.moveTo(13, -28); ctx.lineTo(18, -27); ctx.lineTo(13, -25); ctx.fill();
+      ctx.fillStyle = '#f6c343';
+      ctx.beginPath(); ctx.arc(-4, -14, 3, 0, 7); ctx.fill();
+      ctx.fillStyle = '#e63946';
+      ctx.beginPath(); ctx.arc(3, -11, 2.5, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#f6c343';
+      ctx.beginPath(); ctx.moveTo(-2, -4); ctx.lineTo(-2, 0); ctx.moveTo(4, -4); ctx.lineTo(4, 0); ctx.stroke();
     }
     ctx.restore();
   }
@@ -163,6 +215,20 @@ export function createRenderer(canvas) {
         ctx.strokeStyle = INK;
         ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, 7); ctx.fill(); ctx.stroke();
+      } else if (p.kind === 'tile' || p.kind === 'shard') {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.age * 0.4);
+        if (p.kind === 'tile') drawItemShape('azulejo', 0, 16, t);
+        else {
+          ctx.fillStyle = '#eef3f8';
+          ctx.strokeStyle = INK;
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(-8, -6); ctx.lineTo(8, -3); ctx.lineTo(-2, 8); ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = '#2f5fb0';
+          ctx.fillRect(-3, -3, 4, 4);
+        }
+        ctx.restore();
       } else {
         ctx.save();
         ctx.translate(p.x, p.y);
@@ -377,6 +443,14 @@ export function createRenderer(canvas) {
     const main = f.altColor ? duplicateColour(f.fighterId, PLAYER_COLORS[f.slot]) : null;
     const sprite = getSprite(f.fighterId, main, pose) || getSprite(f.fighterId, main, 'idle');
 
+    // Lucky Rooster: a golden glow around the fighter.
+    if (f.rooster > 0) {
+      const glow = ctx.createRadialGradient(f.x, f.y - 50, 10, f.x, f.y - 50, 80);
+      glow.addColorStop(0, `rgba(246,195,67,${0.55 + 0.15 * Math.sin(t / 5)})`);
+      glow.addColorStop(1, 'rgba(246,195,67,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(f.x - 80, f.y - 130, 160, 160);
+    }
     if (f.onGround) {
       ctx.fillStyle = 'rgba(12,20,32,.3)';
       ctx.beginPath(); ctx.ellipse(f.x, f.y + 2, 30, 6, 0, 0, 7); ctx.fill();
@@ -397,6 +471,7 @@ export function createRenderer(canvas) {
     let sx = 1;
     let sy = 1;
     if (f.squash > 0) { const k = f.squash / 8; sx += 0.2 * k; sy -= 0.18 * k; }
+    if (f.bifana > 0) sx *= 1.14; // a Bifana: a bit wider
     if (f.stretch > 0) { const k = f.stretch / 8; sx -= 0.13 * k; sy += 0.17 * k; }
     let tilt = 0;
     if (f.hitstun > 0) tilt = Math.max(-0.5, Math.min(0.5, f.vx * 0.035));
@@ -429,6 +504,17 @@ export function createRenderer(canvas) {
       ctx.scale(0.7 * f.facing, 0.7);
       drawItemShape(f.held.type, 0, 14, t);
       ctx.restore();
+      if (f.held.type === 'project') {
+        // The fuse above the holder: the seconds left, red in the last two.
+        const left = Math.ceil(f.held.fuse / 60);
+        ctx.save();
+        ctx.font = `30px ${DISPLAY}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const bob = Math.sin(t / 3) * 2;
+        outlined(ctx, `${left}`, f.x, f.y - H - 62 + lift + bob, left <= 2 ? '#e63946' : '#f6c343', 6);
+        ctx.restore();
+      }
     }
     if (f.stun > 0 && f.hitstun <= 0) {
       for (let i = 0; i < 3; i++) {
@@ -447,14 +533,6 @@ export function createRenderer(canvas) {
         ctx.beginPath(); ctx.arc(f.x + Math.sin(t / 8 + i * 2) * 18, f.y - H - k * 34, 4 + k * 4, 0, 7); ctx.stroke();
       }
     }
-    if (f.speedBoost > 0 && Math.abs(f.vx) > 2) {
-      ctx.strokeStyle = 'rgba(255,255,255,.6)';
-      ctx.lineWidth = 3;
-      for (let i = 0; i < 3; i++) {
-        const y = f.y - 20 - i * 26;
-        ctx.beginPath(); ctx.moveTo(f.x - f.facing * 34, y); ctx.lineTo(f.x - f.facing * (58 + ((t * 5 + i * 9) % 20)), y); ctx.stroke();
-      }
-    }
   }
 
   // The normal attack does the same for everyone; only its look differs:
@@ -470,9 +548,27 @@ export function createRenderer(canvas) {
       }
       return;
     }
-    if (!attack || attack.kind === 'book' || attack.kind === 'stomp') return;
+    if (!attack || attack.kind === 'book' || attack.kind === 'azulejo' || attack.kind === 'stomp') return;
     const A = CONFIG.attack;
     const k = Math.min(1, attack.t / (A.startup + A.active)); // 0 at the start, 1 when the hit is over
+    if (attack.kind === 'megaphone') {
+      // A wide cone of sound waves, as long and as high as the blast reaches.
+      const M = CONFIG.items.megaphone;
+      ctx.save();
+      ctx.translate(f.x, f.y - 48);
+      if (attack.dir === 'up') ctx.rotate(-Math.PI / 2);
+      else ctx.scale(attack.facing, 1);
+      ctx.globalAlpha = Math.max(0, 1 - Math.max(0, attack.t - A.startup - A.active) / 6);
+      ctx.lineCap = 'round';
+      for (let i = 0; i < 4; i++) {
+        const r = 30 + ((k * M.range + i * 45) % M.range);
+        ctx.strokeStyle = i % 2 ? 'rgba(255,255,255,.8)' : 'rgba(246,195,67,.85)';
+        ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.arc(0, 0, r, -0.45, 0.45); ctx.stroke();
+      }
+      ctx.restore();
+      return;
+    }
     const style = attack.kind === 'sardine' ? 'swing' : getFighter(f.fighterId).normalStyle;
     ctx.save();
     ctx.translate(f.x, f.y - 58);

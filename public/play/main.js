@@ -191,7 +191,11 @@ const MESSAGES = {
     $('padPct').textContent = `${Number(msg.pct) || 0}%`;
     $('padPct').style.color = damageColor(msg.pct);
     $('padHearts').textContent = hearts(Number(msg.lives) || 0, me.lives);
-    $('padItem').textContent = msg.held === 'sardine' ? 'SARDINE' : msg.held === 'book' ? 'BOOK' : msg.tipsy ? 'TIPSY' : '';
+    $('padItem').textContent = itemLabel(msg);
+    // The Group Project ticks on the phone of whoever holds it.
+    if (msg.held === 'project' && Number.isInteger(msg.fuse) && msg.fuse !== me.lastFuse) feedback.sound('hazardCount');
+    me.lastFuse = msg.held === 'project' ? msg.fuse : null;
+    $('padItem').classList.toggle('hot', msg.held === 'project');
     me.cd = { left: Number(msg.cd) || 0, max: Math.max(1, Number(msg.cdMax) || 1), at: performance.now() };
     updateOverlay(Boolean(me.phase && me.phase.paused));
   },
@@ -281,6 +285,17 @@ const MESSAGES = {
     }
   },
 };
+
+// The label in the phone header: the held item (the Group Project with its seconds left),
+// otherwise a running effect.
+const HELD_LABEL = { sardine: 'SARDINE', book: 'BOOK', megaphone: 'MEGAPHONE', cork: 'CORK', azulejo: 'AZULEJO' };
+function itemLabel(msg) {
+  if (msg.held === 'project') return `PROJECT ${Number.isInteger(msg.fuse) ? `${msg.fuse}s` : ''}`.trim();
+  if (HELD_LABEL[msg.held]) return HELD_LABEL[msg.held];
+  if (msg.buff === 'lucky') return 'LUCKY';
+  if (msg.buff === 'bifana') return 'BIFANA';
+  return msg.tipsy ? 'TIPSY' : '';
+}
 
 // ---- register / log in ----
 

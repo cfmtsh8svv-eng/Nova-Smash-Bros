@@ -58,8 +58,9 @@ export function checkResult(match, result, now) {
     if (!isInt(p.falls, 0, match.lives) || !isInt(p.kos, 0, match.lives * (n - 1)) || !isInt(p.specialKos, 0, p.kos)) return bad('KOs or falls are out of range.');
     if (!isInt(p.endLives, 0, match.lives) || p.endLives !== match.lives - p.falls) return bad('Lives left do not fit the falls.');
     if (!isInt(p.damageDealt, 0, 100000) || !isInt(p.damageTaken, 0, 100000) || !isInt(p.endPercent, 0, 260)) return bad('Damage is out of range.');
-    // Per life at most 200 % plus the last hit; tarts can heal 20 % about every 12 s.
-    if (p.damageTaken > match.lives * 240 + result.durationS * 2) return bad('More damage taken than is possible.');
+    // Per life at most 200 % plus the last hit; a Pastel de Nata heals 20 % and can come about
+    // every 6 s, so up to 4 % a second can be healed and taken again (D-142).
+    if (p.damageTaken > match.lives * 240 + result.durationS * 4) return bad('More damage taken than is possible.');
     if (typeof p.fighterId !== 'string' || !FIGHTER_IDS.includes(p.fighterId)) return bad('Unknown fighter.');
     players.push({ slot: p.slot, place: p.place, falls: p.falls, kos: p.kos, specialKos: p.specialKos, endLives: p.endLives, endPercent: p.endPercent, damageDealt: p.damageDealt, damageTaken: p.damageTaken, fighterId: p.fighterId });
   }

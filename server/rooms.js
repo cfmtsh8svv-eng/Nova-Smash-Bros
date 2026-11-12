@@ -76,9 +76,11 @@ export function relayProblem(m) {
   if (JSON.stringify(m).length > LIMITS.relayBytes[m.t]) return true;
   if (m.t === 'phase') return !(PHASE_NAMES.includes(m.name) && PHASE_FIELDS[m.name](m));
   if (m.t === 'status') {
-    return !(onlyKeys(m, ['t', 'pct', 'lives', 'state', 'cd', 'cdMax', 'held', 'tipsy'])
+    return !(onlyKeys(m, ['t', 'pct', 'lives', 'state', 'cd', 'cdMax', 'held', 'tipsy', 'fuse', 'buff'])
       && isInt(m.pct, 0, 999) && isInt(m.lives, 0, 3) && FIGHTER_STATES.includes(m.state) && isInt(m.cd, 0, 3600) && isInt(m.cdMax, 1, 3600)
-      && optional(m.held, shortText(12)) && optional(m.tipsy, bool));
+      && optional(m.held, shortText(12)) && optional(m.tipsy, bool)
+      // The Group Project's seconds left, and LUCKY or BIFANA for the phone header (D-142).
+      && optional(m.fuse, (v) => isInt(v, 0, 9)) && optional(m.buff, (v) => ['lucky', 'bifana'].includes(v)));
   }
   return !(onlyKeys(m, ['t', 'kind', 'text', 'title', 'name', 'flash', 'n', 'vibrate'])
     && FEEDBACK_KINDS.includes(m.kind) && optional(m.text, shortText(160)) && optional(m.title, shortText(60)) && optional(m.name, shortText(60))

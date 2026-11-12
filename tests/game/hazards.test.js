@@ -223,9 +223,9 @@ test('Seagulls: steal the held item and one lying item in their zone only', () =
   const [onSand, onRoof] = state.fighters;
   onSand.held = { type: 'sardine', uses: 5 };
   onRoof.held = { type: 'book', uses: 1 };
-  state.items.push({ id: 901, type: 'tart', x: 500, y: 600, age: 100 });
-  state.items.push({ id: 902, type: 'tart', x: 800, y: 600, age: 100 });
-  state.items.push({ id: 903, type: 'espresso', x: 720, y: 240, age: 100 });
+  state.items.push({ id: 901, type: 'nata', x: 500, y: 600, age: 100 });
+  state.items.push({ id: 902, type: 'nata', x: 800, y: 600, age: 100 });
+  state.items.push({ id: 903, type: 'bifana', x: 720, y: 240, age: 100 });
   beginWarning(state, { id: 'gulls', zone: 'sand', dir: 1 });
   const events = pinned(state, [[onSand, 300, 600], [onRoof, 770, 350]], WARN_FRAMES + CONFIG.hazards.gulls.frames + 2);
   assert.equal(onSand.held, null, 'the sardine is gone');

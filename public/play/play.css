@@ -75,6 +75,7 @@ input.bad { border-color: var(--red); }
 .pct { font-family: var(--display); font-size: clamp(18px, 3.6vw, 34px); line-height: 1; }
 .hearts { color: var(--p, #fff); font-size: clamp(14px, 2.6vw, 24px); letter-spacing: 0.12em; }
 .item { font-size: 12px; color: var(--yellow); min-width: 4ch; }
+.item.hot { color: #fff; background: var(--red); border-radius: 6px; padding: 1px 6px; font-weight: 800; }
 .signal { width: 10px; height: 10px; border-radius: 50%; background: var(--green); }
 .signal.slow { background: var(--yellow); }
 .signal.bad { background: var(--red); }

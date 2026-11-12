@@ -187,16 +187,23 @@ One hazard at a time, every 25 to 40 s. Every hazard is **announced as animated 
 
 The campus roof carries the **Nova SBE logo**, redrawn from the official mark (source: Wikimedia Commons, `Nova_logo.png`, author Nova SBE, CC BY-SA 4.0). It is credited in `CREDITS.md` and stays the school's trademark.
 
-### 7.3 Items (4)
+### 7.3 Items (9)
 
-Spawn every 12 to 20 s, at most 3 at once.
+A new one appears on a random platform every **6 to 10 s**, at most **4** at once, and each disappears after **25 s** (these three numbers are a proposal the team has not confirmed yet, D-141; they are in `config.js`). The chance of each kind is weighted: **Lucky Rooster 4 %**, the other eight **12 %** each. The Espresso was removed.
 
-| Item | Effect |
-|---|---|
-| Custard Tart | Heals 20 % on touch |
-| Espresso | +30 % speed for 8 s on touch |
-| Sardine | Picked up on touch. The next 5 normal attacks do 6 % with very high knockback. |
-| Book | Picked up on touch. The next normal attack throws it: 14 %. |
+| Item | Kind | Effect |
+|---|---|---|
+| **Pastel de Nata** | on touch | Heals 20 %, never below 0 %. (The old Custard Tart, renamed.) |
+| **Sardine** | held | The next 5 normal attacks do 6 % with very high knockback. Also powers the stomp (§6). |
+| **Book** | held | The next attack throws it: 14 %. Thrown in the air too (no stomp). |
+| **Group Project** | held, forced | Hot potato. Whoever touches it is stuck with it: it is taken even with full hands, and the item held before drops to the ground. A **5 s fuse** starts at the first pick-up and never resets. A normal attack (or a stomp) that hits an opponent passes it to them. When the fuse runs out it explodes on whoever holds it: 18 %, strong launch (base_kb 8, kb_growth 10, 70° upward). The holder's phone shows "Group project! Pass it on before the deadline!" and the seconds left; the big screen shows the fuse above the holder. |
+| **Bifana** | on touch | Eaten at once: weight +40 for 10 s (harder to launch); the fighter looks a bit wider. |
+| **Megaphone** | held | The next 3 normal attacks become a wide sound cone forward (200 px long, 140 px high): 3 % and a strong push (base_kb 9, kb_growth 6, 15°). Up + Attack blasts upward. In the air without Up the stomp is unchanged and does not use the Megaphone. |
+| **Cork Shield** | held | Blocks the next hit of any kind (attack, special, projectile, hazard) completely: no damage, no knockback, no status effect. Then it breaks. It does not protect against falling out of the stage or the Group Project explosion. |
+| **Azulejo** | held | The next attack throws the tile (in the air too); after 12 frames it shatters into 3 shards that fan out forward at -12°, 0° and +12°, each 5 % with small knockback; each shard hits one opponent once. |
+| **Lucky Rooster** | on touch, rare | Invincible for 5 s (a golden glow): hits pass through without effect. Hazards still move the fighter (crowd, wave) but do no damage. |
+
+Rules for all held items: one held item at a time (the Group Project is the exception: it is forced on whoever touches it); seagulls can steal any held item except the Group Project; a KO drops everything (held items and the Bifana and Rooster effects are gone).
 
 ## 8. Security
 

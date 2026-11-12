@@ -356,6 +356,8 @@ test('what the host may pass on is checked field by field: nothing a phone could
     { t: 'phase', name: 'match', stage: 'beach', stageName: 'Carcavelos Beach', paused: false, lives: 3, slots: [0, 1, 2, 3], hazards: [{ id: 'wave', name: 'Big Wave' }] },
     { t: 'phase', name: 'results', place: 1, of: 4, won: true, winner: 'Ana', stats: { dealt: 310, taken: 44, kos: 6, falls: 0 }, points: 131, total: 500, achievements: [{ name: 'First Win', text: 'Win a match.' }], note: '' },
     { t: 'status', pct: 87, lives: 2, state: 'alive', cd: 120, cdMax: 420, held: 'sardine', tipsy: false },
+    { t: 'status', pct: 0, lives: 3, state: 'alive', cd: 0, cdMax: 420, held: 'project', tipsy: false, fuse: 4, buff: 'lucky' },
+    { t: 'status', pct: 0, lives: 3, state: 'alive', cd: 0, cdMax: 420, held: null, tipsy: false, fuse: null, buff: 'bifana' },
     { t: 'feedback', kind: 'out', text: "You're out! Grab a coffee and watch.", title: 'BURNOUT!', flash: '#e63946', vibrate: [300, 100, 300, 100, 900] },
     { t: 'feedback', kind: 'hazardCount', name: 'BIG WAVE', n: 2 },
   ];
@@ -374,6 +376,8 @@ test('what the host may pass on is checked field by field: nothing a phone could
     { t: 'phase', name: 'results', achievements: [{ name: 'x'.repeat(41) }] },
     { t: 'phase', name: 'match', url: 'javascript:alert(1)' }, // unknown keys are refused
     { t: 'status', pct: 1, lives: 1, state: 'alive', cd: 0, cdMax: 400, extra: 1 },
+    { t: 'status', pct: 1, lives: 1, state: 'alive', cd: 0, cdMax: 400, fuse: 60 },
+    { t: 'status', pct: 1, lives: 1, state: 'alive', cd: 0, cdMax: 400, buff: 'godmode' },
     { t: 'feedback', kind: '<b>k</b>' },
     { t: 'feedback', kind: 'ko', vibrate: [1000, 1000, 1000] }, // more than two seconds in total
     { t: 'feedback', kind: 'ko', vibrate: [10, 10, 10, 10, 10, 10, 10] },

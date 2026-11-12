@@ -26,6 +26,9 @@ export const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 export const canBeHit = (f) => f.state === 'alive' && f.invincible <= 0;
 export const opponentsOf = (state, f) => state.fighters.filter((o) => o.slot !== f.slot);
 
+// Weight for the knockback formula: a Bifana makes a fighter heavier for a while (D-140).
+export const effectiveWeight = (f) => f.weight + (f.bifana > 0 ? CONFIG.items.bifana.weight : 0);
+
 // The knockback formula from the spec.
 export function launchSpeed(baseKb, kbGrowth, percent, weight) {
   return (baseKb + (kbGrowth * percent) / 100) * (100 / weight);
@@ -51,6 +54,16 @@ export const HIT_KO = 2;
 
 export function applyHit(state, target, hit) {
   if (state.phase !== 'fight' || !canBeHit(target)) return MISS;
+  // Lucky Rooster: hits pass through without any effect (hazards may still move the fighter).
+  if (target.rooster > 0) return MISS;
+  // Cork Shield: the next hit of any kind is blocked completely, then it breaks. It does not
+  // help against the Group Project explosion (D-140).
+  if (target.held && target.held.type === 'cork' && hit.source !== 'project') {
+    target.held = null;
+    state.events.push({ type: 'block', slot: target.slot, by: hit.by ?? null, source: hit.source, x: target.x, y: target.y - CONFIG.body.h / 2 });
+    feedback(state, target.slot, 'good', 'Blocked! Your cork shield broke.', '#c98a3a', { item: 'cork' });
+    return MISS;
+  }
   const M = CONFIG.match;
   target.hang = null; // no invincibility on a ledge: any hit knocks the fighter off (D-138)
   target.percent += hit.damage;
@@ -70,7 +83,7 @@ export function applyHit(state, target, hit) {
     return HIT_KO;
   }
   if (launches) {
-    speed = launchSpeed(hit.baseKb, hit.kbGrowth, target.percent, target.weight);
+    speed = launchSpeed(hit.baseKb, hit.kbGrowth, target.percent, effectiveWeight(target));
     const angle = ((hit.angleDeg ?? CONFIG.attack.angleDeg) * Math.PI) / 180;
     target.vx = Math.cos(angle) * speed * (hit.dirX || 0);
     target.vy = -Math.sin(angle) * speed;
@@ -162,7 +175,8 @@ export function clearFighterEffects(f) {
   f.stun = 0;
   f.tipsy = 0;
   f.slip = 0;
-  f.speedBoost = 0;
+  f.bifana = 0;
+  f.rooster = 0;
   f.attack = null;
   f.special = null;
   f.pull = null;

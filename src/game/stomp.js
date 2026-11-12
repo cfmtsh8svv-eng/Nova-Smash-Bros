@@ -4,6 +4,7 @@
 // It is a normal attack, so it has no cooldown.
 import { CONFIG } from './config.js';
 import { applyHit, canBeHit, centreOf, distance, feedback, HIT, opponentsOf } from './combat.js';
+import { passProject } from './items.js';
 
 // Runs once per frame for a fighter in a stomp, before the fighter moves.
 export function updateStomp(state, f) {
@@ -44,6 +45,9 @@ function shockwave(state, f, attack) {
       damage: power.damage, baseKb: power.baseKb, kbGrowth: power.kbGrowth, angleDeg: S.angleDeg,
       dirX: Math.sign(o.x - f.x) || attack.facing,
     });
-    if (result === HIT) feedback(state, o.slot, 'hit', '', '#ffffff');
+    if (result === HIT) {
+      feedback(state, o.slot, 'hit', '', '#ffffff');
+      passProject(state, f, o); // like a normal attack, a stomp passes a Group Project on (D-142)
+    }
   }
 }

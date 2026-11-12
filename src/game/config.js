@@ -71,19 +71,25 @@ export const CONFIG = {
   ledge: { reach: 20, hangFrames: seconds(1.5), climbInset: 30 },
   // The stomp: Attack in the air without Up (D-137).
   stomp: { diveSpeed: 18, radius: 130, damage: 9, baseKb: 6, kbGrowth: 9, angleDeg: 45, recovery: 14, maxAir: 60 },
+  // The nine items (D-140). Spawning numbers are a proposal (D-141).
   items: {
-    spawnMinS: 12,
-    spawnMaxS: 20,
-    max: 3,
+    spawnMinS: 6,
+    spawnMaxS: 10,
+    max: 4,
     size: 36,
     lifetime: seconds(25),
     spawnInFrames: 20, // an item cannot be taken while it is still popping in
-    tartHeal: 20,
-    espressoBoost: 1.3,
-    espressoFrames: seconds(8),
+    // Chance of each kind, in percent: the Lucky Rooster is rare, the other eight share the rest.
+    weights: { nata: 12, sardine: 12, book: 12, project: 12, bifana: 12, megaphone: 12, cork: 12, azulejo: 12, rooster: 4 },
+    nataHeal: 20,
     sardineSwings: 5,
     sardine: { damage: 6, baseKb: 9, kbGrowth: 15 },
     book: { damage: 14, baseKb: 5, kbGrowth: 9, angleDeg: 38, speed: 13, life: 46, size: 30 },
+    project: { fuseFrames: seconds(5), damage: 18, baseKb: 8, kbGrowth: 10, angleDeg: 70 },
+    bifana: { weight: 40, frames: seconds(10) },
+    megaphone: { uses: 3, range: 200, height: 140, damage: 3, baseKb: 9, kbGrowth: 6, angleDeg: 15 },
+    azulejo: { speed: 12, size: 26, shatterAt: 12, spreadDeg: 12, shard: { damage: 5, baseKb: 3, kbGrowth: 5, angleDeg: 30, speed: 12, life: 30, size: 16 } },
+    rooster: { frames: seconds(5) },
   },
   hazards: {
     minS: 25,

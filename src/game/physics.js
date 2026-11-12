@@ -39,9 +39,8 @@ export function controlFighter(state, f, inp) {
 
   // Left and right.
   const dir = locked ? 0 : (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
-  const boost = f.speedBoost > 0 ? CONFIG.items.espressoBoost : 1;
-  const max = f.runSpeed * boost;
-  let accel = (f.onGround ? P.groundAccel : P.airAccel) * boost;
+  const max = f.runSpeed;
+  let accel = f.onGround ? P.groundAccel : P.airAccel;
   if (f.slip > 0) accel *= P.slipControl;
   if (dir !== 0) {
     const sameWay = Math.sign(f.vx) === dir;

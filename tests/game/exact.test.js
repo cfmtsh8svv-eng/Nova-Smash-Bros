@@ -207,11 +207,11 @@ test('the dead and the eliminated take no part: no input, no hits on them, no pi
   assert.deepEqual([dead.state, out.state], ['dead', 'out']);
   for (const ghost of [dead, out]) Object.assign(ghost, { x: 560, y: 600 });
   place(a, 500).facing = 1;
-  spawnItem(state, 'tart', 560, 600).age = 50;
+  spawnItem(state, 'nata', 560, 600).age = 50;
   const events = run(state, 40, (i) => ({ 0: { attack: i === 0 }, 1: { attack: true, jump: true, right: true, special: true }, 2: { attack: true, jump: true, right: true, special: true } }));
   assert.deepEqual(events.filter((e) => e.slot === 1 || e.slot === 2), []);
   assert.equal(of(events, 'hit').length, 0);
-  assert.equal(state.items.length, 1, 'the tart is still there');
+  assert.equal(state.items.length, 1, 'the pastel de nata is still there');
   assert.equal(a.stats.damageDealt, 0);
   assert.equal(phoneStatus(state, 2).state, 'out');
 });
@@ -354,7 +354,7 @@ test('a tram tossed up comes down again and then rolls along the ground', () => 
 
 // ---- how long effects last, in frames ----
 
-test('effect lengths: slip 90, tipsy 240, blinded 60, lasso stun 24, espresso 480 frames', () => {
+test('effect lengths: slip 90, tipsy 240, blinded 60, lasso stun 24, bifana 600, lucky rooster 300 frames', () => {
   const just = (value, frames) => assert.ok(value === frames || value === frames - 1, `${value} vs ${frames}`);
   const cast = (fighter, dx) => {
     const state = fight({ fighters: [fighter, 'house_dj'] });
@@ -367,15 +367,17 @@ test('effect lengths: slip 90, tipsy 240, blinded 60, lasso stun 24, espresso 48
   just(cast('bairro_chad', 150).tipsy, 240);
   just(cast('wannabe_influencer', 150).stun, 60);
   just(cast('carcavelos_gang_member', 300).stun, 24);
-  const state = fight();
-  const a = place(state.fighters[0], 400);
-  spawnItem(state, 'espresso', 400, 600);
-  until(state, 'itemPickup');
-  just(a.speedBoost, 480);
-  run(state, 478);
-  assert.ok(a.speedBoost > 0);
-  run(state, 2);
-  assert.equal(a.speedBoost, 0);
+  for (const [type, key, frames] of [['bifana', 'bifana', 600], ['rooster', 'rooster', 300]]) {
+    const state = fight();
+    const a = place(state.fighters[0], 400);
+    spawnItem(state, type, 400, 600);
+    until(state, 'itemPickup');
+    just(a[key], frames);
+    run(state, frames - 2);
+    assert.ok(a[key] > 0, type);
+    run(state, 2);
+    assert.equal(a[key], 0, type);
+  }
 });
 
 test('slipping ends after 1.5 s and the fighter has full grip again', () => {
@@ -461,19 +463,19 @@ test('a thrown book tells the player it hit', () => {
 
 // ---- items ----
 
-test('item details: a tart is eaten even at 0 %, espresso works with full hands, a KO ends the boost', () => {
+test('item details: a pastel de nata is eaten even at 0 %, a bifana works with full hands, a KO ends it', () => {
   const state = fight();
   const a = place(state.fighters[0], 400);
   a.held = { type: 'sardine', uses: 5 };
-  spawnItem(state, 'tart', 400, 600);
-  spawnItem(state, 'espresso', 400, 600);
+  spawnItem(state, 'nata', 400, 600);
+  spawnItem(state, 'bifana', 400, 600);
   run(state, 25);
   assert.equal(state.items.length, 0);
-  assert.ok(a.speedBoost > 0);
+  assert.ok(a.bifana > 0);
   launchOut(state, a);
-  assert.equal(a.speedBoost, 0);
+  assert.equal(a.bifana, 0);
   run(state, 122);
-  assert.equal(a.speedBoost, 0);
+  assert.equal(a.bifana, 0);
 });
 
 test('an item nobody takes disappears after 25 seconds', () => {
@@ -486,7 +488,7 @@ test('an item nobody takes disappears after 25 seconds', () => {
   assert.equal(state.items.length, 0);
 });
 
-test('items: the limit of three really holds, new ones come every 12 to 20 s, all four kinds appear', () => {
+test('items: the limit of four really holds, new ones come every 6 to 10 s, all nine kinds appear', () => {
   const lifetime = CONFIG.items.lifetime;
   CONFIG.items.lifetime = 1e9; // items never expire here, so only the limit can stop a fourth one
   try {
@@ -496,20 +498,20 @@ test('items: the limit of three really holds, new ones come every 12 to 20 s, al
       for (let i = 0; i < n; i++) {
         state.fighters.forEach((f, k) => Object.assign(f, { x: 600 + k * 80, y: 80, vx: 0, vy: 0, gravityScale: 0 }));
         if (of(run(state, 1), 'itemSpawn').length) frames.push(state.frame);
-        assert.ok(state.items.length <= 3);
+        assert.ok(state.items.length <= 4);
       }
     };
-    idle(60 * 150); // time for seven or more spawns if nothing stopped them
-    assert.equal(frames.length, 3, 'only three items came');
-    assert.equal(state.items.length, 3);
+    idle(60 * 90); // time for nine or more spawns if nothing stopped them
+    assert.equal(frames.length, 4, 'only four items came');
+    assert.equal(state.items.length, 4);
     for (let i = 1; i < frames.length; i++) {
       const gap = frames[i] - frames[i - 1];
-      assert.ok(gap >= 720 && gap <= 1200, `gap ${gap} frames is between 12 and 20 s`);
+      assert.ok(gap >= 360 && gap <= 600, `gap ${gap} frames is between 6 and 10 s`);
     }
     state.items.shift(); // somebody takes one ...
-    idle(60 * 21);
-    assert.equal(frames.length, 4, '... and within 20 s the next one appears');
-    assert.equal(state.items.length, 3);
+    idle(60 * 11);
+    assert.equal(frames.length, 5, '... and within 10 s the next one appears');
+    assert.equal(state.items.length, 4);
   } finally {
     CONFIG.items.lifetime = lifetime;
   }
@@ -519,7 +521,7 @@ test('items: the limit of three really holds, new ones come every 12 to 20 s, al
     state.fighters.forEach((f, k) => Object.assign(f, { x: 600 + k * 80, y: 80, vx: 0, vy: 0, gravityScale: 0 }));
     for (const e of of(run(state, 1), 'itemSpawn')) kinds.add(e.item);
   }
-  assert.deepEqual([...kinds].sort(), ['book', 'espresso', 'sardine', 'tart']);
+  assert.deepEqual([...kinds].sort(), ['azulejo', 'bifana', 'book', 'cork', 'megaphone', 'nata', 'project', 'rooster', 'sardine']);
 });
 
 // ---- hazards ----
@@ -649,8 +651,8 @@ test('the strike: exactly 55 of the first 200 seeds (about one in four)', () => 
 test('seagulls over the sand leave an item on a roof alone even when it is the first one they pass', () => {
   const state = fight({ stage: 'beach', settings: { hazards: true } });
   state.fighters.forEach((f) => { f.invincible = 1e6; });
-  state.items.push({ id: 801, type: 'tart', x: 200, y: 470, age: 100 }); // on the surf bar roof, first in the flight path
-  state.items.push({ id: 802, type: 'tart', x: 700, y: 600, age: 100 }); // on the sand
+  state.items.push({ id: 801, type: 'nata', x: 200, y: 470, age: 100 }); // on the surf bar roof, first in the flight path
+  state.items.push({ id: 802, type: 'nata', x: 700, y: 600, age: 100 }); // on the sand
   beginWarning(state, { id: 'gulls', zone: 'sand', dir: 1 });
   CONFIG.items.lifetime += 1e6;
   try {
@@ -735,8 +737,9 @@ test('the host loop: slow motion and hit pause change the timing but not one eve
   const winners = new Set();
   // Seeds whose bot match includes a hazard hit and an item pickup, so both are compared.
   // (Picked again whenever a rule change alters what the bots' matches look like: seed 3
-  // lost its hazard hit with the ledge grab, D-138, and was replaced by 12, also a campus match.)
-  for (const seed of [1, 12, 7, 10]) {
+  // lost its hazard hit with the ledge grab, D-138, and seed 12 with the new items, D-140;
+  // seed 15 is the campus match now.)
+  for (const seed of [1, 15, 7, 10]) {
     const plain = playWithLoop(seed, false);
     const fancy = playWithLoop(seed, true);
     assert.equal(plain.phase, 'ended', `seed ${seed}`);

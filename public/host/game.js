@@ -13,6 +13,7 @@ import { createRenderer } from './render.js';
 import { createFx } from './fx.js';
 
 const STALE_MS = 600; // a phone that sent nothing for this long (six missed heartbeats) is treated as "let go of everything"
+const ITEM_SOUND = { bifana: 'munch', rooster: 'crow', project: 'project', cork: 'block', megaphone: 'blast' };
 const HAZARD_SOUND = { train: 'train', wave: 'wave', gulls: 'gulls', crowd: 'crowd', drinks: 'drinks', wifi: 'wifi' };
 
 export function createGame({ canvas, audio, sendTo, onEnd }) {
@@ -68,7 +69,7 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     ledgeGrab(e) { audio.play('ledge'); fx.burst(e.x, e.y, { count: 5, color: '#e9e2d0', speed: 2, size: 4, life: 12, gravity: 0.2 }); },
     ledgeClimb(e) { audio.play('climb'); fx.burst(e.x, e.y, { count: 6, color: '#ffffff', speed: 2.5, size: 4, life: 14, gravity: 0 }); },
     bounce(e) { audio.play('land'); fx.burst(e.x, e.y, { count: 8, color: '#e9e2d0', speed: 3.5, size: 5, life: 16 }); },
-    attack(e) { audio.play(e.kind === 'stomp' ? 'stompDive' : 'swing'); },
+    attack(e) { audio.play(e.kind === 'stomp' ? 'stompDive' : e.kind === 'megaphone' ? 'blast' : 'swing'); },
     projectile() { audio.play('swing'); },
     special(e) { audio.play(e.special); },
     hit(e) {
@@ -88,8 +89,15 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     },
     respawn(e) { audio.play('respawn'); fx.ring(e.x, e.y + 40, 90, color(e.slot), 26); },
     itemSpawn(e) { audio.play('itemSpawn'); fx.burst(e.x, e.y - 16, { count: 8, color: '#ffffff', speed: 3, size: 4, life: 18, gravity: 0 }); },
-    itemPickup(e) { audio.play('item'); fx.burst(e.x, e.y - 20, { count: 12, color: ['#f6c343', '#22a36b', '#ffffff'], speed: 4, size: 5, life: 22, gravity: -0.05 }); },
+    itemPickup(e) { audio.play(ITEM_SOUND[e.item] || 'item'); fx.burst(e.x, e.y - 20, { count: 12, color: ['#f6c343', '#22a36b', '#ffffff'], speed: 4, size: 5, life: 22, gravity: -0.05 }); },
     itemBreak(e) { audio.play('itemBreak'); fx.burst(e.x, e.y - 60, { count: 10, color: '#8fb4d9', speed: 5, size: 5 }); },
+    itemDrop(e) { fx.burst(e.x, e.y - 10, { count: 6, color: '#ffffff', speed: 3, size: 4, life: 14 }); },
+    itemPass(e) { audio.play('project'); fx.burst(e.x, e.y - 60, { count: 10, color: ['#f6c343', '#ff7a3d'], speed: 4, size: 5, life: 18 }); },
+    block(e) {
+      audio.play('block');
+      fx.burst(e.x, e.y, { count: 14, color: ['#c98a3a', '#a86b2c', '#f4e3b8'], speed: 6, size: 6, life: 22 });
+      fx.ring(e.x, e.y, 60, '#c98a3a', 14);
+    },
     itemStolen(e) { audio.play('gulls'); fx.burst(e.x, e.y - 40, { count: 8, color: '#ffffff', speed: 4, size: 5, up: 4 }); },
     drink(e) { audio.play('drinks'); fx.burst(e.x, e.y - 20, { count: 12, color: ['#c79bff', '#3fd0e0'], speed: 4, size: 5, gravity: -0.05 }); },
     fx(e) {
@@ -111,6 +119,15 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
         fx.ring(e.x, e.y - 10, e.radius * 0.6, '#f6c343', 26);
         fx.burst(e.x, e.y, { count: 20, color: '#e9e2d0', speed: 8, size: 6, life: 24 });
         fx.addShake(13);
+      } else if (e.fx === 'project') {
+        audio.play('boom');
+        fx.ring(e.x, e.y, 120, '#ff7a3d', 22);
+        fx.burst(e.x, e.y, { count: 34, color: ['#f6c343', '#ff7a3d', '#eef3f8', '#16122a'], speed: 10, size: 7, life: 34, gravity: 0.15 });
+        fx.addShake(14);
+        fx.addFlash(0.25, '#ff7a3d');
+      } else if (e.fx === 'shatter') {
+        audio.play('shatter');
+        fx.burst(e.x, e.y, { count: 12, color: ['#eef3f8', '#2f5fb0'], speed: 5, size: 4, life: 16 });
       } else if (e.fx === 'stomp') {
         // Smaller than the Bass Drop and pale: a dust ring along the ground, not an orange blast.
         fx.ring(e.x, e.y - 4, e.radius, e.power === 'sardine' ? '#8fb4d9' : '#eef3f8', 16);

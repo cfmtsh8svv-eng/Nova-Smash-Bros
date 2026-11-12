@@ -7,6 +7,7 @@ import { CONFIG, SCREEN, seconds } from './config.js';
 import { HAZARDS, tallyVote } from './stages.js';
 import { applyHit, canBeHit, feedback, HIT, hurtbox, rectsOverlap, stunFighter } from './combat.js';
 import { nextRandom, pick, randomBetween } from './rng.js';
+import { ITEM_NAMES } from './items.js';
 
 const H = CONFIG.hazards;
 export const WARN_FRAMES = H.nameFrames + 3 * H.countFrames;
@@ -148,12 +149,12 @@ const ACTIVE = {
     for (const f of state.fighters) {
       if (hz.hit.includes(f.slot) || !canBeHit(f) || !inZone(hz.zone, f) || Math.abs(f.x - hz.pos) > G.reach) continue;
       hz.hit.push(f.slot);
-      if (f.held) {
+      if (f.held && f.held.type !== 'project') { // the Group Project cannot be stolen
         const item = f.held.type;
         f.held = null;
-        if (f.attack && f.attack.kind === 'book') f.attack = null; // a book that is stolen mid-throw is not thrown
+        if (f.attack && (f.attack.kind === 'book' || f.attack.kind === 'azulejo')) f.attack = null; // a stolen item is not thrown
         state.events.push({ type: 'itemStolen', slot: f.slot, item, x: f.x, y: f.y });
-        feedback(state, f.slot, 'hazard', `A seagull stole your ${item}!`, '#eef3f8', { hazard: 'gulls' });
+        feedback(state, f.slot, 'hazard', `A seagull stole your ${ITEM_NAMES[item].toLowerCase()}!`, '#eef3f8', { hazard: 'gulls' });
       } else if (applyHit(state, f, { by: null, kind: 'hazard', source: 'gulls', damage: G.peckDamage }) === HIT) {
         stunFighter(f, G.peckStun);
         feedback(state, f.slot, 'hazard', 'Pecked by a seagull!', '#eef3f8', { hazard: 'gulls' });

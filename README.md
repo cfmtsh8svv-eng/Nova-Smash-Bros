@@ -65,6 +65,8 @@ The left half of the phone is a joystick: put your thumb down anywhere there and
 | **Attack** | Normal attack in the direction you look. In the air without up: the **stomp**, a straight drop with a shockwave on landing |
 | **Special** | Your fighter's special; the yellow strip shows when it is ready again |
 
+**Items** appear on the platforms every few seconds: walk into them. Pastel de Nata heals, Bifana makes you heavier, the Lucky Rooster makes you invincible for 5 s; Sardine, Book, Megaphone, Cork Shield and Azulejo are held and change your next attacks. Whoever touches the **Group Project** is stuck with it: hit someone to pass it on before its 5 s fuse runs out.
+
 Watch the top right corner of the big screen: every hazard is announced with its name and a 3, 2, 1. `P` or `Esc` pauses and resumes the match on the laptop (the line at the bottom of the big screen says so); phones cannot pause.
 
 ## Documentation

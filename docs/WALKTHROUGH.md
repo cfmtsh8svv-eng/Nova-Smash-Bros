@@ -147,7 +147,7 @@ Nothing in here touches the screen, the network or the clock. Even chance comes 
 1. For every fighter: read the input, turn it into speed (`physics.js`), start an attack or special if a button was pressed.
 2. Move every fighter and sort out the platforms: land on them, bump into the ground's side wall.
 3. Work out which attacks hit (`attacks.js`, `specials.js`). The normal attacks of a step are collected first and applied together, so two players who hit each other at the same moment both get hit. (A special takes effect at once, in player order.)
-4. Move what flies (ball, book, mini tram), update items and the hazard.
+4. Move what flies (ball, book, tile and shards, mini tram), update items and the hazard.
 5. Check who left the screen (a KO), and whether only one player is left.
 
 ### The pieces
@@ -162,7 +162,7 @@ Nothing in here touches the screen, the network or the clock. Even chance comes 
 | `specials.js` | The eight specials, one small function each |
 | `physics.js` (ledge grab) | `tryLedge` and `holdLedge`: grabbing the two corners of the main ground, hanging, climbing up, letting go (D-138) |
 | `stomp.js` | The stomp: Attack in the air without Up drops straight down; landing sends out a shockwave (D-137) |
-| `items.js`, `hazards.js` | The four items; the six hazards and their warning |
+| `items.js`, `hazards.js` | The nine items (on touch, held, the forced Group Project with its fuse; D-140); the hazards and their warning |
 | `input.js` | The buffer between "messages arrive whenever" and "the game looks once per step" |
 | `clock.js`, `loop.js` | Turning real time into steps; slow motion and hit pause |
 | `scoring.js`, `view.js` | Points; damage colour and which pose to show |

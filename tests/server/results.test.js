@@ -206,3 +206,11 @@ test('whatever way a real match ends, its result passes the server check', async
     assert.equal(result.players.filter((p) => p.endLives === 1).length, 1, 'exactly one player is left standing');
   }
 });
+
+test('healing with a Pastel de Nata every 6 s is allowed for: up to 4 % a second on top of the lives (D-142)', () => {
+  const m = match({ startedAt: NOW - 700_000 });
+  const heal = (taken) => change((r) => { r.durationS = 600; r.players[1].damageTaken = taken; r.players[0].damageDealt = taken; });
+  // 3 lives x 240 % plus 600 s x 3.3 % of healing: 2,700 % taken is possible now.
+  assert.equal(check(heal(2700), m).ok, true, check(heal(2700), m).reason);
+  assert.match(check(heal(3200), m).reason, /more damage taken than is possible/i, 'above 3 x 240 + 600 x 4');
+});

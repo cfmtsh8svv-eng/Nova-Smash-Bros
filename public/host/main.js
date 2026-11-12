@@ -353,9 +353,10 @@ function renderBotSlot(index, bot) {
   const duplicate = [...lobby.roster, ...lobby.bots.map((b) => ({ slot: b.slot, fighter: b.fighter }))].some((p) => p.slot < index && p.fighter === bot.fighter);
   paintSprite(picture, bot.fighter, { mainColour: duplicate ? duplicateColour(bot.fighter, PLAYER_COLORS[index]) : null, headroom: CROWN_ROOM }).catch(() => {});
   const info = el('div');
-  const tag = el('span', 'tag', `P${index + 1} · ${bot.name}`);
-  tag.append(el('span', 'botTag', 'BOT'));
-  info.append(tag, el('div', 'fighter', fighter ? fighter.name : ''), el('div', 'state ready', 'Ready!'));
+  // The BOT tag sits next to the name pill, so a long name can never cut it off.
+  const row = el('div', 'tagRow');
+  row.append(el('span', 'tag', `P${index + 1} · ${bot.name}`), el('span', 'botTag', 'BOT'));
+  info.append(row, el('div', 'fighter', fighter ? fighter.name : ''), el('div', 'state ready', 'Ready!'));
   card.append(picture, info);
   card.addEventListener('click', () => cycleBot(lobby.bots.indexOf(bot)));
   if (bot.fresh) {

@@ -64,7 +64,8 @@ test('one phone and bots: add, remove, a whole match to its end, practice result
   await host.click('#addBot');
   await host.waitForFunction(() => window.novaBrawl.bots.length === 2);
   assert.deepEqual(await botNames(host), ['1:Freshman', '2:Intern']);
-  assert.match(await text(host, '.slot.p2 .tag'), /P2 · Freshman\s*BOT/);
+  assert.equal(await text(host, '.slot.p2 .tag'), 'P2 · Freshman');
+  assert.equal(await text(host, '.slot.p2 .botTag'), 'BOT');
   assert.equal(await text(host, '.slot.p2 .state'), 'Ready!');
   // A new bot's fighter is not the human's.
   const anaFighter = await host.evaluate(() => window.novaBrawl.roster[0].fighter);

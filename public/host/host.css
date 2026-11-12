@@ -47,6 +47,11 @@ button.plain { background: transparent; box-shadow: none; color: var(--mute); }
 .slot .state.away { color: var(--yellow); }
 .slot .remove { position: absolute; top: 0.4cqw; right: 0.4cqw; padding: 0 0.5cqw; font-size: 0.95cqw; line-height: 1.5; background: transparent; box-shadow: none; border-color: transparent; color: var(--mute); }
 .slot .remove:hover, .slot .remove[data-sure] { color: #fff; background: var(--red); border-color: rgba(255, 255, 255, 0.4); }
+/* A bot's card (GAME_SPEC §5a) is a button: a click switches its fighter. */
+button.slot.bot { text-align: left; color: inherit; font: inherit; box-shadow: none; cursor: pointer; }
+button.slot.bot:active:not(:disabled) { transform: none; }
+.botTag { display: inline-block; margin-left: 0.5em; padding: 0 0.45em; border-radius: 99px; background: var(--dark); color: #fff; border: 1px solid #fff; font-size: 0.8em; font-weight: 900; letter-spacing: 0.05em; vertical-align: 0.08em; }
+.botButtons { display: flex; gap: 0.8cqw; justify-content: center; margin-top: 0.9cqw; }
 .slot.joined { animation: joined 0.6s ease-out; }
 .slot.joined::after { content: ""; position: absolute; inset: 0; background: var(--p); animation: flash 0.6s ease-out forwards; pointer-events: none; }
 @keyframes joined { 0% { transform: scale(0.6); } 55% { transform: scale(1.08); } 100% { transform: scale(1); } }

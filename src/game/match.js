@@ -28,6 +28,7 @@ function createFighter(player, spawn, lives, index, players) {
   return {
     slot: player.slot,
     name: String(player.name),
+    bot: Boolean(player.bot), // a bot (GAME_SPEC §5a): only the screens use this, the rules do not
     fighterId: def.id,
     weight: def.weight,
     runSpeed: P.runBase + P.runPerSpeed * def.speed,
@@ -48,7 +49,7 @@ function createFighter(player, spawn, lives, index, players) {
   };
 }
 
-// players: [{ slot: 0..3, name, fighterId }], two to four of them.
+// players: [{ slot: 0..3, name, fighterId, bot? }], two to four of them.
 export function createMatch({ stageId, players, settings, seed = 1 }) {
   const stage = getStage(stageId);
   if (!stage) throw new Error(`Unknown stage: ${stageId}`);
@@ -228,6 +229,7 @@ export function buildResult(state) {
     players: state.fighters.map((f) => ({
       slot: f.slot,
       name: f.name,
+      bot: f.bot,
       fighterId: f.fighterId,
       place: state.placements.indexOf(f.slot) + 1,
       damageDealt: Math.round(f.stats.damageDealt),

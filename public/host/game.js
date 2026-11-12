@@ -66,7 +66,7 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     jump(e) { audio.play(e.double ? 'doubleJump' : 'jump'); fx.burst(e.x, e.y, { count: e.double ? 8 : 5, color: '#ffffff', speed: 2.5, size: 5, life: 16, gravity: 0 }); },
     land(e) { if (e.speed > 6) { audio.play('land'); fx.burst(e.x, e.y, { count: 6, color: '#e9e2d0', speed: 2.5, size: 4, life: 14, gravity: 0 }); } },
     bounce(e) { audio.play('land'); fx.burst(e.x, e.y, { count: 8, color: '#e9e2d0', speed: 3.5, size: 5, life: 16 }); },
-    attack() { audio.play('swing'); },
+    attack(e) { audio.play(e.kind === 'stomp' ? 'stompDive' : 'swing'); },
     projectile() { audio.play('swing'); },
     special(e) { audio.play(e.special); },
     hit(e) {
@@ -109,6 +109,13 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
         fx.ring(e.x, e.y - 10, e.radius * 0.6, '#f6c343', 26);
         fx.burst(e.x, e.y, { count: 20, color: '#e9e2d0', speed: 8, size: 6, life: 24 });
         fx.addShake(13);
+      } else if (e.fx === 'stomp') {
+        // Smaller than the Bass Drop and pale: a dust ring along the ground, not an orange blast.
+        fx.ring(e.x, e.y - 4, e.radius, e.power === 'sardine' ? '#8fb4d9' : '#eef3f8', 16);
+        fx.ring(e.x, e.y - 4, e.radius * 0.55, '#e9e2d0', 20);
+        for (const dir of [-1, 1]) fx.burst(e.x + dir * 20, e.y - 4, { count: 8, color: ['#e9e2d0', '#c9bfa8'], speed: 5, size: 5, life: 18, up: 1 });
+        fx.addShake(6);
+        audio.play('stomp');
       } else if (e.fx === 'spaghetti_lasso') {
         const target = e.target === null ? null : state.fighters.find((f) => f.slot === e.target);
         const end = target ? { x: target.x, y: target.y - 48 } : e.dir === 'up' ? { x: e.x, y: e.y - e.range } : { x: e.x + e.facing * e.range, y: e.y };

@@ -113,6 +113,8 @@ The joystick produces the input state `left, right, up, down, attack, jump, spec
 
 **Facing.** A fighter faces left or right (the last direction pressed) or **up while up is held**. **Attack and Special go where the fighter looks**, so holding up hits or reaches an opponent who is above or jumping over. A yellow strip in the Special button shows the cooldown.
 
+**Attack in the air** (D-137): **Up + Attack** is the normal upward attack. **Attack without Up is the stomp**: the fighter stops moving sideways and drops straight down fast (18 px per frame); on landing a ring-shaped **shockwave** hits every opponent within **130 px** (centre to centre): 9 %, base_kb 6, kb_growth 9, 45° away from the stomper. Then the fighter needs **14 frames** to recover. It is a normal attack, not a special, so it has no cooldown; the recovery is its cost. If the fighter has not landed after **60 frames** (they fell past the stage), the stomp ends without a shockwave. Items: a held Book is still thrown in the air (no stomp); a held Sardine powers the stomp (it uses one swing, and the Sardine's damage and knockback apply). Attack on the ground is unchanged.
+
 Reference: `design/options/round9-phone-final.html`.
 
 There is no shield.

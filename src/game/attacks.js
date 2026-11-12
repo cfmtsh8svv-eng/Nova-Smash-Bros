@@ -14,8 +14,16 @@ export function reachBox(f, dir, facing, range, thickness) {
 
 export function startAttack(state, f) {
   const attack = { t: 0, dir: f.aimUp ? 'up' : 'side', facing: f.facing, kind: 'normal', hit: [] };
+  // In the air without Up the attack is the stomp (D-137), unless a held Book is thrown instead.
+  const stomp = !f.onGround && !f.aimUp && !(f.held && f.held.type === 'book');
+  if (stomp) {
+    attack.kind = 'stomp';
+    attack.dir = 'down';
+    attack.phase = 'dive';
+  }
   if (f.held && f.held.type === 'sardine') {
-    attack.kind = 'sardine';
+    if (stomp) attack.power = 'sardine';
+    else attack.kind = 'sardine';
     f.held.uses -= 1;
     // The fifth swing uses it up at once, so it cannot come back if that swing is interrupted.
     if (f.held.uses <= 0) {
@@ -24,6 +32,11 @@ export function startAttack(state, f) {
     }
   } else if (f.held && f.held.type === 'book') {
     attack.kind = 'book';
+  }
+  if (stomp) {
+    // The dive starts at once: no sideways movement from this frame on.
+    f.vx = 0;
+    f.vy = CONFIG.stomp.diveSpeed;
   }
   f.attack = attack;
   f.attackBuffer = 0;
@@ -39,7 +52,7 @@ export function updateAttacks(state) {
   const pending = [];
   for (const f of state.fighters) {
     const attack = f.attack;
-    if (f.state !== 'alive' || !attack) continue;
+    if (f.state !== 'alive' || !attack || attack.kind === 'stomp') continue; // the stomp runs in stomp.js
     attack.t += 1;
     if (attack.kind === 'book') {
       if (attack.t === A.startup) throwBook(state, f, attack);

@@ -26,6 +26,7 @@ export function poseOf(f) {
   if (f.state !== 'alive') return 'ko';
   if (f.hitstun > 0 || f.stun > 0 || f.pull) return 'hurt';
   if (f.special) return 'special';
+  if (f.attack && f.attack.kind === 'stomp') return f.attack.phase === 'dive' ? 'stomp' : 'idle';
   if (f.attack) return 'attack';
   if (!f.onGround) return f.vy < 0 ? 'jump' : 'fall';
   if (Math.abs(f.vx) > 0.6) return Math.floor(f.runPhase / 26) % 2 === 0 ? 'run1' : 'run2';

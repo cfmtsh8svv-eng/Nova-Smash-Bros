@@ -12,7 +12,8 @@ export function controlFighter(state, f, inp) {
   f.specialBuffer = inp.specialP ? P.inputBufferFrames : Math.max(0, f.specialBuffer - 1);
 
   const canAct = f.hitstun <= 0 && f.stun <= 0 && !f.pull;
-  const locked = Boolean(f.special && f.special.lock);
+  // A special that holds the fighter, or the stomp's dive: no running, jumping or dropping.
+  const locked = Boolean(f.special && f.special.lock) || Boolean(f.attack && f.attack.kind === 'stomp');
 
   if (!canAct) {
     f.aimUp = false;

@@ -13,6 +13,7 @@ import { clearFighterEffects, feedback, knockOut } from './combat.js';
 import { controlFighter, moveFighter, pushApart } from './physics.js';
 import { startAttack, updateAttacks, updateProjectiles } from './attacks.js';
 import { startSpecial, updateSpecial } from './specials.js';
+import { updateStomp } from './stomp.js';
 import { nextItemDelay, updateItems } from './items.js';
 import { newHazardState, updateHazards, wifiDelayFor } from './hazards.js';
 
@@ -157,6 +158,7 @@ export function step(state, inputs = {}) {
     if (free && f.specialBuffer > 0 && f.cooldown <= 0) startSpecial(state, f);
     else if (free && f.attackBuffer > 0) startAttack(state, f);
     updateSpecial(state, f);
+    updateStomp(state, f);
     moveFighter(state, f, inp);
   }
 

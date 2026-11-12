@@ -62,7 +62,7 @@ The left half of the phone is a joystick: put your thumb down anywhere there and
 | Joystick up | Look up: attacks and specials then go upward |
 | Joystick down | Drop through a platform, fall faster |
 | **Jump** | Jump; press again in the air for one double jump |
-| **Attack** | Normal attack in the direction you look |
+| **Attack** | Normal attack in the direction you look. In the air without up: the **stomp**, a straight drop with a shockwave on landing |
 | **Special** | Your fighter's special; the yellow strip shows when it is ready again |
 
 Watch the top right corner of the big screen: every hazard is announced with its name and a 3, 2, 1. `P` or `Esc` pauses and resumes the match on the laptop (the line at the bottom of the big screen says so); phones cannot pause.

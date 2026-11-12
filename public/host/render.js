@@ -459,7 +459,16 @@ export function createRenderer(canvas) {
   // a swing (an arc), a poke (a stick with the item at its tip) or a short throw.
   function drawAttack(f) {
     const attack = f.attack;
-    if (!attack || attack.kind === 'book') return;
+    if (attack && attack.kind === 'stomp' && attack.phase === 'dive') {
+      // Speed lines above the diving fighter.
+      ctx.strokeStyle = 'rgba(255,255,255,.7)';
+      ctx.lineWidth = 3;
+      for (const dx of [-16, 0, 16]) {
+        ctx.beginPath(); ctx.moveTo(f.x + dx, f.y - H - 6); ctx.lineTo(f.x + dx, f.y - H - 30 - Math.abs(dx)); ctx.stroke();
+      }
+      return;
+    }
+    if (!attack || attack.kind === 'book' || attack.kind === 'stomp') return;
     const A = CONFIG.attack;
     const k = Math.min(1, attack.t / (A.startup + A.active)); // 0 at the start, 1 when the hit is over
     const style = attack.kind === 'sardine' ? 'swing' : getFighter(f.fighterId).normalStyle;

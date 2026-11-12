@@ -66,6 +66,8 @@ export const CONFIG = {
     total: 20, // frames until the fighter can act again
     thickness: 76, // height of a sideways swing, width of an upward one
   },
+  // The stomp: Attack in the air without Up (D-137).
+  stomp: { diveSpeed: 18, radius: 130, damage: 9, baseKb: 6, kbGrowth: 9, angleDeg: 45, recovery: 14, maxAir: 60 },
   items: {
     spawnMinS: 12,
     spawnMaxS: 20,

@@ -1,8 +1,8 @@
 # NOVA Brawl: Game Spec v2.0
 
-**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards) and the round 2 changes of 2026-11-12 (D-132 onwards). Where `CONCEPT.md` or `SPECS.md` say something different, this file wins. Brand voice, signature lines and humour rules in `CONCEPT.md` §3 still apply.
+**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards) the round 2 changes of 2026-11-12 (D-132 onwards) and the bots of round 4 (D-156 onwards). Where `CONCEPT.md` or `SPECS.md` say something different, this file wins. Brand voice, signature lines and humour rules in `CONCEPT.md` §3 still apply.
 
-Sound: music per stage and effects are synthesised in the browser, with separate volume controls on the host. There are no bots and no keyboard players: every fighter is played from a phone (D-132). The rules still accept players that do not come from a phone, so bots can be added later.
+Sound: music per stage and effects are synthesised in the browser, with separate volume controls on the host. There are no keyboard players (D-132). Every human plays from a phone; the host can fill free places with **bots** (§5a, D-156 onwards).
 
 Final art reference: [`design/final/`](../design/final/) (`reference.html`, `characters.js`, `stages.js`).
 
@@ -10,7 +10,7 @@ Final art reference: [`design/final/`](../design/final/) (`reference.html`, `cha
 
 ## 1. What it is
 
-A party platform fighter for **2 to 4 players**. One laptop or projector shows the game. Each player scans a QR code and uses their **phone as the controller**, in the browser, on iOS and Android, with no install. Text in the game is English only.
+A party platform fighter for **2 to 4 fighters**, at least one of them a human (the rest can be bots, §5a). One laptop or projector shows the game. Each player scans a QR code and uses their **phone as the controller**, in the browser, on iOS and Android, with no install. Text in the game is English only.
 
 ## 2. Course constraints (from the team-project wiki)
 
@@ -63,11 +63,11 @@ Laptop (host page, runs game) ───┘    (static files, rooms, relay, accou
 | `players` | gamertag, gamertag_lower, salt, pin_hash, created_at, matches, wins, points, kos, falls, damage_dealt, damage_taken, achievements, last_won |
 | `matches` | match_id, ended_at, stage, mode, lives, duration_s, winner, players_json |
 
-The **leaderboard** ranks players by **points**. Each match gives placement points (1st 100, 2nd 60, 3rd 40, 4th 20) plus 1 point per 10 % damage dealt. It is read from `players`, cached on the server for 60 s, and shown in the host's lobby (not on the results screen, D-155).
+The **leaderboard** ranks players by **points**. Each match gives placement points (1st 100, 2nd 60, 3rd 40, 4th 20) plus 1 point per 10 % damage dealt. The place counts every fighter of the match, bots included. A match is saved only with **at least two humans** in it; with one human (alone against bots) it is a practice match (D-161). Bots never appear in the sheet, the leaderboard or the achievements. It is read from `players`, cached on the server for 60 s, and shown in the host's lobby (not on the results screen, D-155).
 
 **Achievements** belong to a player, are stored in the sheet and have no effect on gameplay. They show on the results screen and on the phone when earned. First set: First Win, Hat-Trick (3 wins), Heavy Hitter (1,000 % damage dealt in total), Untouchable (win without losing a life), Comeback (win on the last life above 150 %), Globetrotter (win on all three stages), Regular (10 matches), Special Delivery (KO with a special).
 
-**The crown** (D-154) is cosmetic. A player whose last saved match was a win wears a small gold crown: on the fighter during a match (above the head), on the sprite of their lobby card (no text with it) and on the podium. Several players can wear one at the same time (each won the last match they played). It is stored in the `last_won` column (1 or 0) and changes with every saved result: the winner gets it, everyone else in that match loses theirs. A practice match or a result that does not count (§4 limits) changes nothing. If the sheet cannot be written, the server still changes its own copy at once, so the crown is right until the server restarts.
+**The crown** (D-154) is cosmetic. A player whose last saved match was a win wears a small gold crown: on the fighter during a match (above the head), on the sprite of their lobby card (no text with it) and on the podium. Several players can wear one at the same time (each won the last match they played). It is stored in the `last_won` column (1 or 0) and changes with every saved result: the winner gets it, everyone else in that match loses theirs. A practice match or a result that does not count (§4 limits) changes nothing. Bots never wear one. If the sheet cannot be written, the server still changes its own copy at once, so the crown is right until the server restarts.
 
 **One phone per account.** If a gamertag logs in on a second phone, the first phone is signed out with a clear message.
 
@@ -79,7 +79,7 @@ The **leaderboard** ranks players by **points**. Each match gives placement poin
 
 | Rule | Value |
 |---|---|
-| Players | 2 to 4 |
+| Players | 2 to 4 fighters: 1 to 4 humans plus bots (§5a). Alone: 1 to 3 bots. Two humans: 0 to 2. Three: 0 or 1. Four: none. |
 | Lives | **1, 2 or 3**, chosen by the host in the lobby (default 3) |
 | End of match | When only **one player is left**. No time limit. |
 | Damage | Starts at 0 %. Every hit adds damage. Higher damage means more knockback. |
@@ -88,7 +88,7 @@ The **leaderboard** ranks players by **points**. Each match gives placement poin
 | After a KO | Lose a life, respawn after 2 s at the top centre at 0 %, 2 s of invincibility |
 | Eliminated | Phone shows "You're out!" and a **vote for the next hazard** |
 | Stage choice | The host picks on the laptop: **Vote** (the default) or one fixed stage. With a fixed stage the host presses Start as before. With Vote, Start opens the **map vote** (§10a); a tie or no vote at all is decided at random between the tied stages. |
-| Starting | Only the laptop starts the match, once at least 2 players are logged in and have picked a fighter. The host can **close the room** so nobody else joins, and start with 2 or 3 players. |
+| Starting | Only the laptop starts the match, once at least 1 human is Ready (logged in, fighter picked) and there are at least 2 fighters in all, bots included. Every human in the lobby must be Ready. The host can **close the room** so nobody else joins, and start with fewer than 4. |
 | Leaving | If a player leaves or loses connection, the match **keeps running**. Their fighter stands idle, **can still be hit**, and they can rejoin at any time until the match ends. |
 | Pause | Only on the laptop: **P** or **Esc** pauses and resumes. Phones cannot pause. |
 
@@ -109,6 +109,30 @@ hitstun_frames = round(launch_speed * 2.5)
 - The fighter is drawn in a hanging pose (arms up) at the corner.
 
 Coordinates are a 1280×720 space at 60 Hz. Gravity 0.6 px/f². A single jump reaches about 160 px, so every platform level (130 px apart) is reachable; one double jump. All tuning values live in one `config.js`.
+
+## 5a. Bots
+
+Bots fill places so that one or two people can still play a full match (D-156). There is one strength for now, **medium**; the code takes a level, so easy and hard can follow as other numbers in `config.js` (D-157).
+
+**Lobby (host page).** Under the player cards: **Add bot** and **Remove bot**. Add bot works only while a place is free (humans plus bots fewer than 4); Remove bot removes the bot added last. A bot gets a **random fighter**, if possible one that no human has picked; a click on the bot's card switches to the next fighter (D-159). A bot is always Ready. Bots can be added and removed only in the lobby, also while the room is closed.
+
+**Names.** Fixed nicknames in the order they are added: **Freshman**, **Intern**, **Erasmus**. Wherever a name is shown (lobby card, name pill, HUD card, podium, stat card) a bot also carries a small **BOT** tag (D-162). Bots never wear a crown.
+
+**When a human joins.** If the room has no free place because bots fill it, the bot added last makes room: it leaves the lobby and waits on a bench. When a human leaves the lobby again, the bot that left last comes back, with the same name and fighter (D-158). Joining during the map vote, the intro or a match works as before (the newcomer plays in the next match); the bots of a running match stay in it until it ends, and the bench is settled when the room is back in the lobby. A human who took a bot's place still has to pick a fighter and press Ready.
+
+**Map vote and intro.** Bots do not vote and have no Skip pip. The vote ends when every human of the vote has voted (alone: their vote decides) or after 10 s; the intro ends when every connected human has skipped or after 20 s (D-160).
+
+**How a medium bot plays** (D-163). The bot is a pure function in `src/game/` that turns the match state into the same input a phone sends (left, right, up, down, attack, jump, special); the rules cannot tell a bot from a phone. Randomness comes only from `rng.js`, so a match with bots can be replayed in a test.
+
+- **Target.** The nearest opponent, human or bot. The leader (most lives left, then the lowest damage) counts as a bit nearer than it is, so bots lean towards stopping whoever is ahead.
+- **Moving.** Runs towards the target, jumps or double-jumps to reach a higher platform, drops through a platform (Down) to reach a lower one.
+- **Fighting.** Attacks when the target is within reach and in front (holding Up when the target is above). Uses the special when it is ready and the target is in the special's range. Uses the stomp now and then when above a target.
+- **Getting back.** Off the stage it steers towards the main ground, uses its double jump and the ledge grab, and climbs up with Jump. A medium bot does not fall off the stage by itself.
+- **Items.** Picks up an item that lies on its way (same platform, close by) and uses a held item with its normal attacks. Holding the Group Project, it goes for the nearest opponent to pass it on.
+- **Hazards.** Reacts only to what a human can see or read: once a hazard is announced (name and 3, 2, 1), it moves to a safe level, but not sooner. A late train that comes without a warning is a surprise for bots too.
+- **Human limits.** A medium bot reacts with a delay of about a fifth of a second (it acts on what it saw a few frames ago), sometimes misjudges a distance and does not press buttons faster than a person on a phone could. **Target strength:** a first-time player on a phone wins about every second one-on-one against it. The numbers are in `config.js` (`bots.medium`) for the team to tune by playing.
+
+**During a match.** A bot is an ordinary fighter: it can be hit, picks up items, gets the phone-less version of every effect (nothing is sent to any phone for it). A human whose phone disconnects keeps standing still as before; a bot never takes over a human's fighter (D-164).
 
 ## 6. Controls (phone, landscape)
 
@@ -240,7 +264,7 @@ Both are free. `docs/DEPLOY.md` has the steps for each.
 
 ## 10. Screens
 
-**Host (laptop):** Title (no team names) → Lobby (QR code, room code, player cards, stage choice: Vote or one of the three stages, close room, lives 1/2/3, items and hazards on/off, **separate volume sliders for music and effects**, leaderboard) → Map vote (with Vote only, §10a) → Intro (§10b) → Countdown → Match (HUD with one card per player at the top) → End sequence and results on the podium (winner, per-player stats, points, new achievements; no leaderboard) → back to the lobby. There is no rematch button.
+**Host (laptop):** Title (no team names) → Lobby (QR code, room code, player cards, Add bot / Remove bot (§5a), stage choice: Vote or one of the three stages, close room, lives 1/2/3, items and hazards on/off, **separate volume sliders for music and effects**, leaderboard) → Map vote (with Vote only, §10a) → Intro (§10b) → Countdown → Match (HUD with one card per player at the top) → End sequence and results on the podium (winner, per-player stats, points, new achievements; no leaderboard) → back to the lobby. There is no rematch button.
 
 **Phone:** Register / log in → Fighter select (swipe through the 8 fighters one at a time, with the neighbours peeking in at the sides; each card shows the sprite, the two attacks and **Speed and Weight as five-step bars, without numbers**) → Ready → Map vote (with Vote only, §10a) → Intro with a Skip button (§10b) → Gamepad → KO'd → Eliminated + hazard vote → Results.
 
@@ -248,7 +272,7 @@ Both are free. `docs/DEPLOY.md` has the steps for each.
 
 Voting is the default; the host can still pick one fixed stage in the lobby (D-135).
 
-- **Start.** With Vote chosen, the host's Start button opens the vote as soon as at least 2 players are Ready (the same rule as starting a match). The fighter select has no stage buttons.
+- **Start.** With Vote chosen, the host's Start button opens the vote under the same rule as starting a match (§5: at least 1 Ready human and at least 2 fighters with the bots). The fighter select has no stage buttons. Bots do not vote (§5a).
 - **Phone vote screen.** It looks and works like the fighter select: a swipe carousel of the three stages with the neighbours peeking in, dots under it, and a big **Vote!** button. Each card shows a preview picture of the stage (the stage art drawn small), the stage name, day or night, and the stage's hazards by name. A player may change the vote until the vote ends.
 - **Big screen vote view.** The three stage previews side by side, large, each with its live vote count and the small sprites of the players who voted for it, and a 10 s countdown.
 - **End.** When every player in the vote has voted, or after **10 s**, whichever comes first. A tie or no votes is decided at random between the tied stages. The winning stage is shown for about 1.5 s on both screens, then the match starts on it with the players of the vote.
@@ -259,14 +283,14 @@ Voting is the default; the host can still pick one fixed stage in the lobby (D-1
 
 Before every match (after the map vote, or right after Start with a fixed stage) the big screen shows an intro for **20 s** over the dimmed stage (D-153).
 
-- **Big screen.** "GET READY" and the stage name with day or night at the top. Under the heading **ITEMS**, three columns of cards with all nine items, each with its picture (the same art as on the stage), name and one line on what it does; every item card has a yellow frame, and the **Lucky Rooster** card also glows gold and carries a **RARE** tag. Next to them one column under **HAZARDS** with the three hazards of the chosen stage, each as a small animated picture (train, Wi-Fi with a red cross, rain cloud, wave, seagull, sun, crowd, beer glass, rocket) with its name and one line. There is no leaderboard. At the bottom: a 20 s bar with the seconds left, and **SKIP** with one pip per player of the match in the player colour; the pip fills when that player has skipped, and a disconnected player's pip is faded.
+- **Big screen.** "GET READY" and the stage name with day or night at the top. Under the heading **ITEMS**, three columns of cards with all nine items, each with its picture (the same art as on the stage), name and one line on what it does; every item card has a yellow frame, and the **Lucky Rooster** card also glows gold and carries a **RARE** tag. Next to them one column under **HAZARDS** with the three hazards of the chosen stage, each as a small animated picture (train, Wi-Fi with a red cross, rain cloud, wave, seagull, sun, crowd, beer glass, rocket) with its name and one line. There is no leaderboard. At the bottom: a 20 s bar with the seconds left, and **SKIP** with one pip per human of the match in the player colour (bots have none); the pip fills when that player has skipped, and a disconnected player's pip is faded.
 - **Phone.** "GET READY", "Read the items on the big screen" and one big **SKIP** button. After a tap it turns green and says how many players are still reading.
 - **End.** After 20 s, or as soon as **every connected player of the match** has pressed Skip, whichever comes first. A player who disconnects no longer holds it up. Then the usual 3, 2, 1 countdown starts. Buttons pressed during the intro do nothing.
 - **Server.** A phone sends `skip`, with no other field. It is passed to the host only while a match runs and only from a player of that match; anything else in the message is a bad message. The intro screen is a `phase` named `intro` with the stage, the players, the seconds left and who has skipped.
 
 Every error is shown in plain words next to where it happened ("That gamertag is taken", "Wrong PIN, 3 tries left", "Room not found", "Connection lost, reconnecting…").
 
-**Lobby.** When a player joins, their slot appears on the big screen with a short entrance effect (flash and pop in the player colour, with a sound). Until that player has picked a fighter, the slot shows a **grey silhouette**; picking a fighter reveals the sprite.
+**Lobby.** When a player joins, their slot appears on the big screen with a short entrance effect (flash and pop in the player colour, with a sound). Until that player has picked a fighter, the slot shows a **grey silhouette**; picking a fighter reveals the sprite. A bot's card shows its fighter, its nickname and the BOT tag at once; it plays the same entrance effect when it is added or comes back from the bench.
 
 **End sequence and results screen** (D-155, mockup `design/options/round11-podium.html`). It is drawn on the game canvas, on the stage of the match, right after the final-KO slow motion:
 
@@ -274,7 +298,7 @@ Every error is shown in plain words next to where it happened ("That gamertag is
 2. **1.8 to 2.6 s.** The camera goes back, the stage dims, and the name moves to the top with "graduates with honours" under it.
 3. **2.2 to 3.0 s.** Three podium blocks (1st in the middle, 2nd on the left, 3rd on the right, in the player colours) rise out of the stage's own main ground (y 600: the terrace, the sand, the street). The winner jumps onto the 1st block; the 2nd and 3rd, who were knocked out, drop in from above onto theirs. A 4th player falls in and lies flat on the ground to the right of the podium (the arms-up pose turned on its back, placed from the sprite's pixels so the body is centred under its card). With 2 or 3 players only their blocks rise.
 4. **3.2 to 4.0 s.** Crowns from the last round (§4) pop off the other players and vanish; a new crown drops onto the winner (who keeps theirs if they already had one). Fireworks start over the stage and run until 10 s; confetti keeps falling.
-5. **From 4.2 s.** A stat card pops in above each fighter (the 4th: above the fighter on the ground): place, name, damage dealt and taken, KOs and falls, then points and new achievements once the server has answered. **Back to the lobby** appears at 5.2 s.
+5. **From 4.2 s.** A stat card pops in above each fighter (the 4th: above the fighter on the ground): place, name, damage dealt and taken, KOs and falls, then points and new achievements once the server has answered (a bot's card shows the BOT tag and no points). **Back to the lobby** appears at 5.2 s.
 
 There is **no leaderboard** on the results screen; it stays in the lobby. A line at the bottom left says whether the result was saved.
 
@@ -284,7 +308,7 @@ There is **no leaderboard** on the results screen; it stays in the lobby. A line
 |---|---|
 | It works | Deployed, health check, reconnects, every invalid input handled, sheet outage handled |
 | UI and UX | One-scan join, auto-login, clear errors, hazard warnings, phone feedback, rotate hint |
-| Scope | Real-time multiplayer over the network, phones as controllers, accounts, leaderboard, achievements, 8 fighters, 3 stages, hazards, items |
+| Scope | Real-time multiplayer over the network, phones as controllers, accounts, leaderboard, achievements, 8 fighters, 3 stages, hazards, items, bots |
 | Verification | Unit tests for rules, combat, specials, items, hazards; rejected actions and edge cases; server and protocol tests; one browser smoke test; CI on `main` |
 | Security | §8 |
 | Walkthrough | `docs/WALKTHROUGH.md`: how it is built, why, limits, what could change |

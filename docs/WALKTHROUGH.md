@@ -444,6 +444,7 @@ Say these plainly when asked; they are choices, not accidents.
 | **A new hazard or item** | One entry in `hazards.js` or `items.js`, numbers in `config.js`, one test for its safe platform. |
 | **Better feel on bad networks** | Inputs already carry a counter. The host could measure each phone's delay and show it, or hold inputs for a few milliseconds to even out jitter. |
 | **Stronger accounts** | Longer PINs or passwords; the hashing would stay as it is. |
+| **A "God" bot** (O-13) | Numbers alone make the bot quicker, not smarter. It would need new behaviour in `bot.js`: dodging an attack it sees coming, waiting at the edge for a fighter coming back, punishing a missed attack. It must keep the human limits, or it is not hard but unfair. |
 | **Sound with more character** | Replace the synthesised effects by recorded ones. Only `audio.js` would change. |
 
 ---

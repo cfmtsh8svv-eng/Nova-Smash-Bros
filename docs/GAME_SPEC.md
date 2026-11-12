@@ -1,6 +1,6 @@
 # NOVA Brawl: Game Spec v2.0
 
-**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards) the round 2 changes of 2026-11-12 (D-132 onwards) and the bots of round 4 (D-156 onwards). Where `CONCEPT.md` or `SPECS.md` say something different, this file wins. Brand voice, signature lines and humour rules in `CONCEPT.md` §3 still apply.
+**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards) the round 2 changes of 2026-11-12 (D-132 onwards) and the bots of round 4 (D-156 onwards, bot levels D-175 onwards). Where `CONCEPT.md` or `SPECS.md` say something different, this file wins. Brand voice, signature lines and humour rules in `CONCEPT.md` §3 still apply.
 
 Sound: music per stage and effects are synthesised in the browser, with separate volume controls on the host. There are no keyboard players (D-132). Every human plays from a phone; the host can fill free places with **bots** (§5a, D-156 onwards).
 
@@ -112,9 +112,11 @@ Coordinates are a 1280×720 space at 60 Hz. Gravity 0.6 px/f². A single jump re
 
 ## 5a. Bots
 
-Bots fill places so that one or two people can still play a full match (D-156). There is one strength for now, **medium**; the code takes a level, so easy and hard can follow as other numbers in `config.js` (D-157).
+Bots fill places so that one or two people can still play a full match (D-156). Each bot has its own **level: Easy, Medium or Hard** (D-175). The three levels are three number sets in `config.js` (`bots.easy`, `bots.medium`, `bots.hard`) for the same code; they differ only in their numbers, never in what the bot knows or how fast a thumb could press (D-176). A "God" level is a possible later feature, not part of this build (O-13).
 
 **Lobby (host page).** Under the player cards: **Add bot** and **Remove bot**. Add bot works only while a place is free (humans plus bots fewer than 4); Remove bot removes the bot added last. A bot gets a **random fighter**, if possible one that no human has picked; a click on the bot's card switches to the next fighter (D-159). A bot is always Ready. Bots can be added and removed only in the lobby, also while the room is closed.
+
+**Level (D-175, D-177).** A new bot starts on **Medium**. Its lobby card has a level row with two arrow buttons, **◀ Medium ▶**; ◀ goes one level down, ▶ one level up, and they stop at Easy and at Hard (the arrow at the end is disabled). A click on the arrows changes only the level; a click anywhere else on the card still switches the fighter. The level belongs to the bot: it stays through matches, on the bench and back, until the bot is removed. The level is shown **only in the lobby** (the level row on the card); the name pill, HUD card, podium, stat card and phones show the BOT tag as before, without the level.
 
 **Names.** Fixed nicknames in the order they are added: **Freshman**, **Intern**, **Erasmus**. Wherever a name is shown (lobby card, name pill, HUD card, podium, stat card) a bot also carries a small **BOT** tag (D-162). Bots never wear a crown.
 
@@ -122,7 +124,7 @@ Bots fill places so that one or two people can still play a full match (D-156). 
 
 **Map vote and intro.** Bots do not vote and have no Skip pip. The vote ends when every human of the vote has voted (alone: their vote decides) or after 10 s; the intro ends when every connected human has skipped or after 20 s (D-160).
 
-**How a medium bot plays** (D-163). The bot is a pure function in `src/game/` that turns the match state into the same input a phone sends (left, right, up, down, attack, jump, special); the rules cannot tell a bot from a phone. Randomness comes only from `rng.js`, so a match with bots can be replayed in a test.
+**How a bot plays** (D-163; the same for every level, only the numbers differ). The bot is a pure function in `src/game/` that turns the match state into the same input a phone sends (left, right, up, down, attack, jump, special); the rules cannot tell a bot from a phone. Randomness comes only from `rng.js`, so a match with bots can be replayed in a test.
 
 - **Target.** The nearest opponent, human or bot. The leader (most lives left, then the lowest damage) counts as a bit nearer than it is, so bots lean towards stopping whoever is ahead.
 - **Moving.** Runs towards the target, jumps or double-jumps to reach a higher platform, drops through a platform (Down) to reach a lower one.
@@ -131,6 +133,7 @@ Bots fill places so that one or two people can still play a full match (D-156). 
 - **Items.** Picks up an item that lies on its way (same platform, close by) and uses a held item with its normal attacks. Holding the Group Project, it goes for the nearest opponent to pass it on.
 - **Hazards.** Reacts only to what a human can see or read: once a hazard is announced (name and 3, 2, 1), it moves to a safe level, but not sooner. A late train that comes without a warning is a surprise for bots too.
 - **Human limits.** A medium bot reacts with a delay of about a fifth of a second (it acts on what it saw a few frames ago), sometimes misjudges a distance and does not press buttons faster than a person on a phone could. **Target strength:** a first-time player on a phone wins about every second one-on-one against it. The numbers are in `config.js` (`bots.medium`) for the team to tune by playing.
+- **Easy and Hard** (D-176). Easy reacts later, misjudges more, attacks less and hesitates more often; Hard reacts sooner, misjudges less and attacks more. Every level keeps the human limits: it never reads hidden timers, sees the others with a delay of at least 6 frames (0.1 s) and presses no faster than `pressHold` 2 / `pressGap` 8 allow. **Target strength,** measured with the scripted simple human of the bot tests (the same script that wins about 63 % against Medium): it wins about **85 to 90 %** against Easy and about **25 to 35 %** against Hard.
 
 **Details settled in the build** (D-166 to D-174). The bot sees the other fighters, items and hazards 0.2 s late and itself as it is now. The room keeps the bots as one ordered list whose first ones play and the rest wait on the bench; Remove bot also empties the bench. The roster gives each bot the slot it will get, and the server hands out the final slots at the start (`match_started`). A result line for a bot has no account and no points; the sheet's `matches` row lists only the humans, with `(bot)` as winner when a bot won.
 
@@ -292,7 +295,7 @@ Before every match (after the map vote, or right after Start with a fixed stage)
 
 Every error is shown in plain words next to where it happened ("That gamertag is taken", "Wrong PIN, 3 tries left", "Room not found", "Connection lost, reconnecting…").
 
-**Lobby.** When a player joins, their slot appears on the big screen with a short entrance effect (flash and pop in the player colour, with a sound). Until that player has picked a fighter, the slot shows a **grey silhouette**; picking a fighter reveals the sprite. A bot's card shows its fighter, its nickname and the BOT tag at once; it plays the same entrance effect when it is added or comes back from the bench.
+**Lobby.** When a player joins, their slot appears on the big screen with a short entrance effect (flash and pop in the player colour, with a sound). Until that player has picked a fighter, the slot shows a **grey silhouette**; picking a fighter reveals the sprite. A bot's card shows its fighter, its nickname and the BOT tag at once, and its level with ◀ ▶ arrows (§5a); it plays the same entrance effect when it is added or comes back from the bench.
 
 **End sequence and results screen** (D-155, mockup `design/options/round11-podium.html`). It is drawn on the game canvas, on the stage of the match, right after the final-KO slow motion:
 

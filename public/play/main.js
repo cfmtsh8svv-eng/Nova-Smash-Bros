@@ -3,10 +3,11 @@
 // (lobby, match, results); this page only reacts to them.
 import { PLAYER_COLORS } from '/game/config.js';
 import { FIGHTERS } from '/game/fighters.js';
+import { HAZARDS, STAGES } from '/game/stages.js';
 import { encodeInput } from '/game/input.js';
 import { damageColor, hearts } from '/game/view.js';
 import { createLink, storage } from '/shared/net.js';
-import { paintSprite } from '/shared/art/sprites.js';
+import { paintSprite, paintStage } from '/shared/art/sprites.js';
 import { createControls } from './controls.js';
 import { createFeedback } from './feedback.js';
 
@@ -17,13 +18,14 @@ const el = (tag, className, text) => {
   if (text !== undefined) node.textContent = text; // always as text, never as HTML
   return node;
 };
-const SCREENS = ['auth', 'notice', 'select', 'pad', 'results'];
+const SCREENS = ['auth', 'notice', 'select', 'mapvote', 'pad', 'results'];
 const HEARTBEAT_MS = 100; // the host lets go of a phone's buttons after 600 ms of silence
 
 const me = {
   room: null, token: storage.get('localStorage', 'nb_token'), gamertag: storage.get('localStorage', 'nb_tag'),
   slot: -1, joined: false, joining: false, lives: 3,
-  fighter: 0, ready: false, stageVote: null,
+  fighter: 0, ready: false,
+  mapVote: { stage: null, card: 0, endsAt: 0, winner: null }, // the map vote (GAME_SPEC §10a)
   status: null, phase: null, koTitle: '', koText: '',
   cd: { left: 0, max: 1, at: 0 },
 };
@@ -126,7 +128,7 @@ const MESSAGES = {
     me.status = null;
     storage.set('localStorage', 'nb_tag', msg.gamertag);
     const color = PLAYER_COLORS[msg.slot];
-    for (const id of ['selectTag', 'padTag']) {
+    for (const id of ['selectTag', 'voteTag', 'padTag']) {
       $(id).textContent = `P${msg.slot + 1} · ${msg.gamertag}`;
       $(id).style.setProperty('--p', color);
       $(id).classList.toggle('p4', msg.slot === 3);
@@ -151,17 +153,14 @@ const MESSAGES = {
   phase(msg) {
     me.phase = msg;
     if (msg.name === 'lobby') {
-      if (!$('results').hidden || !$('pad').hidden) {
-        me.ready = false; // a new round: ready up again ...
-        me.stageVote = null; // ... and vote again (the host counts from zero)
-      }
+      if (!$('results').hidden || !$('pad').hidden) me.ready = false; // a new round: ready up again
       me.status = null; // nothing of the last match (damage, "You're out!") carries over
       me.hazards = null; // the hazard vote starts fresh too
-      $('stageVote').hidden = !msg.vote;
-      if (msg.vote && Array.isArray(msg.stages)) buildStageVote(msg.stages);
       showSelect();
+    } else if (msg.name === 'vote') {
+      if (Array.isArray(msg.slots) && msg.slots.includes(me.slot)) showMapVote(msg);
+      else notice('The players are voting for the stage. You are in the next match.');
     } else if (msg.name === 'match') {
-      me.stageVote = null; // the vote was used: the next lobby starts without one
       if (Array.isArray(msg.slots) && msg.slots.includes(me.slot)) {
         me.lives = [1, 2, 3].includes(msg.lives) ? msg.lives : 3;
         // Only rebuilt when the list changes, so a vote stays highlighted through a pause.
@@ -436,11 +435,11 @@ function showSelect() {
   $('selectHint').textContent = me.ready ? `${FIGHTERS[me.fighter].name} is in. Waiting for the host to start…` : 'Swipe to choose your fighter';
 }
 
-// The card that is in the middle of the carousel right now.
-function centredFighter() {
-  const carousel = $('carousel');
+// The card that is in the middle of a carousel right now.
+const centredFighter = () => centredCard($('carousel'), me.fighter);
+function centredCard(carousel, current) {
   const mid = carousel.scrollLeft + carousel.clientWidth / 2;
-  let best = me.fighter;
+  let best = current;
   let bestDistance = Infinity;
   for (const card of carousel.children) {
     const d = Math.abs(card.offsetLeft + card.offsetWidth / 2 - mid);
@@ -468,13 +467,101 @@ function voteButtons(container, options, kind, current) {
       link.send({ t: 'vote', kind, value: option.id });
       feedback.sound('tap');
       for (const other of container.children) other.setAttribute('aria-pressed', String(other === button));
-      if (kind === 'stage') me.stageVote = option.id;
     });
     return button;
   }));
 }
-const buildStageVote = (stages) => voteButtons($('stageVoteButtons'), stages, 'stage', me.stageVote);
 const buildHazardVote = (hazards) => voteButtons($('hazardVote'), hazards, 'hazard', null);
+
+// ---- map vote (GAME_SPEC §10a) ----
+
+// Built once: a card per stage with a small picture of it, its name, day or night and its hazards.
+function buildMapCarousel() {
+  const carousel = $('mapCarousel');
+  STAGES.forEach((stage, i) => {
+    const card = el('article', 'card mapCard');
+    card.dataset.index = String(i);
+    card.dataset.stage = stage.id;
+    const preview = el('canvas');
+    preview.setAttribute('aria-label', `${stage.name}, small picture`);
+    card.append(preview, el('h3', '', stage.name), el('p', 'time', stage.time === 'night' ? 'Night' : 'Day'));
+    card.append(el('p', 'hazards', `Hazards: ${stage.hazards.map((id) => HAZARDS[id].short).join(', ')}`));
+    carousel.append(card);
+    $('mapDots').append(el('i'));
+  });
+  let settle = null;
+  carousel.addEventListener('scroll', () => {
+    clearTimeout(settle);
+    settle = setTimeout(() => {
+      me.mapVote.card = centredCard(carousel, me.mapVote.card);
+      markMapCard();
+    }, 60);
+  }, { passive: true });
+}
+
+// The pictures are drawn the first time the vote screen shows (the stage art takes a moment).
+let previewsDrawn = false;
+function drawPreviews() {
+  if (previewsDrawn) return;
+  previewsDrawn = true;
+  for (const card of $('mapCarousel').children) paintStage(card.querySelector('canvas'), card.dataset.stage, 480, 270).catch(() => {});
+}
+
+function markMapCard() {
+  [...$('mapCarousel').children].forEach((card, i) => {
+    card.classList.toggle('current', i === me.mapVote.card);
+    card.classList.toggle('voted', card.dataset.stage === me.mapVote.stage);
+    card.classList.toggle('winner', card.dataset.stage === me.mapVote.winner);
+  });
+  [...$('mapDots').children].forEach((dot, i) => dot.classList.toggle('on', i === me.mapVote.card));
+  const current = STAGES[me.mapVote.card];
+  const button = $('voteButton');
+  button.disabled = Boolean(me.mapVote.winner);
+  button.classList.toggle('on', me.mapVote.stage === current.id);
+  button.textContent = me.mapVote.stage === current.id ? 'Voted!' : 'Vote!';
+  const name = (id) => STAGES.find((s) => s.id === id).name;
+  $('voteHint').textContent = me.mapVote.winner ? `${name(me.mapVote.winner)} wins! Get ready…`
+    : me.mapVote.stage ? `You voted for ${name(me.mapVote.stage)}. You can change it until the vote ends.`
+      : 'Swipe to a stage and vote';
+}
+
+function showMapVote(msg) {
+  const fresh = $('mapvote').hidden;
+  if (fresh && !msg.winner) me.mapVote.stage = null; // a new vote starts empty
+  me.mapVote.winner = typeof msg.winner === 'string' ? msg.winner : null;
+  me.mapVote.endsAt = performance.now() + (Number(msg.endsIn) || 0) * 1000;
+  if (me.mapVote.winner) me.mapVote.card = Math.max(0, STAGES.findIndex((s) => s.id === me.mapVote.winner));
+  show('mapvote');
+  drawPreviews();
+  const carousel = $('mapCarousel');
+  const card = carousel.children[me.mapVote.card];
+  if (card && (fresh || me.mapVote.winner)) carousel.scrollTo({ left: card.offsetLeft + card.offsetWidth / 2 - carousel.clientWidth / 2, behavior: fresh ? 'auto' : 'smooth' });
+  carousel.style.overflowX = me.mapVote.winner ? 'hidden' : 'auto';
+  if (me.mapVote.winner) {
+    feedback.sound('ready');
+    feedback.vibrate([40, 40, 120]);
+  }
+  markMapCard();
+  tickVoteTimer();
+}
+
+function tickVoteTimer() {
+  if ($('mapvote').hidden) return;
+  const left = Math.max(0, Math.ceil((me.mapVote.endsAt - performance.now()) / 1000));
+  $('voteTimer').textContent = me.mapVote.winner ? '' : `${left} s`;
+}
+setInterval(tickVoteTimer, 250);
+
+function castVote() {
+  if (me.mapVote.winner) return;
+  me.mapVote.card = centredCard($('mapCarousel'), me.mapVote.card); // the card on screen, even right after a swipe
+  const stage = STAGES[me.mapVote.card].id;
+  me.mapVote.stage = stage; // tapping another stage later replaces this vote
+  link.send({ t: 'vote', kind: 'stage', value: stage });
+  feedback.sound('ready');
+  feedback.vibrate([25]);
+  markMapCard();
+}
 
 // ---- gamepad ----
 
@@ -596,6 +683,8 @@ function showResults(msg) {
 // ---- start ----
 
 buildCarousel();
+buildMapCarousel();
+$('voteButton').addEventListener('click', castVote);
 requestAnimationFrame(drawCooldown);
 
 $('authForm').addEventListener('submit', submitAuth);

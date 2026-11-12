@@ -95,13 +95,10 @@ test('a whole match from the stage vote to the results, a second match, removing
   await host.waitForFunction(() => document.querySelector('.slot.p2 .fighter').textContent === 'House DJ');
   assert.equal(await text(host, '.slot.p2 .state'), 'Not ready yet');
 
-  // --- stage vote: the host chooses "Vote", both phones vote for the beach
-  await host.click('#stageButtons button[data-value="vote"]');
-  for (const p of [ana, max]) {
-    await p.waitForSelector('#stageVote:not([hidden])');
-    await p.click('#stageVoteButtons button:nth-child(2)');
-  }
-  await host.waitForFunction(() => /2 votes/.test(document.querySelector('#stageButtons button[data-value="beach"] small').textContent));
+  // --- Vote is the default stage choice, and the fighter select has no stage buttons any more
+  assert.equal(await host.getAttribute('#stageButtons button[data-value="vote"]', 'aria-pressed'), 'true');
+  assert.match(await text(host, '#stageButtons button[data-value="vote"]'), /Vote \(default\)/);
+  assert.equal(await ana.locator('#stageVote, #stageVoteButtons').count(), 0);
 
   // --- one life, three phones ready (there are no keyboard players any more)
   await host.click('#lifeButtons button[data-value="1"]');
@@ -111,7 +108,55 @@ test('a whole match from the stage vote to the results, a second match, removing
   await max.click('#ready');
   await zoe.click('#ready');
   await host.waitForFunction(() => !document.getElementById('startMatch').disabled && /3 players are ready/.test(document.getElementById('startHint').textContent));
+
+  // --- the map vote: Start opens it on the big screen and on every phone
   await host.click('#startMatch');
+  await host.waitForSelector('#vote:not([hidden])');
+  assert.equal(await host.locator('#voteCards .voteCard').count(), 3);
+  assert.match(await text(host, '#voteTimer'), /^(10|9)$/);
+  for (const p of [ana, max, zoe]) await p.waitForSelector('#mapvote:not([hidden])');
+  assert.equal(await ana.locator('#mapCarousel .card').count(), 3);
+  const beachCard = await text(ana, '#mapCarousel .card[data-stage="beach"]');
+  for (const words of ['Carcavelos Beach', 'Day', 'Big Wave', 'Seagulls']) assert.ok(beachCard.includes(words), `the beach card shows ${words}`);
+  // The preview is the stage art drawn small: many colours, on the phone and on the big screen.
+  const colours = (page, selector) => page.waitForFunction((sel) => {
+    const canvas = document.querySelector(sel);
+    if (!canvas || !canvas.width) return false;
+    const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+    const seen = new Set();
+    for (let i = 0; i < data.length; i += 4 * 7) seen.add(`${data[i] >> 3},${data[i + 1] >> 3},${data[i + 2] >> 3}`);
+    return seen.size > 60;
+  }, selector, { timeout: 10_000 });
+  await colours(ana, '#mapCarousel .card[data-stage="beach"] canvas');
+  await colours(host, '#voteCards .voteCard[data-stage="bairro"] canvas');
+  const swipeTo = (page, index) => page.evaluate((i) => {
+    const carousel = document.getElementById('mapCarousel');
+    const card = carousel.children[i];
+    carousel.scrollTo({ left: card.offsetLeft + card.offsetWidth / 2 - carousel.clientWidth / 2 });
+  }, index);
+  const count = (stage) => host.evaluate((s) => document.querySelector(`.voteCard[data-stage="${s}"] .count`).textContent, stage);
+  // Ana votes for the campus, then changes her mind: the beach.
+  await swipeTo(ana, 0);
+  await ana.waitForFunction(() => document.querySelector('#mapCarousel .card.current').dataset.stage === 'campus');
+  await ana.click('#voteButton');
+  await host.waitForFunction(() => document.querySelector('.voteCard[data-stage="campus"] .count').textContent === '1 vote');
+  await swipeTo(ana, 1);
+  await ana.waitForFunction(() => document.querySelector('#mapCarousel .card.current').dataset.stage === 'beach');
+  await ana.click('#voteButton');
+  await host.waitForFunction(() => document.querySelector('.voteCard[data-stage="beach"] .count').textContent === '1 vote');
+  assert.equal(await count('campus'), '0 votes', 'a second vote replaces the first');
+  assert.match(await text(ana, '#voteHint'), /Carcavelos Beach/);
+  await swipeTo(max, 1);
+  await max.waitForFunction(() => document.querySelector('#mapCarousel .card.current').dataset.stage === 'beach');
+  await max.click('#voteButton');
+  await host.waitForFunction(() => document.querySelector('.voteCard[data-stage="beach"] .count').textContent === '2 votes');
+  assert.equal(await host.locator('.voteCard[data-stage="beach"] .faces canvas').count(), 2, "the voters' faces");
+  // Zoe votes last: everyone has voted, so the vote ends at once and the beach wins 2 to 1.
+  await swipeTo(zoe, 2);
+  await zoe.waitForFunction(() => document.querySelector('#mapCarousel .card.current').dataset.stage === 'bairro');
+  await zoe.click('#voteButton');
+  await host.waitForSelector('.voteCard.winner[data-stage="beach"]');
+  await zoe.waitForFunction(() => /Carcavelos Beach wins/.test(document.getElementById('voteHint').textContent));
   await fight(host);
   const setup = await host.evaluate(() => ({ stage: window.novaBrawl.state.stage.id, lives: window.novaBrawl.state.settings.lives, names: window.novaBrawl.state.fighters.map((f) => f.name) }));
   assert.deepEqual(setup, { stage: 'beach', lives: 1, names: ['Ana', 'Max', 'Zoe'] });

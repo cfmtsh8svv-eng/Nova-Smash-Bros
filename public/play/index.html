@@ -58,12 +58,20 @@
     </header>
     <div id="carousel" class="carousel" aria-label="Fighters: swipe to choose"></div>
     <div id="dots" class="dots" aria-hidden="true"></div>
-    <div id="stageVote" class="vote" hidden>
-      <span>Vote for the stage</span>
-      <div id="stageVoteButtons" class="voteButtons"></div>
-    </div>
     <button id="ready" class="big">Ready!</button>
     <p id="selectHint" class="hint">Swipe to choose your fighter</p>
+  </section>
+
+  <!-- Map vote: swipe to a stage, tap Vote! -->
+  <section id="mapvote" class="screen" hidden>
+    <header class="bar">
+      <span id="voteTag" class="pill"></span>
+      <span id="voteTimer" class="voteTimer"></span>
+    </header>
+    <div id="mapCarousel" class="carousel" aria-label="Stages: swipe to choose"></div>
+    <div id="mapDots" class="dots" aria-hidden="true"></div>
+    <button id="voteButton" class="big">Vote!</button>
+    <p id="voteHint" class="hint">Swipe to a stage and vote</p>
   </section>
 
   <!-- Gamepad -->

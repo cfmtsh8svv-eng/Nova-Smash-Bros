@@ -21,8 +21,10 @@ import { HAZARD_IDS, STAGE_IDS } from '../src/game/stages.js';
 
 const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // without I and O, which look like 1 and 0
 const RELAY_TYPES = ['phase', 'status', 'feedback'];
-const PHASE_NAMES = ['lobby', 'match', 'results'];
+const PHASE_NAMES = ['lobby', 'vote', 'match', 'results'];
 const FIGHTER_STATES = ['alive', 'dead', 'out'];
+// Before a match starts (lobby or map vote) a player who leaves frees the slot at once.
+const beforeMatch = (room) => room.phase === 'lobby' || room.phase === 'vote';
 
 // A relayed message may only contain plain data of a sensible size: short text,
 // numbers, booleans, and small lists or objects of those, at most three levels deep.
@@ -48,7 +50,11 @@ const count = (v) => isInt(v, 0, 100000);
 // What each screen message may contain. Anything else is refused: a phone must never
 // get a value it would choke on (a "lives: 400000000" would make it draw that many hearts).
 const PHASE_FIELDS = {
-  lobby: (m) => onlyKeys(m, ['t', 'name', 'vote', 'stages']) && optional(m.vote, bool) && optional(m.stages, listOf(4, named(STAGE_IDS))),
+  lobby: (m) => onlyKeys(m, ['t', 'name']),
+  // The map vote screen (GAME_SPEC §10a): the stages to choose from, who votes, seconds left, and the winner at the end.
+  vote: (m) => onlyKeys(m, ['t', 'name', 'stages', 'slots', 'endsIn', 'winner'])
+    && optional(m.stages, listOf(3, (v) => STAGE_IDS.includes(v))) && optional(m.slots, listOf(4, (v) => isInt(v, 0, 3)))
+    && optional(m.endsIn, (v) => isInt(v, 0, 60)) && optional(m.winner, (v) => STAGE_IDS.includes(v)),
   match: (m) => onlyKeys(m, ['t', 'name', 'stage', 'stageName', 'paused', 'lives', 'slots', 'hazards'])
     && optional(m.stage, (v) => STAGE_IDS.includes(v)) && optional(m.stageName, shortText(40)) && optional(m.paused, bool)
     && optional(m.lives, (v) => isInt(v, 1, 3)) && optional(m.slots, listOf(4, (v) => isInt(v, 0, 3))) && optional(m.hazards, listOf(6, named(HAZARD_IDS))),
@@ -203,7 +209,8 @@ export class Rooms {
         slot.conn = null;
         slot.connected = false;
         if (this.byGamertag.get(slot.lower) === conn) this.byGamertag.delete(slot.lower);
-        if (room.phase === 'lobby') this.holdSlot(room, conn.slot);
+        this.dropVote(room, conn.slot); // a player who drops out of the vote no longer counts
+        if (beforeMatch(room)) this.holdSlot(room, conn.slot);
         this.sendRoster(room);
       }
     }
@@ -248,7 +255,7 @@ export class Rooms {
     if (slot.timer) clearTimeout(slot.timer);
     slot.timer = setTimeout(() => {
       slot.timer = null;
-      if (room.slots[index] === slot && !slot.connected && room.phase === 'lobby') {
+      if (room.slots[index] === slot && !slot.connected && beforeMatch(room)) {
         room.slots[index] = null;
         this.sendRoster(room);
       }
@@ -259,6 +266,7 @@ export class Rooms {
   freeSlot(room, index) {
     const slot = room.slots[index];
     if (!slot) return;
+    this.dropVote(room, index);
     clearTimeout(slot.timer);
     if (slot.conn) {
       if (this.byGamertag.get(slot.lower) === slot.conn) this.byGamertag.delete(slot.lower);
@@ -282,9 +290,33 @@ export class Rooms {
     for (const slot of room.slots) if (slot && slot.conn) this.send(slot.conn, message);
   }
 
+  // The players of a vote or a match: 2 to 4 different slots, each in the room with a fighter and ready.
+  // Returns false (and has answered the host) if they are not.
+  startable(conn, room, slots) {
+    const refuse = (why) => { this.fail(conn, 'bad_start', { msg: why }); return false; };
+    if (!Array.isArray(slots) || slots.length > 4 || new Set(slots).size !== slots.length || !slots.every((s) => isInt(s, 0, 3))) {
+      this.strike(conn);
+      return false;
+    }
+    for (const index of slots) {
+      const slot = room.slots[index];
+      if (!slot) return refuse('A player in the start list is not in the room.');
+      if (!slot.fighter || !slot.ready) return refuse(`${slot.gamertag} has not picked a fighter yet.`);
+    }
+    if (slots.length < 2) return refuse('At least 2 players are needed.');
+    if (slots.length > LIMITS.playersPerRoom) return refuse('At most 4 players can fight.');
+    return true;
+  }
+
+  // During the map vote: a player who left, dropped or was removed no longer counts.
+  dropVote(room, index) {
+    if (room.vote) room.vote.votes.delete(index);
+  }
+
   // Back to the lobby after a match (result saved or match aborted).
   endMatch(room) {
     room.match = null;
+    room.vote = null;
     room.phase = 'lobby';
     if (room.phaseAll && room.phaseAll.name === 'match') room.phaseAll = null;
     room.slots.forEach((slot, i) => {
@@ -313,7 +345,8 @@ export class Rooms {
       if (slot && slot.conn === conn) {
         slot.conn = null;
         slot.connected = false;
-        if (room.phase === 'lobby') this.holdSlot(room, conn.slot);
+        this.dropVote(room, conn.slot);
+        if (beforeMatch(room)) this.holdSlot(room, conn.slot);
         this.sendRoster(room);
       }
     }
@@ -372,7 +405,7 @@ const NEW_HANDLERS = {
     if (!code) return this.fail(conn, 'busy');
     const room = {
       code, hostKey: randomBytes(24).toString('base64url'), host: conn, hostTimer: null, closed: false, phase: 'lobby',
-      slots: [null, null, null, null], match: null, phaseAll: null, lastResult: null, lastActive: this.now(), address: conn.address, banned: new Set(),
+      slots: [null, null, null, null], match: null, vote: null, phaseAll: null, lastResult: null, lastActive: this.now(), address: conn.address, banned: new Set(),
     };
     this.rooms.set(code, room);
     Object.assign(conn, { role: 'host', room, bucket: new Bucket(LIMITS.hostMessagesPerSecond, this.now()) });
@@ -490,6 +523,7 @@ const PHONE_HANDLERS = {
     const room = conn.room;
     const fighter = msg.fighter === null ? null : typeof msg.fighter === 'string' && FIGHTER_IDS.includes(msg.fighter) ? msg.fighter : undefined;
     if (fighter === undefined || typeof msg.ready !== 'boolean') return this.strike(conn);
+    if (room.phase === 'vote') return this.fail(conn, 'bad_message', { msg: 'The stage vote is running. You can change your fighter after the next match.' });
     if (room.phase !== 'lobby') return this.fail(conn, 'bad_message', { msg: 'You can change your fighter after this match.' });
     const slot = room.slots[conn.slot];
     const ready = Boolean(fighter) && msg.ready;
@@ -502,9 +536,12 @@ const PHONE_HANDLERS = {
 
   vote(conn, msg) {
     const room = conn.room;
-    const ok = (msg.kind === 'stage' && STAGE_IDS.includes(msg.value) && room.phase === 'lobby')
-      || (msg.kind === 'hazard' && HAZARD_IDS.includes(msg.value) && room.phase === 'match');
+    // A stage vote counts only in the vote phase and only from a player in the vote (D-136);
+    // a second vote replaces the first.
+    const stageVote = msg.kind === 'stage' && STAGE_IDS.includes(msg.value) && room.phase === 'vote' && room.vote && room.vote.slots.includes(conn.slot);
+    const ok = stageVote || (msg.kind === 'hazard' && HAZARD_IDS.includes(msg.value) && room.phase === 'match');
     if (!ok) return this.strike(conn);
+    if (stageVote) room.vote.votes.set(conn.slot, msg.value);
     this.send(room.host, { t: 'vote', slot: conn.slot, kind: msg.kind, value: msg.value });
   },
 
@@ -514,7 +551,7 @@ const PHONE_HANDLERS = {
     const index = conn.slot;
     const slot = room.slots[index];
     if (this.byGamertag.get(conn.lower) === conn) this.byGamertag.delete(conn.lower);
-    if (room.phase === 'lobby') {
+    if (beforeMatch(room)) {
       this.freeSlot(room, index);
     } else if (slot) {
       Object.assign(slot, { conn: null, connected: false, left: true });
@@ -569,7 +606,7 @@ const HOST_HANDLERS = {
     if (!slot) return undefined;
     room.banned.add(slot.lower);
     const phone = slot.conn;
-    if (room.phase === 'lobby') {
+    if (beforeMatch(room)) {
       this.freeSlot(room, msg.slot);
     } else {
       // Mid-match the fighter stays (idle) until the match is over, then the slot is freed.
@@ -581,28 +618,51 @@ const HOST_HANDLERS = {
     return this.sendRoster(room);
   },
 
+  // The map vote (GAME_SPEC §10a, D-136): the ready players vote for the stage on their phones.
+  vote_start(conn, msg) {
+    const room = conn.room;
+    if (room.phase !== 'lobby') return this.fail(conn, 'bad_start', { msg: 'A vote or a match is already running.' });
+    if (!this.startable(conn, room, msg.slots)) return undefined;
+    room.vote = { slots: [...msg.slots], votes: new Map() };
+    room.phase = 'vote';
+    room.lastActive = this.now();
+    this.send(conn, { t: 'vote_started' });
+    return this.sendRoster(room);
+  },
+
+  // The host gives up a vote (it could not finish): back to the lobby, everyone stays ready.
+  // A cancel that arrives when the vote is already over is no offence and changes nothing.
+  vote_cancel(conn) {
+    const room = conn.room;
+    if (room.phase !== 'vote') return undefined;
+    room.vote = null;
+    room.phase = 'lobby';
+    room.slots.forEach((slot, i) => { if (slot && !slot.connected) this.holdSlot(room, i); });
+    return this.sendRoster(room);
+  },
+
   match_start(conn, msg) {
     const room = conn.room;
     const refuse = (why) => this.fail(conn, 'bad_start', { msg: why });
-    if (room.phase !== 'lobby') return refuse('A match is already running.');
+    if (room.phase !== 'lobby' && room.phase !== 'vote') return refuse('A match is already running.');
     // Keyboard players were removed (D-132): a start that still lists any is refused.
     if (msg.guests !== undefined || msg.guestSlots !== undefined) return this.strike(conn);
     if (!STAGE_IDS.includes(msg.stage) || !isInt(msg.lives, 1, 3)) return this.strike(conn);
-    if (!Array.isArray(msg.slots) || msg.slots.length > 4 || new Set(msg.slots).size !== msg.slots.length || !msg.slots.every((s) => isInt(s, 0, 3))) return this.strike(conn);
-    for (const index of msg.slots) {
-      const slot = room.slots[index];
-      if (!slot) return refuse('A player in the start list is not in the room.');
-      if (!slot.fighter || !slot.ready) return refuse(`${slot.gamertag} has not picked a fighter yet.`);
+    if (room.phase === 'vote') {
+      // After a vote: only its players, and a stage with the most votes (a tie: any of the tied).
+      if (Array.isArray(msg.slots) && msg.slots.some((s) => !room.vote.slots.includes(s))) return refuse('A player in the start list is not in the vote.');
+      const count = new Map(STAGE_IDS.map((id) => [id, 0]));
+      for (const id of room.vote.votes.values()) count.set(id, count.get(id) + 1);
+      if (count.get(msg.stage) < Math.max(...count.values())) return refuse('The match must start on a stage with the most votes.');
     }
-    const total = msg.slots.length;
-    if (total < 2) return refuse('At least 2 players are needed.');
-    if (total > LIMITS.playersPerRoom) return refuse('At most 4 players can fight.');
+    if (!this.startable(conn, room, msg.slots)) return undefined;
     room.lastResult = null;
+    room.vote = null;
     room.match = { id: randomUUID(), stage: msg.stage, lives: msg.lives, slots: [...msg.slots], startedAt: this.now(), players: new Map(msg.slots.map((i) => [i, room.slots[i].lower])) };
     room.phase = 'match';
     room.lastActive = this.now();
     this.send(conn, { t: 'match_started', matchId: room.match.id });
-    this.sendRoster(room);
+    return this.sendRoster(room);
   },
 
   async match_result(conn, msg) {

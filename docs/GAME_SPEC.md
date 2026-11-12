@@ -85,7 +85,7 @@ The **leaderboard** ranks players by **points**. Each match gives placement poin
 | KO "BURNOUT!" | Reaching **200 %** |
 | After a KO | Lose a life, respawn after 2 s at the top centre at 0 %, 2 s of invincibility |
 | Eliminated | Phone shows "You're out!" and a **vote for the next hazard** |
-| Stage choice | The host picks on the laptop: a specific stage, or **Vote**. With Vote, every phone votes; a tie is decided at random between the tied stages. |
+| Stage choice | The host picks on the laptop: **Vote** (the default) or one fixed stage. With a fixed stage the host presses Start as before. With Vote, Start opens the **map vote** (§10a); a tie or no vote at all is decided at random between the tied stages. |
 | Starting | Only the laptop starts the match, once at least 2 players are logged in and have picked a fighter. The host can **close the room** so nobody else joins, and start with 2 or 3 players. |
 | Leaving | If a player leaves or loses connection, the match **keeps running**. Their fighter stands idle, **can still be hit**, and they can rejoin at any time until the match ends. |
 | Pause | Only on the laptop: **P** or **Esc** pauses and resumes. Phones cannot pause. |
@@ -209,9 +209,20 @@ Both are free. `docs/DEPLOY.md` has the steps for each.
 
 ## 10. Screens
 
-**Host (laptop):** Title (no team names) → Lobby (QR code, room code, player cards, stage select or vote, close room, lives 1/2/3, items and hazards on/off, **separate volume sliders for music and effects**, leaderboard) → Countdown → Match (HUD with one card per player at the top) → Results (winner, per-player stats, points, new achievements, leaderboard) → back to the lobby. There is no rematch button.
+**Host (laptop):** Title (no team names) → Lobby (QR code, room code, player cards, stage choice: Vote or one of the three stages, close room, lives 1/2/3, items and hazards on/off, **separate volume sliders for music and effects**, leaderboard) → Map vote (with Vote only, §10a) → Countdown → Match (HUD with one card per player at the top) → Results (winner, per-player stats, points, new achievements, leaderboard) → back to the lobby. There is no rematch button.
 
-**Phone:** Register / log in → Fighter select (swipe through the 8 fighters one at a time, with the neighbours peeking in at the sides; each card shows the sprite, the two attacks and **Speed and Weight as five-step bars, without numbers**) → Ready → Gamepad → KO'd → Eliminated + hazard vote → Results.
+**Phone:** Register / log in → Fighter select (swipe through the 8 fighters one at a time, with the neighbours peeking in at the sides; each card shows the sprite, the two attacks and **Speed and Weight as five-step bars, without numbers**) → Ready → Map vote (with Vote only, §10a) → Gamepad → KO'd → Eliminated + hazard vote → Results.
+
+### 10a. Map vote
+
+Voting is the default; the host can still pick one fixed stage in the lobby (D-135).
+
+- **Start.** With Vote chosen, the host's Start button opens the vote as soon as at least 2 players are Ready (the same rule as starting a match). The fighter select has no stage buttons.
+- **Phone vote screen.** It looks and works like the fighter select: a swipe carousel of the three stages with the neighbours peeking in, dots under it, and a big **Vote!** button. Each card shows a preview picture of the stage (the stage art drawn small), the stage name, day or night, and the stage's hazards by name. A player may change the vote until the vote ends.
+- **Big screen vote view.** The three stage previews side by side, large, each with its live vote count and the small sprites of the players who voted for it, and a 10 s countdown.
+- **End.** When every player in the vote has voted, or after **10 s**, whichever comes first. A tie or no votes is decided at random between the tied stages. The winning stage is shown for about 1.5 s on both screens, then the match starts on it with the players of the vote.
+- Players who join during the vote sit it out and play in the next match. A player who disconnects during the vote no longer counts: their vote is dropped and the vote does not wait for them.
+- **Server.** The room has a `vote` phase between `lobby` and `match`. Stage votes are accepted only in that phase and only from players in the vote; a second vote replaces the first. The match that follows must use one of the stages with the most votes.
 
 Every error is shown in plain words next to where it happened ("That gamertag is taken", "Wrong PIN, 3 tries left", "Room not found", "Connection lost, reconnecting…").
 

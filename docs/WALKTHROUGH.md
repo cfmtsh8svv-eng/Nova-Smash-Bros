@@ -215,7 +215,8 @@ Every page has one **WebSocket** to the server: a connection that stays open so 
 |---|---|---|
 | Phone | `join` | "I am this player (token), let me into room CODE" |
 | Phone | `input` | The seven buttons, as one number, with a running counter |
-| Phone | `pick`, `vote` | Fighter and ready; stage or hazard vote |
+| Phone | `pick`, `vote` | Fighter and ready; stage vote (only in the map vote) or hazard vote (only during a match) |
+| Host | `vote_start`, `vote_cancel` | Open the map vote for the ready players; give it up |
 | Host | `match_start`, `match_result`, `match_abort` | Start, finish, cancel a match |
 | Host | `to` | "Pass this on to phone 2" or "to all": `phase` (which screen), `status` (damage, lives), `feedback` (vibrate, flash, text) |
 | Server | `roster` | To the host: who is in the room |
@@ -223,6 +224,8 @@ Every page has one **WebSocket** to the server: a connection that stays open so 
 **The server trusts nothing it receives.** Every message goes through one function that checks, in this order: is it text, is it small enough, is this sender sending too fast, is it valid JSON, is the type known, **is this sender allowed to send this type**, and are the fields what they should be. Anything else is dropped and counted; a sender that keeps doing it is disconnected. The server never crashes on a bad message.
 
 **Who may do what** is one table per role. A phone's table simply has no "start a match" entry. If a phone sends `match_start`, the answer is "Only the host screen can do that" and nothing else happens. The slot number of an input is taken from the connection, never from the message, so a phone cannot press another player's buttons.
+
+**The map vote** (round 2, D-135, D-136) is a room phase of its own: `lobby` → `vote` → `match` → `lobby`. The host's `vote_start` is checked like a match start (at least two ready players). In the `vote` phase the server accepts a stage vote only from a player in the vote and keeps the latest vote of each; a player who leaves or loses the connection loses their vote. The `match_start` that follows must name one of the stages with the most votes, so a host page cannot quietly ignore the vote.
 
 **Reconnecting.** A phone that drops keeps its slot: for 30 seconds in the lobby, and until the end of the match during a match. When it comes back with its token it gets the same slot, and the server replays the last screen and status so it is up to date at once. The host page can also reconnect: when it created the room it got a secret key, and with that key it takes the room back.
 
@@ -279,7 +282,7 @@ The script in the sheet (`Code.gs`) is the last guard before a cell is written. 
 
 | File | What it does |
 |---|---|
-| `main.js` | The screens: title → lobby → match → results → lobby. Talks to the server. |
+| `main.js` | The screens: title → lobby → map vote (with Vote) → match → results → lobby. Talks to the server. |
 | `game.js` | Runs one match: collects the inputs, calls the rules, turns events into effects, sound and phone messages |
 | `render.js` | Draws one picture of the match |
 | `fx.js` | Particles, damage numbers, screen shake, big texts |
@@ -288,13 +291,15 @@ The script in the sheet (`Code.gs`) is the last guard before a cell is written. 
 
 **Drawing order**, back to front: the stage (one prepared picture), hazards behind the fighters, items, fighters, things that fly, hazards in front (train, wave, crowd), effects, name tags, and last the display on top: player cards top left, hazard countdown top right, big texts in the middle.
 
-**The lobby** shows the QR code, the four slots and the settings. A new player's card pops in with a flash in their colour; until they have chosen a fighter it shows a grey silhouette.
+**The lobby** shows the QR code, the four slots and the settings. A new player's card pops in with a flash in their colour; until they have chosen a fighter it shows a grey silhouette. The stage choice is **Vote (default)** or one of the three stages.
+
+**The map vote.** With Vote, Start opens the vote screen: the three stage pictures side by side, each with its live count and the small sprites of the players who voted for it, and a 10 s countdown. The host page counts the votes as they come in and ends the vote when every player who still counts has voted, or when the time is up. It draws the winner with `tallyVote` (a tie is random among the tied stages), shows it for 1.5 s, then starts the match. The stage pictures are the stage art drawn small (`paintStage` in `public/shared/art/sprites.js`).
 
 ### The phone page (`public/play/`)
 
 | File | What it does |
 |---|---|
-| `main.js` | The screens: log in → fighter select → gamepad → results. Which one is shown is decided by `phase` messages from the host. |
+| `main.js` | The screens: log in → fighter select → map vote → gamepad → results. Which one is shown is decided by `phase` messages from the host. |
 | `controls.js` | The joystick and the three buttons |
 | `feedback.js` | Vibration, flash and sound |
 

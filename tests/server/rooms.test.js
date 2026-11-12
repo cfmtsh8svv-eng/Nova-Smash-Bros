@@ -416,9 +416,8 @@ test('fighter picks and votes are validated', async (t) => {
   a.send({ t: 'pick', fighter: 'lisboa_og', ready: true });
   assert.deepEqual((await h.next('roster')).players[0], { slot: 0, gamertag: 'Ana', connected: true, fighter: 'lisboa_og', ready: true });
 
-  a.send({ t: 'vote', kind: 'stage', value: 'beach' });
-  assert.deepEqual(await h.next('vote'), { t: 'vote', slot: 0, kind: 'stage', value: 'beach' });
-  for (const bad of [{ kind: 'stage', value: 'moon' }, { kind: 'hazard', value: 'wave' }, { kind: 'winner', value: 'me' }, { kind: 'stage' }]) {
+  // A stage vote only counts in the vote phase (tests/server/vote.test.js), never in the lobby.
+  for (const bad of [{ kind: 'stage', value: 'beach' }, { kind: 'stage', value: 'moon' }, { kind: 'hazard', value: 'wave' }, { kind: 'winner', value: 'me' }, { kind: 'stage' }]) {
     a.send({ t: 'vote', ...bad });
     assert.equal((await a.next('error')).code, 'bad_message', JSON.stringify(bad));
   }

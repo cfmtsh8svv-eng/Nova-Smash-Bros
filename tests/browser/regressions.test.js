@@ -73,6 +73,7 @@ test('the host page loses its connection around Start, in mid-match and when the
   await join(max, code, 'Max');
   await host.waitForFunction(() => !document.getElementById('startMatch').disabled);
   await host.click('#lifeButtons button[data-value="1"]');
+  await host.click('#stageButtons button[data-value="campus"]'); // a fixed stage: Start begins the match at once
 
   // --- Start is pressed while the connection is down: a clear message, and Start works afterwards
   await cutHost();

@@ -6,7 +6,7 @@ import { FIGHTERS, getFighter } from '/game/fighters.js';
 import { HAZARDS, STAGES, STAGE_IDS, tallyVote } from '/game/stages.js';
 import { createAudio } from '/shared/audio.js';
 import { createLink, storage } from '/shared/net.js';
-import { paintSprite } from '/shared/art/sprites.js';
+import { paintSprite, paintStage } from '/shared/art/sprites.js';
 import { duplicateColour } from '/shared/art/characters.js';
 import { createGame } from './game.js';
 
@@ -23,11 +23,10 @@ const lobby = {
   room: null, // { code, hostKey }
   roster: [], // players as the server reports them
   closed: false,
-  stage: 'campus', // a stage id, or 'vote'
+  stage: 'vote', // 'vote' (the default, D-135) or a stage id
   lives: 3,
   items: true,
   hazards: true,
-  stageVotes: new Map(), // slot -> stage id
   seen: new Set(), // gamertags already shown, to play the entrance only once
 };
 let screen = 'title';
@@ -36,6 +35,7 @@ let wantRoom = false;
 let creatingRoom = false;
 let roomRetry = null;
 let startTimer = null;
+let voting = null; // the map vote while it runs: { slots, players, votes: Map slot -> stage, endsAt, winner }
 
 const game = createGame({
   canvas: $('stage'),
@@ -48,7 +48,7 @@ const game = createGame({
 
 function show(name) {
   screen = name;
-  for (const id of ['title', 'lobby', 'loading', 'pause', 'results']) $(id).hidden = id !== name;
+  for (const id of ['title', 'lobby', 'vote', 'loading', 'pause', 'results']) $(id).hidden = id !== name;
   $('frame').classList.toggle('playing', name === 'match');
   if (name === 'title' || name === 'lobby') audio.setMusic('lobby');
 }
@@ -64,7 +64,7 @@ function toast(text) {
 const phase = (msg, slot = 'all') => link.send({ t: 'to', slot, msg: { t: 'phase', ...msg } });
 
 function lobbyPhase() {
-  phase({ name: 'lobby', vote: lobby.stage === 'vote', stages: STAGES.map((s) => ({ id: s.id, name: s.name })) });
+  phase({ name: 'lobby' });
 }
 
 // ---- the server connection ----
@@ -116,7 +116,15 @@ const MESSAGES = {
     creatingRoom = false;
     clearTimeout(roomRetry);
     if (msg.resumed) game.resync(); // phones may have missed a KO or a new damage value meanwhile
-    if (msg.resumed && msg.phase === 'match') {
+    if (msg.resumed && msg.phase === 'vote') {
+      // Back during the map vote: carry on if this page still runs it, otherwise end it.
+      if (voting) votePhase();
+      else {
+        link.send({ t: 'vote_cancel' });
+        show('lobby');
+        lobbyPhase();
+      }
+    } else if (msg.resumed && msg.phase === 'match') {
       if (pendingStart) {
         // The connection dropped just after "Start": the server did start the match. Carry on.
         beginMatch(msg.matchId);
@@ -141,7 +149,7 @@ const MESSAGES = {
       }
       if (match && match.result && !match.saved && screen === 'results') {
         $('resultNote').textContent = 'The connection was lost when the match ended, so this result could not be saved.';
-      } else if (screen !== 'results' && !game.running) {
+      } else if (screen !== 'results' && !game.running && !voting) {
         show('lobby');
         lobbyPhase();
       }
@@ -164,7 +172,12 @@ const MESSAGES = {
       }
       if (old && old.connected !== p.connected) game.setConnected(p.slot);
     }
-    for (const slot of lobby.stageVotes.keys()) if (!msg.players.some((p) => p.slot === slot)) lobby.stageVotes.delete(slot);
+    if (voting && !voting.winner) {
+      // A player who left or lost the connection during the vote no longer counts (D-136).
+      for (const slot of [...voting.votes.keys()]) if (!counts(slot)) voting.votes.delete(slot);
+      renderVote();
+      checkVoteDone();
+    }
     renderLobby();
   },
 
@@ -172,12 +185,17 @@ const MESSAGES = {
 
   vote(msg) {
     if (msg.kind === 'stage') {
-      lobby.stageVotes.set(msg.slot, msg.value);
-      renderLobby();
+      if (!voting || voting.winner || !voting.slots.includes(msg.slot) || !STAGE_IDS.includes(msg.value)) return;
+      voting.votes.set(msg.slot, msg.value); // a second vote replaces the first
+      audio.play('click');
+      renderVote();
+      checkVoteDone();
     } else if (msg.kind === 'hazard') {
       game.vote(msg.slot, msg.value);
     }
   },
+
+  vote_started() { beginVote(); },
 
   match_started(msg) { beginMatch(msg.matchId); },
 
@@ -209,11 +227,16 @@ const MESSAGES = {
       toast(`${msg.msg} Trying again in a few seconds.`);
       return;
     }
+    if (voting && msg.code === 'bad_start') {
+      endVote(); // the vote could not start (or its match could not): everyone goes back to the lobby
+      if (!pendingStart) toast(msg.msg);
+    }
     if (pendingStart) {
       // Whatever the reason, the start did not happen: back to the lobby, where Start works again.
       pendingStart = null;
       clearTimeout(startTimer);
       show('lobby');
+      lobbyPhase();
       if (msg.code !== 'bad_start') toast('The match could not be started. Press Start again.');
     }
     if (msg.code === 'bad_result') {
@@ -294,14 +317,8 @@ function renderLobby() {
     ? (lobby.roster.length ? 'At least 2 players need to pick a fighter and tap Ready.' : 'Waiting for players…')
     : `${all.length} players are ready.${waiting > 0 ? ` ${waiting} still choosing will sit this one out.` : ''}`;
 
-  const counts = new Map(STAGE_IDS.map((id) => [id, 0]));
-  for (const id of lobby.stageVotes.values()) counts.set(id, counts.get(id) + 1);
-  for (const button of $('stageButtons').children) {
-    const id = button.dataset.value;
-    button.setAttribute('aria-pressed', String(lobby.stage === id));
-    const small = button.querySelector('small');
-    if (small && id !== 'vote') small.textContent = lobby.stage === 'vote' ? `${counts.get(id)} vote${counts.get(id) === 1 ? '' : 's'}` : STAGES.find((s) => s.id === id).time;
-  }
+  for (const button of $('stageButtons').children) button.setAttribute('aria-pressed', String(lobby.stage === button.dataset.value));
+  $('startMatch').textContent = lobby.stage === 'vote' ? 'Start the vote' : 'Start match';
   for (const button of $('lifeButtons').children) button.setAttribute('aria-pressed', String(Number(button.dataset.value) === lobby.lives));
   const toggle = (id, on, yes, no) => { $(id).setAttribute('aria-pressed', String(on)); $(id).textContent = on ? yes : no; };
   toggle('toggleItems', lobby.items, 'Items on', 'Items off');
@@ -310,7 +327,7 @@ function renderLobby() {
 }
 
 function buildLobbyControls() {
-  for (const stage of [...STAGES, { id: 'vote', name: 'Vote', time: 'players choose' }]) {
+  for (const stage of [{ id: 'vote', name: 'Vote (default)', time: 'phones choose' }, ...STAGES]) {
     const button = el('button', '', stage.name);
     button.dataset.value = stage.id;
     button.append(el('small', '', stage.time));
@@ -318,7 +335,6 @@ function buildLobbyControls() {
       lobby.stage = stage.id;
       audio.play('click');
       game.setPreview(stage.id === 'vote' ? 'campus' : stage.id);
-      lobbyPhase();
       renderLobby();
     });
     $('stageButtons').append(button);
@@ -336,6 +352,7 @@ function buildLobbyControls() {
   $('volEffects').addEventListener('input', (e) => { audio.setVolume('effects', e.target.value / 100); });
   $('volEffects').addEventListener('change', () => audio.play('hit'));
   $('startMatch').addEventListener('click', requestStart);
+  $('cancelVote').addEventListener('click', () => { audio.play('click'); endVote(); });
   $('backToLobby').addEventListener('click', backToLobby);
   $('resume').addEventListener('click', () => setPaused(false));
   $('quitMatch').addEventListener('click', quitMatch);
@@ -371,11 +388,15 @@ let pendingStart = null;
 
 function requestStart() {
   const all = lineup();
-  if (all.length < 2 || pendingStart) return;
-  // With "Vote" the phones decide; a tie (or no vote at all) is settled by chance.
-  const stageId = lobby.stage === 'vote' ? tallyVote(STAGE_IDS, [...lobby.stageVotes.values()], Math.random) : lobby.stage;
-  pendingStart = { stageId, players: all, settings: { lives: lobby.lives, items: lobby.items, hazards: lobby.hazards } };
+  if (all.length < 2 || pendingStart || voting) return;
   audio.unlock();
+  // With "Vote" (the default) the phones choose the stage first; with a fixed stage the match starts at once.
+  if (lobby.stage === 'vote') requestVote(all);
+  else startMatchOn(lobby.stage, all);
+}
+
+function startMatchOn(stageId, all) {
+  pendingStart = { stageId, players: all, settings: { lives: lobby.lives, items: lobby.items, hazards: lobby.hazards } };
   const sent = link.send({ t: 'match_start', stage: stageId, lives: lobby.lives, slots: all.map((p) => p.slot) });
   if (!sent) {
     pendingStart = null;
@@ -389,8 +410,138 @@ function requestStart() {
     if (!pendingStart) return;
     pendingStart = null;
     show('lobby');
+    link.send({ t: 'vote_cancel' }); // in case it came after a vote: the server goes back to the lobby too
+    if (voting) {
+      clearInterval(voting.ticker);
+      voting = null;
+    }
+    lobbyPhase();
     toast('The server did not answer. Press Start again.');
   }, 8000);
+}
+
+// ---- map vote (GAME_SPEC §10a) ----
+
+const VOTE_MS = 10_000; // the vote ends after 10 s, or sooner when everyone has voted
+const WINNER_MS = 1500; // the winning stage is shown this long before the match starts
+const plural = (n) => `${n} vote${n === 1 ? '' : 's'}`;
+// A player of the vote counts while they are in the room and connected.
+const counts = (slot) => lobby.roster.some((p) => p.slot === slot && p.connected);
+
+function requestVote(all) {
+  voting = { slots: all.map((p) => p.slot), players: all, votes: new Map(), endsAt: 0, winner: null, timer: null, ticker: null };
+  if (!link.send({ t: 'vote_start', slots: voting.slots })) {
+    voting = null;
+    toast('No connection to the server right now. Try again in a moment.');
+    return;
+  }
+  // If the server says nothing for a while, the vote never began: back to the lobby.
+  voting.timer = setTimeout(() => {
+    if (!voting || voting.endsAt) return;
+    voting = null;
+    toast('The server did not answer. Press Start again.');
+  }, 8000);
+}
+
+function beginVote() {
+  if (!voting || voting.endsAt) return;
+  clearTimeout(voting.timer);
+  voting.endsAt = performance.now() + VOTE_MS;
+  buildVoteCards();
+  renderVote();
+  show('vote');
+  audio.play('go');
+  votePhase();
+  voting.ticker = setInterval(tickVote, 200);
+}
+
+const secondsLeft = () => (voting ? Math.max(0, Math.ceil((voting.endsAt - performance.now()) / 1000)) : 0);
+
+// What the phones of the vote show: the stages, the time left and, at the end, the winner.
+// Everyone else (somebody who joined during the vote) sees that they are in the next match.
+function votePhase() {
+  if (!voting) return;
+  phase({ name: 'vote', stages: STAGE_IDS, slots: voting.slots, endsIn: voting.winner ? 0 : secondsLeft(), winner: voting.winner });
+}
+
+function buildVoteCards() {
+  $('voteCards').replaceChildren(...STAGES.map((stage) => {
+    const card = el('div', 'voteCard');
+    card.dataset.stage = stage.id;
+    const preview = el('canvas');
+    preview.setAttribute('aria-label', `${stage.name}, small picture`);
+    paintStage(preview, stage.id).catch(() => {});
+    const hazards = stage.hazards.map((id) => HAZARDS[id].short).join(', ');
+    card.append(preview, el('h2', '', stage.name), el('p', 'small', `${stage.time === 'night' ? 'Night' : 'Day'} · ${hazards}`), el('b', 'count', plural(0)), el('div', 'faces'));
+    return card;
+  }));
+}
+
+function renderVote() {
+  if (!voting) return;
+  for (const card of $('voteCards').children) {
+    const id = card.dataset.stage;
+    const voters = voting.players.filter((p) => voting.votes.get(p.slot) === id);
+    card.querySelector('.count').textContent = plural(voters.length);
+    card.querySelector('.faces').replaceChildren(...voters.map((p) => {
+      const face = el('canvas');
+      face.title = p.name;
+      const duplicate = voting.players.some((o) => o.slot < p.slot && o.fighterId === p.fighterId);
+      paintSprite(face, p.fighterId, { mainColour: duplicate ? duplicateColour(p.fighterId, PLAYER_COLORS[p.slot]) : null }).catch(() => {});
+      return face;
+    }));
+    card.classList.toggle('winner', voting.winner === id);
+    card.classList.toggle('lost', Boolean(voting.winner) && voting.winner !== id);
+  }
+  $('voteTimer').hidden = Boolean(voting.winner);
+  $('voteTimer').textContent = String(secondsLeft());
+  $('voteNote').textContent = voting.winner ? `${STAGES.find((s) => s.id === voting.winner).name} wins!` : 'Vote on your phone. It ends when everyone has voted.';
+}
+
+function tickVote() {
+  if (!voting || voting.winner) return;
+  const before = $('voteTimer').textContent;
+  $('voteTimer').textContent = String(secondsLeft());
+  if ($('voteTimer').textContent !== before) votePhase(); // the phones' countdown stays in step
+  if (performance.now() >= voting.endsAt) finishVote();
+}
+
+// Ends as soon as every player who still counts has voted (D-136).
+function checkVoteDone() {
+  if (voting && voting.endsAt && !voting.winner && voting.slots.filter(counts).every((slot) => voting.votes.has(slot))) finishVote();
+}
+
+function finishVote() {
+  clearInterval(voting.ticker);
+  // A tie (or no vote at all) is decided at random between the tied stages.
+  voting.winner = tallyVote(STAGE_IDS, [...voting.votes.values()], Math.random);
+  renderVote();
+  votePhase();
+  audio.play('ready');
+  const { winner, slots } = voting;
+  voting.timer = setTimeout(() => {
+    if (!voting || voting.winner !== winner) return;
+    // The players of the vote who are still in the room fight; anyone who joined meanwhile waits.
+    const players = lineup().filter((p) => slots.includes(p.slot));
+    if (players.length < 2) {
+      endVote();
+      toast('Not enough players are left for a match.');
+      return;
+    }
+    startMatchOn(winner, players);
+  }, WINNER_MS);
+}
+
+// The vote stops without a match (or its match could not start): back to the lobby for everyone.
+function endVote() {
+  if (!voting) return;
+  clearTimeout(voting.timer);
+  clearInterval(voting.ticker);
+  voting = null;
+  link.send({ t: 'vote_cancel' });
+  show('lobby');
+  lobbyPhase();
+  renderLobby();
 }
 
 function matchPhase(paused = false) {
@@ -408,7 +559,11 @@ async function beginMatch(matchId) {
   match = { id: matchId, ...pendingStart };
   pendingStart = null;
   clearTimeout(startTimer);
-  lobby.stageVotes.clear();
+  if (voting) {
+    clearTimeout(voting.timer);
+    clearInterval(voting.ticker);
+    voting = null;
+  }
   matchPhase();
   await game.start(match);
   show('match');

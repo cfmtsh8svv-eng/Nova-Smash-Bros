@@ -51,7 +51,7 @@ The same commands run on every push in GitHub Actions (`.github/workflows/ci.yml
 1. **Laptop:** open the URL, click *Open a room*. A QR code and a 4-letter room code appear.
 2. **Phones:** scan the QR code. New players choose a gamertag (3 to 12 letters, numbers or `_`) and a 4-digit PIN; returning players are logged in automatically.
 3. **Pick a fighter** by swiping, tap **Ready!**
-4. **Laptop:** choose the stage (or let the phones vote), the number of lives, then *Start match*.
+4. **Laptop:** leave the stage on **Vote** (the default) or pick one, choose the number of lives, then press *Start*. With Vote, every phone shows the three stages: swipe, tap **Vote!**; the vote ends when everyone has voted or after 10 s.
 5. **Fight.** Turn the phone sideways.
 
 The left half of the phone is a joystick: put your thumb down anywhere there and drag.

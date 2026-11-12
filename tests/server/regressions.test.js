@@ -352,7 +352,7 @@ test('a phone that stops reading is cut off instead of filling the server\'s mem
 test('what the host may pass on is checked field by field: nothing a phone could choke on gets through', async (t) => {
   const { relayProblem } = await import('../../server/rooms.js');
   const good = [
-    { t: 'phase', name: 'lobby', vote: true, stages: [{ id: 'campus', name: 'Nova SBE Campus' }] },
+    { t: 'phase', name: 'lobby' },
     { t: 'phase', name: 'match', stage: 'beach', stageName: 'Carcavelos Beach', paused: false, lives: 3, slots: [0, 1, 2, 3], hazards: [{ id: 'wave', name: 'Big Wave' }] },
     { t: 'phase', name: 'results', place: 1, of: 4, won: true, winner: 'Ana', stats: { dealt: 310, taken: 44, kos: 6, falls: 0 }, points: 131, total: 500, achievements: [{ name: 'First Win', text: 'Win a match.' }], note: '' },
     { t: 'status', pct: 87, lives: 2, state: 'alive', cd: 120, cdMax: 420, held: 'sardine', tipsy: false },

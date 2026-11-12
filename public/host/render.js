@@ -244,78 +244,93 @@ export function createRenderer(canvas) {
   // The train runs on the rails at the bottom of the screen (y 678 to 720) and is tall enough
   // to reach up through the terrace level, where it hits (D-144).
   function drawTrain(rect, dir) {
-    // Three long, low carriages with a gangway between them; the leading one has a sloped nose.
+    // A Linha de Cascais unit: ribbed stainless steel, one long dark window band, a few
+    // silver doors, grey boxes on the roof, and a flat yellow cab front.
     const cars = 3;
     const gap = 10;
     const carW = (rect.w - gap * (cars - 1)) / cars;
-    const top = rect.y + 20;
-    const floor = 676; // just above the rails
+    const top = rect.y + 30;
+    const floor = 664;
     const h = floor - top;
+    const STEEL = '#c9c6bd';
+    const STEEL_DARK = '#a7a49b';
+    const YELLOW = '#f2b51d';
     ctx.save();
     ctx.lineJoin = 'round';
     for (let i = 0; i < cars; i++) {
       const x = rect.x + i * (carW + gap);
       const lead = dir > 0 ? i === cars - 1 : i === 0;
-      const noseAt = lead ? (dir > 0 ? x + carW : x) : null;
-      // body
-      ctx.lineWidth = 4;
+      const tail = dir > 0 ? i === 0 : i === cars - 1;
+      if (i < cars - 1) {
+        ctx.fillStyle = '#2b2d33';
+        ctx.fillRect(x + carW - 4, top + 24, gap + 8, h - 40);
+      }
+      // roof units first, so the body covers their lower edge
+      ctx.fillStyle = '#9b988f';
       ctx.strokeStyle = INK;
-      ctx.fillStyle = '#e9eef4';
-      ctx.beginPath();
-      if (lead) {
-        const back = dir > 0 ? x : x + carW;
-        const s = dir;
-        ctx.moveTo(back, top + 10);
-        ctx.lineTo(noseAt - s * 70, top);
-        ctx.quadraticCurveTo(noseAt - s * 8, top + 4, noseAt, top + h * 0.55);
-        ctx.lineTo(noseAt, floor);
-        ctx.lineTo(back, floor);
-        ctx.closePath();
-      } else {
-        roundRect(ctx, x, top, carW, h, 14);
-      }
-      ctx.fill(); ctx.stroke();
+      ctx.lineWidth = 3;
+      for (const k of [0.12, 0.62]) { roundRect(ctx, x + carW * k, top - 16, carW * 0.26, 22, 4); ctx.fill(); ctx.stroke(); }
+      // body
+      const body = ctx.createLinearGradient(0, top, 0, floor);
+      body.addColorStop(0, '#dedbd2');
+      body.addColorStop(0.5, STEEL);
+      body.addColorStop(1, STEEL_DARK);
+      ctx.fillStyle = body;
+      ctx.lineWidth = 4;
+      roundRect(ctx, x, top, carW, h, 12); ctx.fill(); ctx.stroke();
       ctx.save();
-      ctx.clip();
-      // a darker roof line, the yellow and red stripes of the Cascais Line
-      ctx.fillStyle = '#c9d1da';
-      ctx.fillRect(x - 10, top, carW + 20, 14);
-      ctx.fillStyle = '#f6c343';
-      ctx.fillRect(x - 10, top + h * 0.66, carW + 20, 14);
-      ctx.fillStyle = '#e63946';
-      ctx.fillRect(x - 10, top + h * 0.66 + 14, carW + 20, 5);
-      // a long row of windows, broken by two doors
-      const doors = [0.28, 0.72].map((k) => x + carW * k);
-      const winTop = top + 26;
-      const winH = h * 0.32;
-      for (let wx = x + 22; wx < x + carW - 34; wx += 38) {
-        if (doors.some((d) => Math.abs(wx + 14 - d) < 34)) continue;
-        if (lead && Math.abs(wx + 14 - noseAt) < 90) continue;
-        ctx.fillStyle = '#1f3348';
-        roundRect(ctx, wx, winTop, 28, winH, 5); ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,.22)';
-        ctx.fillRect(wx + 4, winTop + 4, 6, winH - 8);
-      }
+      roundRect(ctx, x, top, carW, h, 12); ctx.clip();
+      // ribs over the whole side
+      ctx.strokeStyle = 'rgba(80,76,68,.28)';
+      ctx.lineWidth = 1.5;
+      for (let fy = top + 8; fy < floor; fy += 6) { ctx.beginPath(); ctx.moveTo(x, fy); ctx.lineTo(x + carW, fy); ctx.stroke(); }
+      // one long dark window band
+      const bandTop = top + 22;
+      const bandH = h * 0.3;
+      ctx.fillStyle = '#2a2d31';
+      ctx.fillRect(x, bandTop, carW, bandH);
+      ctx.strokeStyle = '#4a4e55';
+      ctx.lineWidth = 2;
+      for (let wx = x + 60; wx < x + carW; wx += 60) { ctx.beginPath(); ctx.moveTo(wx, bandTop); ctx.lineTo(wx, bandTop + bandH); ctx.stroke(); }
+      ctx.fillStyle = 'rgba(255,255,255,.12)';
+      for (let wx = x + 14; wx < x + carW; wx += 60) ctx.fillRect(wx, bandTop + 5, 10, bandH - 10);
+      // silver doors with two narrow windows, near the ends of the carriage
+      const doors = [0.14, 0.86].map((k) => x + carW * k);
       for (const d of doors) {
-        ctx.fillStyle = '#d5dbe2';
-        ctx.strokeStyle = INK;
+        ctx.fillStyle = '#d9d7d0';
+        ctx.strokeStyle = '#3a3c42';
         ctx.lineWidth = 2.5;
-        roundRect(ctx, d - 22, winTop - 6, 44, floor - winTop + 2, 4); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#1f3348';
-        ctx.fillRect(d - 17, winTop, 14, winH);
-        ctx.fillRect(d + 3, winTop, 14, winH);
+        roundRect(ctx, d - 26, bandTop - 6, 52, floor - bandTop + 4, 4); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(d, bandTop - 6); ctx.lineTo(d, floor); ctx.stroke();
+        ctx.fillStyle = '#2a2d31';
+        roundRect(ctx, d - 20, bandTop + 2, 14, bandH + 16, 3); ctx.fill();
+        roundRect(ctx, d + 6, bandTop + 2, 14, bandH + 16, 3); ctx.fill();
       }
-      if (lead) {
-        // the driver's window and a headlight
-        ctx.fillStyle = '#1f3348';
-        ctx.beginPath();
-        ctx.moveTo(noseAt - dir * 66, top + 12);
-        ctx.quadraticCurveTo(noseAt - dir * 14, top + 14, noseAt - dir * 4, top + h * 0.42);
-        ctx.lineTo(noseAt - dir * 60, top + h * 0.42);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#fff2c8';
-        ctx.beginPath(); ctx.arc(noseAt - dir * 12, top + h * 0.6, 7, 0, 7); ctx.fill();
+      // yellow cab ends: flat, with a wide dark windscreen and a headlight
+      for (const end of [lead ? 'front' : null, tail ? 'back' : null]) {
+        if (!end) continue;
+        const atRight = (end === 'front') === (dir > 0);
+        const cabW = 92;
+        const cx = atRight ? x + carW - cabW : x;
+        ctx.fillStyle = YELLOW;
+        ctx.fillRect(cx, top, cabW, h);
+        ctx.strokeStyle = 'rgba(120,80,0,.35)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(atRight ? cx : cx + cabW, top); ctx.lineTo(atRight ? cx : cx + cabW, floor); ctx.stroke();
+        ctx.fillStyle = '#1c1e22';
+        roundRect(ctx, cx + 10, bandTop - 2, cabW - 20, bandH + 10, 8); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.18)';
+        ctx.fillRect(cx + 18, bandTop + 4, 8, bandH - 4);
+        const lampX = atRight ? x + carW - 22 : x + 22;
+        ctx.fillStyle = end === 'front' ? '#fff3c4' : '#e63946';
+        ctx.beginPath(); ctx.arc(lampX, top + h * 0.72, 7, 0, 7); ctx.fill();
+        if (end === 'front') {
+          ctx.fillStyle = 'rgba(255,243,196,.4)';
+          ctx.beginPath(); ctx.arc(lampX, top + h * 0.72, 15, 0, 7); ctx.fill();
+        }
+        // the coupler and a dark lower edge
+        ctx.fillStyle = '#2b2d33';
+        ctx.fillRect(cx, floor - 12, cabW, 12);
       }
       ctx.restore();
       // pantograph on the middle carriage
@@ -324,21 +339,23 @@ export function createRenderer(canvas) {
         ctx.lineWidth = 3;
         const px = x + carW / 2;
         ctx.beginPath();
-        ctx.moveTo(px - 26, top); ctx.lineTo(px, top - 22); ctx.lineTo(px + 26, top);
-        ctx.moveTo(px - 30, top - 22); ctx.lineTo(px + 30, top - 22);
+        ctx.moveTo(px - 28, top); ctx.lineTo(px + 6, top - 28); ctx.lineTo(px - 16, top - 28);
+        ctx.moveTo(px - 32, top - 28); ctx.lineTo(px + 34, top - 28);
         ctx.stroke();
       }
-      // bogies under each end
-      ctx.fillStyle = INK;
-      for (const k of [0.16, 0.84]) {
+      // dark skirt and bogies
+      ctx.fillStyle = '#2b2d33';
+      ctx.fillRect(x + 8, floor, carW - 16, 8);
+      for (const k of [0.15, 0.85]) {
         const bx = x + carW * k;
-        roundRect(ctx, bx - 34, floor - 2, 68, 10, 4); ctx.fill();
-        for (const dx of [-20, 20]) { ctx.beginPath(); ctx.arc(bx + dx, floor + 10, 8, 0, 7); ctx.fill(); }
-      }
-      // the gangway to the next carriage
-      if (i < cars - 1) {
-        ctx.fillStyle = '#3a3550';
-        ctx.fillRect(x + carW - 2, top + 30, gap + 4, h - 50);
+        roundRect(ctx, bx - 38, floor + 2, 76, 12, 4); ctx.fill();
+        for (const dx of [-22, 22]) {
+          ctx.fillStyle = '#16171b';
+          ctx.beginPath(); ctx.arc(bx + dx, floor + 14, 9, 0, 7); ctx.fill();
+          ctx.fillStyle = '#8a8f9c';
+          ctx.beginPath(); ctx.arc(bx + dx, floor + 14, 3, 0, 7); ctx.fill();
+          ctx.fillStyle = '#2b2d33';
+        }
       }
     }
     ctx.restore();

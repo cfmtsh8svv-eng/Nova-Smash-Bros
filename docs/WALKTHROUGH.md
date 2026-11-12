@@ -70,7 +70,7 @@ There is no database. That was a team decision: a sheet is something everyone ca
 
 ### What do the tests cover, and what not?
 
-**Covered** (about 400 tests, `npm test`, a few seconds):
+**Covered** (about 470 tests, `npm test`, a few seconds):
 
 - **The rules:** knockback, the 200 % burnout, every blast zone, respawn and invincibility, lives, how a match ends, jumping, aiming, each of the eight specials inside and outside its range, each item, each hazard with its safe platform, the vote, and that slow motion never changes a result.
 - **The server:** every way a registration or login is refused, the lockout, tampered and expired tokens, who may start a match and submit a result, implausible results, malformed, oversized and unknown messages, reconnects, and what happens when the sheet is down.

@@ -8,7 +8,7 @@ Run on the build machine (macOS, Node 26.13.0; the unit and server tests also un
 
 | Command | Result |
 |---|---|
-| `npm test` | 410 tests, 410 pass, 0 fail (about 7 seconds). Same result under Node 22.23.4 |
+| `npm test` | 474 tests, 474 pass, 0 fail (round 2 branch, Node 22.23.4, about 11 seconds) |
 | `npm run test:browser` | 3 tests, 3 pass, 0 fail (Chromium through Playwright, about 30 seconds) |
 | `npm audit --audit-level=high` | `found 0 vulnerabilities` |
 | GitHub Actions on the pushed branch (commit `1c6eac0`, Ubuntu, Node 22), for the push and for the pull request | Both runs succeeded: `npm test` 410 of 410, `npm audit --audit-level=high` 0 vulnerabilities, `npm run test:browser` 3 of 3 |
@@ -68,7 +68,7 @@ Left out on purpose: demo mode ([`DEMO.md`](DEMO.md) describes what is prepared 
 
 > "Tests cover accepted and rejected actions and edge cases, and all pass on `main`."
 
-- **413 automated tests**: 410 with `node:test` for the rules and the server, 3 browser tests. All pass on `main` (see the table at the top).
+- **477 automated tests**: 474 with `node:test` for the rules and the server, 3 browser tests. All pass on `main` (see the table at the top).
 - **Accepted actions**: each rule (`tests/game/rules.test.js`, `movement.test.js`), each of the eight specials inside its range (`specials.test.js`), each item (`items.test.js`), each hazard with its safe platform (`hazards.test.js`), registration, login, rooms, a full match (`tests/server/`).
 - **Rejected actions**: specials and items out of range, votes from the wrong player or for the wrong stage, wrong PINs and the lockout, tampered and expired tokens, a player trying host actions, a host touching another host's room, forged and implausible results, oversized and malformed messages (`tests/server/rooms.test.js`, `strict.test.js`, `results.test.js`, `accounts.test.js`).
 - **Edge cases**: a tap shorter than one frame, presses bunched by a network hiccup, simultaneous hits, the last player standing, a KO in the same step as a burnout, exact boundaries of every limit (`tests/game/exact.test.js`, `input.test.js`, `tests/server/strict.test.js`), and a regression test for every defect the reviews found (`tests/*/regressions.test.js`).

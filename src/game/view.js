@@ -25,6 +25,7 @@ export function damageColor(percent) {
 export function poseOf(f) {
   if (f.state !== 'alive') return 'ko';
   if (f.hitstun > 0 || f.stun > 0 || f.pull) return 'hurt';
+  if (f.hang) return 'hang';
   if (f.special) return 'special';
   if (f.attack && f.attack.kind === 'stomp') return f.attack.phase === 'dive' ? 'stomp' : 'idle';
   if (f.attack) return 'attack';

@@ -160,6 +160,7 @@ Nothing in here touches the screen, the network or the clock. Even chance comes 
 | `combat.js` | What a hit does: damage, knockback, KO |
 | `attacks.js` | The normal attack and things that fly |
 | `specials.js` | The eight specials, one small function each |
+| `physics.js` (ledge grab) | `tryLedge` and `holdLedge`: grabbing the two corners of the main ground, hanging, climbing up, letting go (D-138) |
 | `stomp.js` | The stomp: Attack in the air without Up drops straight down; landing sends out a shockwave (D-137) |
 | `items.js`, `hazards.js` | The four items; the six hazards and their warning |
 | `input.js` | The buffer between "messages arrive whenever" and "the game looks once per step" |

@@ -38,7 +38,7 @@ function createFighter(player, spawn, lives, index, players) {
     onGround: true, groundId: 0, jumpsLeft: 1, coyote: 0, dropTimer: 0, dropFrom: -1, gravityScale: 1, dragVx: 0,
     jumpBuffer: 0, attackBuffer: 0, specialBuffer: 0,
     percent: 0, finalPercent: 0, lives, state: 'alive', respawnTimer: 0, invincible: 0,
-    hitstun: 0, stun: 0, tipsy: 0, slip: 0, speedBoost: 0,
+    hitstun: 0, stun: 0, tipsy: 0, slip: 0, speedBoost: 0, hang: null, ledgeUsed: false,
     attack: null, special: null, pull: null, held: null,
     cooldown: 0, cooldownMax: def.special.cooldown,
     lastHitBy: null, lastHitKind: null, lastHitTimer: 0, koFrame: -1,
@@ -154,7 +154,7 @@ export function step(state, inputs = {}) {
     if (f.tipsy > 0) inp = swapSides(inp);
 
     controlFighter(state, f, inp);
-    const free = f.hitstun <= 0 && f.stun <= 0 && !f.pull && !f.attack && !f.special;
+    const free = f.hitstun <= 0 && f.stun <= 0 && !f.pull && !f.attack && !f.special && !f.hang;
     if (free && f.specialBuffer > 0 && f.cooldown <= 0) startSpecial(state, f);
     else if (free && f.attackBuffer > 0) startAttack(state, f);
     updateSpecial(state, f);

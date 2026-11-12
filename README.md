@@ -61,7 +61,7 @@ The left half of the phone is a joystick: put your thumb down anywhere there and
 | Joystick left / right | Move |
 | Joystick up | Look up: attacks and specials then go upward |
 | Joystick down | Drop through a platform, fall faster |
-| **Jump** | Jump; press again in the air for one double jump |
+| **Jump** | Jump; press again in the air for one double jump. Falling next to the main ground while facing it, you grab its corner: Jump climbs up, down lets go |
 | **Attack** | Normal attack in the direction you look. In the air without up: the **stomp**, a straight drop with a shockwave on landing |
 | **Special** | Your fighter's special; the yellow strip shows when it is ready again |
 

@@ -143,6 +143,8 @@ export function createAudio({ music = 0.45, effects = 0.8 } = {}) {
     hit: () => { noise({ dur: 0.09, gain: 0.35, from: 2400, to: 500 }); tone({ type: 'triangle', from: 220, to: 90, dur: 0.1, gain: 0.3 }); },
     bigHit: () => { noise({ dur: 0.22, gain: 0.5, from: 3000, to: 200 }); tone({ type: 'sawtooth', from: 180, to: 45, dur: 0.28, gain: 0.4 }); },
     swing: () => noise({ dur: 0.08, gain: 0.12, from: 900, to: 3200, kind: 'bandpass' }),
+    ledge: () => { tone({ type: 'square', from: 260, to: 180, dur: 0.06, gain: 0.14 }); noise({ dur: 0.05, gain: 0.12, from: 1800, to: 600 }); },
+    climb: () => tone({ type: 'square', from: 300, to: 700, dur: 0.12, gain: 0.12 }),
     stompDive: () => noise({ dur: 0.18, gain: 0.14, from: 2600, to: 500, kind: 'bandpass' }),
     stomp: () => { tone({ type: 'sine', from: 120, to: 50, dur: 0.3, gain: 0.45 }); noise({ dur: 0.16, gain: 0.3, from: 1400, to: 160 }); },
     jump: () => tone({ type: 'square', from: 320, to: 620, dur: 0.11, gain: 0.12 }),

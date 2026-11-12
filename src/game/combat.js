@@ -52,6 +52,7 @@ export const HIT_KO = 2;
 export function applyHit(state, target, hit) {
   if (state.phase !== 'fight' || !canBeHit(target)) return MISS;
   const M = CONFIG.match;
+  target.hang = null; // no invincibility on a ledge: any hit knocks the fighter off (D-138)
   target.percent += hit.damage;
   target.stats.damageTaken += hit.damage;
   if (hit.by !== null && hit.by !== undefined) {
@@ -165,6 +166,8 @@ export function clearFighterEffects(f) {
   f.attack = null;
   f.special = null;
   f.pull = null;
+  f.hang = null;
+  f.ledgeUsed = false;
   f.held = null;
   f.lagQueue = [];
   f.lastInput = neutralInput();

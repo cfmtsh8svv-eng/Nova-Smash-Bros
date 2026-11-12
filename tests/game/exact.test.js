@@ -733,7 +733,10 @@ function playWithLoop(seed, effects) {
 
 test('the host loop: slow motion and hit pause change the timing but not one event of the match', () => {
   const winners = new Set();
-  for (const seed of [1, 3, 7, 10]) {
+  // Seeds whose bot match includes a hazard hit and an item pickup, so both are compared.
+  // (Picked again whenever a rule change alters what the bots' matches look like: seed 3
+  // lost its hazard hit with the ledge grab, D-138, and was replaced by 12, also a campus match.)
+  for (const seed of [1, 12, 7, 10]) {
     const plain = playWithLoop(seed, false);
     const fancy = playWithLoop(seed, true);
     assert.equal(plain.phase, 'ended', `seed ${seed}`);

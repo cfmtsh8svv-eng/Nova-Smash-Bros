@@ -41,6 +41,7 @@ export const POSES = {
   attackUp: { la: 20, ra: -158, ll: 4, rl: -4, lean: -2, item: 'prop' },
   special: { la: -30, ra: -84, ll: 10, rl: -12, lean: 5, item: 'special' },
   specialUp: { la: 30, ra: -150, ll: 4, rl: -4, lean: -3, item: 'special' },
+  hang: { la: 162, ra: -164, ll: 6, rl: -8, lean: 0, item: 'prop' }, // holding a ledge: both arms up
   stomp: { la: 128, ra: -138, ll: -3, rl: 3, lean: 0, item: 'prop' }, // diving: arms up, legs straight down
   hurt: { la: 96, ra: -118, ll: -16, rl: 22, lean: -16, item: 'prop' },
   ko: { la: 118, ra: -128, ll: -28, rl: 28, lean: 0, item: 'none' },

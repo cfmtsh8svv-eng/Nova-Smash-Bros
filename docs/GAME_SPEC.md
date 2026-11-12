@@ -97,6 +97,15 @@ launch_speed = (base_kb + kb_growth * target.percent / 100) * (100 / target.weig
 hitstun_frames = round(launch_speed * 2.5)
 ```
 
+**Ledge grab** (D-138). Getting back after a fall takes some skill:
+
+- Only the two outer corners of the **solid main ground** of each stage can be grabbed.
+- A grab happens only when the fighter is **falling** (moving down), **faces the wall**, is **not in hitstun or stun** (and not in a special, a stomp dive or a lasso pull), and the fighter's hand point (the top of the hurtbox, on the wall side) comes within **20 px** of the corner.
+- **Once per airtime:** after letting go, there is no new grab until the fighter has stood on a platform again or respawned.
+- Hanging lasts at most **1.5 s**, then the fighter drops. **Jump** climbs up onto the ground (standing on it, 30 px from the edge). **Down** lets go, and so does pushing left or right **away from the wall**. Attack and Special do nothing while hanging.
+- **No invincibility** while hanging: any hit knocks the fighter off as usual.
+- The fighter is drawn in a hanging pose (arms up) at the corner.
+
 Coordinates are a 1280×720 space at 60 Hz. Gravity 0.6 px/f². A single jump reaches about 160 px, so every platform level (130 px apart) is reachable; one double jump. All tuning values live in one `config.js`.
 
 ## 6. Controls (phone, landscape)

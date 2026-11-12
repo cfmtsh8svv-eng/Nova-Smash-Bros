@@ -10,6 +10,7 @@ export function controlFighter(state, f, inp) {
   f.jumpBuffer = inp.jumpP ? P.inputBufferFrames : Math.max(0, f.jumpBuffer - 1);
   f.attackBuffer = inp.attackP ? P.inputBufferFrames : Math.max(0, f.attackBuffer - 1);
   f.specialBuffer = inp.specialP ? P.inputBufferFrames : Math.max(0, f.specialBuffer - 1);
+  if (f.hang) return holdLedge(state, f, inp);
 
   const canAct = f.hitstun <= 0 && f.stun <= 0 && !f.pull;
   // A special that holds the fighter, or the stomp's dive: no running, jumping or dropping.
@@ -100,6 +101,17 @@ export function moveFighter(state, f, inp) {
     if (f.pull.t <= 0) f.pull = null;
     return;
   }
+  if (f.hang) {
+    // Hanging: the hand stays on the corner.
+    f.x = f.hang.x - f.hang.facing * (CONFIG.body.w / 2);
+    f.y = f.hang.y + CONFIG.body.h;
+    f.vx = 0;
+    f.vy = 0;
+    f.onGround = false;
+    f.groundId = -1;
+    f.gravityScale = 1;
+    return;
+  }
   if (f.gravityScale !== 0) {
     const canSteer = f.hitstun <= 0 && f.stun <= 0;
     const fast = canSteer && inp.down && !f.onGround && f.vy > -2;
@@ -160,6 +172,69 @@ export function moveFighter(state, f, inp) {
     f.coyote = P.coyoteFrames;
   }
   f.runPhase += f.onGround ? Math.abs(f.vx) : 0;
+  tryLedge(state, f);
+}
+
+// ---- ledge grab (D-138) ----
+
+// Only the two outer corners of the solid main ground, once per airtime, when falling
+// towards the wall with the hand point (top of the hurtbox, wall side) close to the corner.
+function tryLedge(state, f) {
+  if (f.onGround) {
+    f.ledgeUsed = false; // standing on a platform: the next airtime may grab again
+    return;
+  }
+  if (f.ledgeUsed || f.vy <= 0 || f.hitstun > 0 || f.stun > 0 || f.special || f.pull || (f.attack && f.attack.kind === 'stomp')) return;
+  const ground = state.stage.platforms.find((p) => p.solid);
+  if (!ground) return;
+  const L = CONFIG.ledge;
+  const handX = f.x + f.facing * (CONFIG.body.w / 2);
+  const handY = f.y - CONFIG.body.h;
+  for (const corner of [{ x: ground.x, facing: 1 }, { x: ground.x + ground.w, facing: -1 }]) {
+    if (f.facing !== corner.facing || Math.hypot(handX - corner.x, handY - ground.y) > L.reach) continue;
+    f.hang = { x: corner.x, y: ground.y, facing: corner.facing, t: 0 };
+    f.ledgeUsed = true;
+    f.attack = null;
+    f.x = corner.x - corner.facing * (CONFIG.body.w / 2);
+    f.y = ground.y + CONFIG.body.h;
+    f.vx = 0;
+    f.vy = 0;
+    state.events.push({ type: 'ledgeGrab', slot: f.slot, x: corner.x, y: ground.y });
+    return;
+  }
+}
+
+function letGoOfLedge(state, f) {
+  state.events.push({ type: 'ledgeDrop', slot: f.slot, x: f.hang.x, y: f.hang.y });
+  f.hang = null;
+  f.vx = 0;
+  f.vy = 0;
+}
+
+// While hanging: Jump climbs up, Down or away from the wall lets go, and after 1.5 s the fighter drops.
+function holdLedge(state, f, inp) {
+  const hang = f.hang;
+  const L = CONFIG.ledge;
+  hang.t += 1;
+  f.facing = hang.facing;
+  f.aimUp = false;
+  f.attackBuffer = 0; // Attack and Special do nothing while hanging
+  f.specialBuffer = 0;
+  const away = hang.facing > 0 ? inp.left && !inp.right : inp.right && !inp.left;
+  if (f.jumpBuffer > 0) {
+    f.hang = null;
+    f.jumpBuffer = 0;
+    f.x = hang.x + hang.facing * L.climbInset;
+    f.y = hang.y;
+    f.vx = 0;
+    f.vy = 0;
+    f.onGround = true;
+    f.groundId = state.stage.platforms.findIndex((p) => p.solid);
+    f.squash = 6;
+    state.events.push({ type: 'ledgeClimb', slot: f.slot, x: f.x, y: f.y });
+  } else if (inp.down || away || hang.t >= L.hangFrames) {
+    letGoOfLedge(state, f);
+  }
 }
 
 function land(f, index, y) {

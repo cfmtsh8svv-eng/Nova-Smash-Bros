@@ -65,10 +65,12 @@ export function beginWarning(state, forced = {}) {
     hz.pos = Math.round(forced.pos ?? from + nextRandom(state) * room);
   }
   if (id === 'fireworks') {
-    // One spot in each third of the street (D-149).
+    // One spot in each fifth of the street, near its middle (D-152), so two
+    // neighbouring rockets always leave a gap a fighter can stand in.
     const street = state.stage.platforms[0];
-    const third = street.w / 3;
-    hz.spots = forced.spots || [0, 1, 2].map((i) => Math.round(street.x + i * third + 60 + nextRandom(state) * (third - 120)));
+    const part = street.w / H.fireworks.spots;
+    const jitter = part / 2 - 60;
+    hz.spots = forced.spots || [...Array(H.fireworks.spots)].map((_, i) => Math.round(street.x + (i + 0.5) * part + (nextRandom(state) * 2 - 1) * jitter));
   }
   if (id === 'wifi') {
     hz.zone = forced.zone || pick(state, ['roof', 'ground']);

@@ -470,7 +470,8 @@ export function createRenderer(canvas) {
     drawWifiIcon(84, band.y + 96, 0.55 + 0.4 * Math.sin(t / 4));
   }
 
-  // During the countdown the place where the hazard will strike gives a hint:
+  // During the countdown the place where the hazard will strike gives a hint (not for the
+  // Big Wave and the Midday Sun, D-151):
   // a soft pulsing glow, part of the scene and not a box or a bar.
   function drawTelegraph(state, t) {
     const hz = state.hazard;
@@ -488,7 +489,6 @@ export function createRenderer(canvas) {
     };
     const edge = hz.dir > 0 ? 0 : SCREEN.w;
     if (hz.id === 'train') glow(edge, ground - 50, 170, '#fff2c8');
-    if (hz.id === 'wave') glow(hz.pos + CONFIG.hazards.wave.width / 2, SCREEN.h - 40, 170, '#7fe0ff');
     if (hz.id === 'rain') {
       ctx.save();
       ctx.globalAlpha = 0.18 + 0.12 * pulse;
@@ -496,7 +496,6 @@ export function createRenderer(canvas) {
       ctx.fillRect(0, 0, SCREEN.w, SCREEN.h);
       ctx.restore();
     }
-    if (hz.id === 'sun') glow(SCREEN.w / 2, ground - 20, 520, '#fff2a8');
     if (hz.id === 'fireworks') {
       for (const x of hz.spots) {
         glow(x, ground - 6, 44, '#ff7a3d');

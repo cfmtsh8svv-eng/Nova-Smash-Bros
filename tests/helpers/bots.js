@@ -6,10 +6,10 @@ import { neutralInput } from '../../src/game/input.js';
 
 // A match where the listed slots are played by bots; `others(state, slot)` plays the rest
 // (standing still if not given). Returns the state after `frames` steps or at the end.
-export function botMatch({ stage = 'campus', fighters = ['finance_bro', 'house_dj'], bots = [0, 1], settings = {}, seed = 5, frames = 60 * 60, others = null, onStep = null } = {}) {
+export function botMatch({ stage = 'campus', fighters = ['finance_bro', 'house_dj'], bots = [0, 1], settings = {}, seed = 5, frames = 60 * 60, others = null, onStep = null, level = 'medium' } = {}) {
   const players = fighters.map((fighterId, i) => ({ slot: i, name: `P${i + 1}`, fighterId }));
   const state = createMatch({ stageId: stage, players, settings: { items: false, hazards: false, ...settings }, seed });
-  const brains = new Map(bots.map((slot) => [slot, createBot({ slot, level: 'medium', seed })]));
+  const brains = new Map(bots.map((slot) => [slot, createBot({ slot, level, seed })]));
   for (let i = 0; i < frames && state.phase !== 'ended'; i++) {
     const inputs = {};
     for (const f of state.fighters) inputs[f.slot] = brains.has(f.slot) ? botInput(brains.get(f.slot), state) : others ? others(state, f.slot) : neutralInput();

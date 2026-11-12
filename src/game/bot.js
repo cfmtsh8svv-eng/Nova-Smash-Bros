@@ -21,13 +21,15 @@ import { hazardRect } from './hazards.js';
 import { nextRandom } from './rng.js';
 
 export const BOT_NAMES = ['Freshman', 'Intern', 'Erasmus'];
-export const BOT_LEVELS = Object.keys(CONFIG.bots);
+// The bot levels in order, easiest first (D-175); the server and the host page use this list.
+export const BOT_LEVELS = ['easy', 'medium', 'hard'];
 const PRESS_KEYS = ['attack', 'jump', 'special', 'down'];
 const GROUND_HAZARDS = ['train', 'wave', 'crowd', 'fireworks', 'sun'];
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const sign = (v) => (v > 0 ? 1 : v < 0 ? -1 : 0);
 
 // A new bot for one match. seed is the match seed; the slot makes each bot's numbers its own.
+// The level only picks a number set (D-176); an unknown level plays as medium.
 export function createBot({ slot, level = 'medium', seed = 1 }) {
   const cfg = CONFIG.bots[level] || CONFIG.bots.medium;
   return {

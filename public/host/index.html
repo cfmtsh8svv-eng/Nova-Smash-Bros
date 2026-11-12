@@ -67,6 +67,22 @@
       <p class="tagline">Get ready…</p>
     </section>
 
+    <section id="intro" class="screen" hidden>
+      <div class="introTop">
+        <h1 class="introTitle">GET <span>READY</span></h1>
+        <p class="introStage" id="introStage"></p>
+      </div>
+      <div class="introCols">
+        <section class="introGroup items"><h2>ITEMS</h2><div class="introGrid" id="introItems"></div></section>
+        <section class="introGroup hazards"><h2>HAZARDS</h2><div class="introGrid" id="introHazards"></div></section>
+      </div>
+      <div class="introFoot">
+        <div class="introTimer"><i id="introBar"></i></div>
+        <b class="introSecs" id="introSecs">20</b>
+        <div class="introSkip">SKIP <span id="introPips" class="pips"></span></div>
+      </div>
+    </section>
+
     <section id="pause" class="screen" hidden>
       <h1 class="logo mini">PAUSED</h1>
       <button id="resume" class="big">Resume</button>
@@ -74,17 +90,11 @@
       <p class="small" id="pauseHelp">Press P or Esc to resume. Phones cannot pause.</p>
     </section>
 
+    <!-- The podium itself is drawn on the canvas (ceremony.js); these are the cards over it. -->
     <section id="results" class="screen" hidden>
-      <h1 id="winnerLine" class="winner"></h1>
-      <div id="podium" class="podium"></div>
-      <p id="resultNote" class="small"></p>
-      <div class="resultsBottom">
-        <div>
-          <h2>Leaderboard</h2>
-          <ol id="resultBoard" class="board wide"></ol>
-        </div>
-        <button id="backToLobby" class="big">Back to the lobby</button>
-      </div>
+      <div id="resultCards" class="resultCards"></div>
+      <p id="resultNote" class="small resultNote"></p>
+      <button id="backToLobby" class="big lobbyBtn" hidden>Back to the lobby</button>
     </section>
 
     <div id="toast" role="status" hidden></div>

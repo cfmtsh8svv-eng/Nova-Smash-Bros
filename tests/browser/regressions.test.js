@@ -85,6 +85,10 @@ test('the host page loses its connection around Start, in mid-match and when the
   await ana.waitForFunction(() => document.getElementById('offline').hidden);
   await host.waitForFunction(() => !document.getElementById('startMatch').disabled);
   await host.click('#startMatch');
+  for (const p of [ana, max]) {
+    await p.waitForSelector('#intro:not([hidden])');
+    await p.click('#skip'); // the intro before every match (GAME_SPEC §10b)
+  }
   await host.waitForFunction(() => window.novaBrawl.state && window.novaBrawl.state.phase === 'fight', null, { timeout: 20_000 });
   await ana.waitForSelector('#pad:not([hidden])');
 

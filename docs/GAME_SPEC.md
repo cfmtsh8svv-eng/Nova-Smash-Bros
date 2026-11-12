@@ -60,12 +60,14 @@ Laptop (host page, runs game) ───┘    (static files, rooms, relay, accou
 
 | Sheet tab | Columns |
 |---|---|
-| `players` | gamertag, gamertag_lower, salt, pin_hash, created_at, matches, wins, points, kos, falls, damage_dealt, damage_taken, achievements |
+| `players` | gamertag, gamertag_lower, salt, pin_hash, created_at, matches, wins, points, kos, falls, damage_dealt, damage_taken, achievements, last_won |
 | `matches` | match_id, ended_at, stage, mode, lives, duration_s, winner, players_json |
 
-The **leaderboard** ranks players by **points**. Each match gives placement points (1st 100, 2nd 60, 3rd 40, 4th 20) plus 1 point per 10 % damage dealt. It is read from `players`, cached on the server for 60 s, and shown on the host's results screen and lobby.
+The **leaderboard** ranks players by **points**. Each match gives placement points (1st 100, 2nd 60, 3rd 40, 4th 20) plus 1 point per 10 % damage dealt. It is read from `players`, cached on the server for 60 s, and shown in the host's lobby (not on the results screen, D-155).
 
 **Achievements** belong to a player, are stored in the sheet and have no effect on gameplay. They show on the results screen and on the phone when earned. First set: First Win, Hat-Trick (3 wins), Heavy Hitter (1,000 % damage dealt in total), Untouchable (win without losing a life), Comeback (win on the last life above 150 %), Globetrotter (win on all three stages), Regular (10 matches), Special Delivery (KO with a special).
+
+**The crown** (D-154) is cosmetic. A player whose last saved match was a win wears a small gold crown: on the fighter during a match (above the head), on the sprite of their lobby card (no text with it) and on the podium. Several players can wear one at the same time (each won the last match they played). It is stored in the `last_won` column (1 or 0) and changes with every saved result: the winner gets it, everyone else in that match loses theirs. A practice match or a result that does not count (§4 limits) changes nothing. If the sheet cannot be written, the server still changes its own copy at once, so the crown is right until the server restarts.
 
 **One phone per account.** If a gamertag logs in on a second phone, the first phone is signed out with a clear message.
 
@@ -150,7 +152,7 @@ Whether the special is ready is shown **only on the phone** (a ring on the Speci
 
 **KO moments.** Each KO shows one of several short texts on the big screen ("LAUNCHED!", "SEE YA!", "DROPPED OUT!", "OUT OF OFFICE!"; for the 200 % rule "BURNOUT!", "NEEDS A GAP YEAR!") and a matching line with the lives left on that player's phone, with a long, strong vibration pattern and a red flash. An elimination vibrates longest.
 
-**Final KO.** The last KO of the match is the big moment: the game drops to slow motion for **2 s**, the camera zooms in on the hit, the screen flashes, "FINAL KO!" appears, then "{name} graduates with honours!". All phones vibrate.
+**Final KO.** The last KO of the match is the big moment: the game drops to slow motion for **2 s**, the camera zooms in on the hit, the screen flashes and "FINAL KO!" appears. All phones vibrate. Then the end sequence of §10 starts.
 
 ## 7. Content
 
@@ -181,7 +183,7 @@ Detailed illustration, drawn in code, true to the real places. Platforms are **p
 |---|---|---|---|
 | **Nova SBE Campus** | Day | Terrace, CTT Student Hall canopy, Pingo Doce & Go roof, main roof, tower roof | **Cascais Line Train** across the terrace level · **Bad Wi-Fi**: inputs delayed 200 ms for 6 s · **Sudden Rain**: the whole map is slippery for 6 s |
 | **Carcavelos Beach** | Day | Sandbank, surf-bar roof, açaí kiosk roof, lifeguard deck, lifeguard roof. Fort, Ponte 25 de Abril and Cristo Rei in the background. | **Big Wave** rises from the bottom and rolls across the sand · **Seagulls** steal an item · **Midday Sun** burns everyone on the sand |
-| **Bairro Alto** | Night | Street without tram rails or overhead wires (with Erasmus Corner and its "BEER €1.50" sign), two balconies, the roof terrace of the bar The Spot, two roofs | **Drunk Crowd** pushes along the street and drags players with it · **Drinks** that make you tipsy for 8 s · **Fireworks** shoot up from three spots in the street |
+| **Bairro Alto** | Night | Street without tram rails or overhead wires (with Erasmus Corner and its "BEER €1.50" sign), two balconies, the roof terrace of the bar The Spot, two roofs | **Drunk Crowd** pushes along the street and drags players with it · **Drinks** that make you tipsy for 8 s · **Fireworks** shoot up from five spots in the street |
 
 **Three hazards per stage** (D-143 to D-148):
 
@@ -192,7 +194,7 @@ Detailed illustration, drawn in code, true to the real places. Platforms are **p
 - **Seagulls.** Unchanged.
 - **Midday Sun.** For **5 s** every fighter on the **sand level** takes **2 % every 0.5 s** (at most 20 %). The roofs and the lifeguard tower are safe. Bright glare over the sand, heat shimmer; phone line "Sunburn! Get in the shade."
 - **Drunk Crowd** and **Drinks.** Unchanged.
-- **Fireworks.** Three marked spots in the street (a glowing fuse on the ground during the warning). When it fires, a rocket shoots straight up from each spot. A fighter it touches in the street is **carried upward** with it for about **0.5 s**, then the rocket **explodes**: 12 % and a launch (base_kb 6, kb_growth 8, 80°). Fighters on the balconies and roofs are safe (the rockets start in the street). Coloured explosion particles; phone line "Fireworks! Santos Populares came early."
+- **Fireworks.** Five marked spots in the street, one in each fifth of it (a glowing fuse on the ground during the warning). When it fires, a rocket 45 px wide shoots straight up from each spot. A fighter it touches in the street is **carried upward** with it for about **0.5 s**, then the rocket **explodes**: 12 % and a launch (base_kb 6, kb_growth 8, 80°). Fighters on the balconies and roofs are safe (the rockets start in the street). Coloured explosion particles; phone line "Fireworks! Santos Populares came early."
 
 One hazard at a time. After a hazard ends, the next warning starts at a random point **10 to 15 s** later. The Big Wave and the Midday Sun show no hint in the picture during their warning, only the text in the top right (D-151). Every hazard is **announced as animated text only**: the hazard's name, then a large **3, 2, 1** where each number pops in on its own, on the big screen and on every phone. No box and no bar. On the big screen it sits in the **top right corner**, over open sky, so it never covers a platform or a fighter. **Every hazard can be escaped** by moving or jumping: each one only affects one level or zone, and at least one platform is always safe. (Sudden Rain is the one exception: it covers the whole map but does no damage.)
 
@@ -238,9 +240,9 @@ Both are free. `docs/DEPLOY.md` has the steps for each.
 
 ## 10. Screens
 
-**Host (laptop):** Title (no team names) → Lobby (QR code, room code, player cards, stage choice: Vote or one of the three stages, close room, lives 1/2/3, items and hazards on/off, **separate volume sliders for music and effects**, leaderboard) → Map vote (with Vote only, §10a) → Countdown → Match (HUD with one card per player at the top) → Results (winner, per-player stats, points, new achievements, leaderboard) → back to the lobby. There is no rematch button.
+**Host (laptop):** Title (no team names) → Lobby (QR code, room code, player cards, stage choice: Vote or one of the three stages, close room, lives 1/2/3, items and hazards on/off, **separate volume sliders for music and effects**, leaderboard) → Map vote (with Vote only, §10a) → Intro (§10b) → Countdown → Match (HUD with one card per player at the top) → End sequence and results on the podium (winner, per-player stats, points, new achievements; no leaderboard) → back to the lobby. There is no rematch button.
 
-**Phone:** Register / log in → Fighter select (swipe through the 8 fighters one at a time, with the neighbours peeking in at the sides; each card shows the sprite, the two attacks and **Speed and Weight as five-step bars, without numbers**) → Ready → Map vote (with Vote only, §10a) → Gamepad → KO'd → Eliminated + hazard vote → Results.
+**Phone:** Register / log in → Fighter select (swipe through the 8 fighters one at a time, with the neighbours peeking in at the sides; each card shows the sprite, the two attacks and **Speed and Weight as five-step bars, without numbers**) → Ready → Map vote (with Vote only, §10a) → Intro with a Skip button (§10b) → Gamepad → KO'd → Eliminated + hazard vote → Results.
 
 ### 10a. Map vote
 
@@ -253,11 +255,28 @@ Voting is the default; the host can still pick one fixed stage in the lobby (D-1
 - Players who join during the vote sit it out and play in the next match. A player who disconnects during the vote no longer counts: their vote is dropped and the vote does not wait for them.
 - **Server.** The room has a `vote` phase between `lobby` and `match`. Stage votes are accepted only in that phase and only from players in the vote; a second vote replaces the first. The match that follows must use one of the stages with the most votes.
 
+### 10b. Intro before every match
+
+Before every match (after the map vote, or right after Start with a fixed stage) the big screen shows an intro for **20 s** over the dimmed stage (D-153).
+
+- **Big screen.** "GET READY" and the stage name with day or night at the top. Under the heading **ITEMS**, three columns of cards with all nine items, each with its picture (the same art as on the stage), name and one line on what it does; every item card has a yellow frame, and the **Lucky Rooster** card also glows gold and carries a **RARE** tag. Next to them one column under **HAZARDS** with the three hazards of the chosen stage, each as a small animated picture (train, Wi-Fi with a red cross, rain cloud, wave, seagull, sun, crowd, beer glass, rocket) with its name and one line. There is no leaderboard. At the bottom: a 20 s bar with the seconds left, and **SKIP** with one pip per player of the match in the player colour; the pip fills when that player has skipped, and a disconnected player's pip is faded.
+- **Phone.** "GET READY", "Read the items on the big screen" and one big **SKIP** button. After a tap it turns green and says how many players are still reading.
+- **End.** After 20 s, or as soon as **every connected player of the match** has pressed Skip, whichever comes first. A player who disconnects no longer holds it up. Then the usual 3, 2, 1 countdown starts. Buttons pressed during the intro do nothing.
+- **Server.** A phone sends `skip`, with no other field. It is passed to the host only while a match runs and only from a player of that match; anything else in the message is a bad message. The intro screen is a `phase` named `intro` with the stage, the players, the seconds left and who has skipped.
+
 Every error is shown in plain words next to where it happened ("That gamertag is taken", "Wrong PIN, 3 tries left", "Room not found", "Connection lost, reconnecting…").
 
 **Lobby.** When a player joins, their slot appears on the big screen with a short entrance effect (flash and pop in the player colour, with a sound). Until that player has picked a fighter, the slot shows a **grey silhouette**; picking a fighter reveals the sprite.
 
-**Results screen.** The stage stays visible, dimmed, behind the results. A **podium for places 1, 2 and 3** shows the fighters with their name tags; a fourth player lies flat on the ground beside it. Under each: damage dealt, damage taken, KOs, falls, points earned and new achievements. Then the leaderboard, then back to the lobby.
+**End sequence and results screen** (D-155, mockup `design/options/round11-podium.html`). It is drawn on the game canvas, on the stage of the match, right after the final-KO slow motion:
+
+1. **0 to 1.8 s.** The camera zooms on the winner, who hops. "{NAME} WINS!" slams in with a screen shake and a burst of confetti.
+2. **1.8 to 2.6 s.** The camera goes back, the stage dims, and the name moves to the top with "graduates with honours" under it.
+3. **2.2 to 3.0 s.** Three podium blocks (1st in the middle, 2nd on the left, 3rd on the right, in the player colours) rise out of the stage's own main ground (y 600: the terrace, the sand, the street). The winner jumps onto the 1st block; the 2nd and 3rd, who were knocked out, drop in from above onto theirs. A 4th player falls in and lies flat on the ground to the right of the podium (the arms-up pose turned on its back, placed from the sprite's pixels so the body is centred under its card). With 2 or 3 players only their blocks rise.
+4. **3.2 to 4.0 s.** Crowns from the last round (§4) pop off the other players and vanish; a new crown drops onto the winner (who keeps theirs if they already had one). Fireworks start over the stage and run until 10 s; confetti keeps falling.
+5. **From 4.2 s.** A stat card pops in above each fighter (the 4th: above the fighter on the ground): place, name, damage dealt and taken, KOs and falls, then points and new achievements once the server has answered. **Back to the lobby** appears at 5.2 s.
+
+There is **no leaderboard** on the results screen; it stays in the lobby. A line at the bottom left says whether the result was saved.
 
 ## 11. How each grading criterion is covered
 

@@ -104,7 +104,7 @@ export const CONFIG = {
     gulls: { frames: seconds(2), reach: 70, peckDamage: 3, peckStun: 14 },
     crowd: { speed: 5, width: 300, height: 100, damage: 5, grip: 0.3 },
     drinks: { count: 3, frames: seconds(8), tipsyFrames: seconds(8), size: 34 },
-    fireworks: { spots: 3, width: 30, height: 60, speed: 10, carryFrames: 30, damage: 12, baseKb: 6, kbGrowth: 8, angleDeg: 80 },
+    fireworks: { spots: 5, width: 45, height: 60, speed: 10, carryFrames: 30, damage: 12, baseKb: 6, kbGrowth: 8, angleDeg: 80 },
   },
   // Height bands used by hazards: a fighter is "on the ground level" when the feet are below this line.
   levels: { groundAbove: 520, roofBelow: 400 },

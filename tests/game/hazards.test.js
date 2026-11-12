@@ -331,14 +331,15 @@ test('Midday Sun: 2 % every 0.5 s on the sand, at most 20 %; the roofs and the l
   assert.deepEqual(feedbackFor([...events, ...rest], 'hazard'), [onSand.slot], 'one phone line, to the burnt player only');
 });
 
-test('Fireworks: three spots in the street; a rocket carries a fighter up for 0.5 s, then explodes: 12 % and a launch', () => {
+test('Fireworks: five spots in the street; a rocket carries a fighter up for 0.5 s, then explodes: 12 % and a launch', () => {
   const state = fight({ stage: 'bairro', settings: { hazards: true } });
   const [a, b] = state.fighters;
   const street = state.stage.platforms[0];
   beginWarning(state, { id: 'fireworks' });
   const spots = state.hazard.spots;
-  assert.equal(spots.length, 3);
-  spots.forEach((x, i) => assert.ok(x >= street.x + (street.w * i) / 3 && x <= street.x + (street.w * (i + 1)) / 3, `spot ${i} in its third of the street`));
+  assert.equal(spots.length, 5);
+  spots.forEach((x, i) => assert.ok(x >= street.x + (street.w * i) / 5 && x <= street.x + (street.w * (i + 1)) / 5, `spot ${i} in its fifth of the street`));
+  assert.equal(CONFIG.hazards.fireworks.width, 45);
   run(state, WARN_FRAMES - 1);
   assert.equal(a.percent + b.percent, 0);
   pinned(state, [[a, spots[1], 600], [b, 240, 470]], 1); // a on a spot in the street, b on the left balcony
@@ -355,7 +356,7 @@ test('Fireworks: three spots in the street; a rocket carries a fighter up for 0.
   assert.ok(blast, 'the rocket exploded on a');
   assert.deepEqual([blast.damage, blast.source, blast.by], [F.damage, 'fireworks', null]);
   assert.ok(a.vy < 0 && Math.abs(a.vy) > Math.abs(a.vx) * 3, 'launched steeply (80°)');
-  assert.equal(of(events, 'fx').filter((e) => e.fx === 'firework').length, 3, 'three explosions');
+  assert.equal(of(events, 'fx').filter((e) => e.fx === 'firework').length, 5, 'five explosions');
   assert.equal(of(events, 'feedback').find((e) => e.slot === a.slot && e.kind === 'hazard').text, 'Fireworks! Santos Populares came early.');
   assert.equal(b.percent, 0, 'the balcony is safe');
   assert.equal(b.x, 240);

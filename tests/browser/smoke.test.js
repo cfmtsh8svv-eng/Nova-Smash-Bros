@@ -213,6 +213,11 @@ test('host page, an iPhone and an Android phone: register, pick, ready, start, p
   await host.click('#stageButtons button[data-value="campus"]');
   await host.click('#startMatch');
   assert.equal(await host.isVisible('#vote'), false, 'a fixed stage has no vote');
+  // the intro comes first; it ends once both phones have pressed Skip
+  for (const p of [iphone, android]) {
+    await p.waitForSelector('#intro:not([hidden])');
+    await p.click('#skip');
+  }
   await host.waitForFunction(() => window.novaBrawl.state && window.novaBrawl.state.phase === 'fight', null, { timeout: 20_000 });
   assert.deepEqual(await host.evaluate(() => [window.novaBrawl.state.settings.items, window.novaBrawl.state.settings.hazards]), [false, false], 'the lobby switches reached the match');
   await iphone.waitForSelector('#pad:not([hidden])');

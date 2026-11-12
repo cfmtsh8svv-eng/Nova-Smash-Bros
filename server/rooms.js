@@ -4,7 +4,7 @@
 // phones. The server does not run the game: it checks who is allowed to do what,
 // validates every message and passes it on.
 //
-//   phone -> server -> host : input, pick, vote
+//   phone -> server -> host : input, pick, vote, skip
 //   host  -> server -> phone: phase, status, feedback
 //
 // Access control in one sentence: the socket that created a room is its host,
@@ -13,7 +13,7 @@ import { randomBytes, randomInt, randomUUID, timingSafeEqual } from 'node:crypto
 import { LIMITS } from './config.js';
 import { Bucket } from './security.js';
 import { verifyToken } from './accounts.js';
-import { isInt, isPlainObject, isRoomCode } from './validate.js';
+import { isInt, isPlainObject, isRoomCode, isSkip } from './validate.js';
 import { checkResult, scoreResult } from './results.js';
 import { isValidMask } from '../src/game/input.js';
 import { FIGHTER_IDS } from '../src/game/fighters.js';
@@ -21,7 +21,7 @@ import { HAZARD_IDS, STAGE_IDS } from '../src/game/stages.js';
 
 const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // without I and O, which look like 1 and 0
 const RELAY_TYPES = ['phase', 'status', 'feedback'];
-const PHASE_NAMES = ['lobby', 'vote', 'match', 'results'];
+const PHASE_NAMES = ['lobby', 'vote', 'intro', 'match', 'results'];
 const FIGHTER_STATES = ['alive', 'dead', 'out'];
 // Before a match starts (lobby or map vote) a player who leaves frees the slot at once.
 const beforeMatch = (room) => room.phase === 'lobby' || room.phase === 'vote';
@@ -55,6 +55,10 @@ const PHASE_FIELDS = {
   vote: (m) => onlyKeys(m, ['t', 'name', 'stages', 'slots', 'endsIn', 'winner'])
     && optional(m.stages, listOf(3, (v) => STAGE_IDS.includes(v))) && optional(m.slots, listOf(4, (v) => isInt(v, 0, 3)))
     && optional(m.endsIn, (v) => isInt(v, 0, 60)) && optional(m.winner, (v) => STAGE_IDS.includes(v)),
+  // The 20 s intro before every match (GAME_SPEC §10b): the stage, who plays, seconds left, who pressed Skip.
+  intro: (m) => onlyKeys(m, ['t', 'name', 'stage', 'slots', 'endsIn', 'skipped'])
+    && optional(m.stage, (v) => STAGE_IDS.includes(v)) && optional(m.slots, listOf(4, (v) => isInt(v, 0, 3)))
+    && optional(m.endsIn, (v) => isInt(v, 0, 60)) && optional(m.skipped, listOf(4, (v) => isInt(v, 0, 3))),
   match: (m) => onlyKeys(m, ['t', 'name', 'stage', 'stageName', 'paused', 'lives', 'slots', 'hazards'])
     && optional(m.stage, (v) => STAGE_IDS.includes(v)) && optional(m.stageName, shortText(40)) && optional(m.paused, bool)
     && optional(m.lives, (v) => isInt(v, 1, 3)) && optional(m.slots, listOf(4, (v) => isInt(v, 0, 3))) && optional(m.hazards, listOf(6, named(HAZARD_IDS))),
@@ -280,8 +284,15 @@ export class Rooms {
   roster(room) {
     return {
       t: 'roster', code: room.code, closed: room.closed, phase: room.phase,
-      players: room.slots.map((s, i) => (s ? { slot: i, gamertag: s.gamertag, connected: s.connected, fighter: s.fighter, ready: s.ready } : null)).filter(Boolean),
+      players: room.slots.map((s, i) => (s ? { slot: i, gamertag: s.gamertag, connected: s.connected, fighter: s.fighter, ready: s.ready, crown: this.crown(s.lower) } : null)).filter(Boolean),
     };
+  }
+
+  // The crown (D-154): this player's last saved match was a win. Read from the player cache,
+  // which a saved result updates at once, also while the sheet cannot be written.
+  crown(lower) {
+    const row = this.data.players.get(lower);
+    return Boolean(row && row.last_won);
   }
 
   sendRoster(room) {
@@ -547,6 +558,16 @@ const PHONE_HANDLERS = {
     this.send(room.host, { t: 'vote', slot: conn.slot, kind: msg.kind, value: msg.value });
   },
 
+  // The player taps Skip on the intro before a match (GAME_SPEC §10b). The host decides when
+  // the intro ends; the server only checks that the sender plays in the running match. A tap
+  // that arrives after the match has ended is no offence and is dropped.
+  skip(conn, msg) {
+    if (!isSkip(msg)) return this.strike(conn);
+    const room = conn.room;
+    if (room.phase !== 'match' || !room.match || !room.match.slots.includes(conn.slot)) return undefined;
+    return this.send(room.host, { t: 'skip', slot: conn.slot });
+  },
+
   // The player taps "Leave": the slot is free again (after the match, if one is running).
   leave(conn) {
     const room = conn.room;
@@ -695,6 +716,7 @@ const HOST_HANDLERS = {
       for (const row of roster.values()) this.limiter.count(`results:${hour}:${row.gamertag_lower}`, this.now());
       this.data.recordMatch(scored.matchRow, scored.updates);
       stored = true;
+      if (this.rooms.get(room.code) === room) this.sendRoster(room); // the crowns have moved
       await Promise.race([this.data.flush().catch(() => {}), new Promise((r) => setTimeout(r, 2500))]);
       if (this.data.pending > 0) note = 'The scores are still being written to the Google Sheet.';
     } else {

@@ -6,6 +6,7 @@
 // before the match starts, so drawing a frame is only copying finished images.
 import { buildSvg, INK, LOOKS, POSES, SPRITE } from './characters.js';
 import { stageSvg } from './stages.js';
+import { CROWN_SINK, drawCrown, headAboveFeet } from './crown.js';
 
 const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
 const cache = new Map(); // key -> canvas (ready) or Promise (still rendering)
@@ -93,16 +94,24 @@ export function getSprite(fighterId, mainColour = null, pose = 'idle') {
 export const loadAllPoses = (fighterId, mainColour = null) => Promise.all(Object.keys(POSES).map((pose) => loadSprite(fighterId, mainColour, pose)));
 
 // Draw a fighter sprite into a small canvas element of the page (lobby cards, fighter select, podium).
-export async function paintSprite(target, fighterId, { mainColour = null, pose = 'idle', silhouette = false, flip = false } = {}) {
+// `headroom` adds empty pixels above the sprite, so a crown fits (lobby cards keep it for
+// every player, so all sprites there are the same size); `crown` draws one on the head.
+export async function paintSprite(target, fighterId, { mainColour = null, pose = 'idle', silhouette = false, flip = false, headroom = 0, crown = false } = {}) {
   const sprite = await loadSprite(fighterId, mainColour, pose);
   target.width = SPRITE.w;
-  target.height = SPRITE.h;
+  target.height = SPRITE.h + headroom;
   const ctx = target.getContext('2d');
   ctx.clearRect(0, 0, target.width, target.height);
   ctx.save();
   if (flip) { ctx.translate(target.width, 0); ctx.scale(-1, 1); }
-  ctx.drawImage(sprite, 0, 0);
+  ctx.drawImage(sprite, 0, headroom);
   ctx.restore();
+  if (crown && !silhouette) {
+    // The same place as on the stage, in sprite pixels.
+    const k = 1 / SPRITE.scale;
+    const feetX = flip ? target.width - SPRITE.anchorX : SPRITE.anchorX;
+    drawCrown(ctx, feetX + (flip ? 3 : -3) * k, headroom + SPRITE.anchorY - headAboveFeet(sprite) + CROWN_SINK * k, 0.9 * k);
+  }
   if (silhouette) {
     // Until a player has picked, only the grey shape is shown.
     ctx.globalCompositeOperation = 'source-in';

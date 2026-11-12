@@ -5,7 +5,7 @@
 //  - the leaderboard is cached for 60 seconds.
 // The game itself never waits for the sheet.
 import { LIMITS } from './config.js';
-import { StoreError, STAT_KEYS } from './store/memory.js';
+import { StoreError, STAT_KEYS, wonLast } from './store/memory.js';
 
 const RETRY_MIN_MS = 2_000;
 const RETRY_MAX_MS = 60_000;
@@ -76,6 +76,9 @@ export class DataService {
       if (!row) continue;
       for (const key of STAT_KEYS) row[key] += u.deltas[key] || 0;
       for (const a of u.achievements) if (!row.achievements.includes(a)) row.achievements.push(a);
+      // The crown changes here at once, so it is right in the lobby even while the sheet
+      // cannot be written (until the server restarts and reads the sheet again).
+      row.last_won = wonLast(u);
     }
     this.queue.push({ match, updates });
     this.flush().catch(() => {});

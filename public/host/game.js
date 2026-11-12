@@ -11,9 +11,11 @@ import { loadAllPoses, loadStage } from '/shared/art/sprites.js';
 import { duplicateColour } from '/shared/art/characters.js';
 import { createRenderer } from './render.js';
 import { createFx } from './fx.js';
+import { createCeremony } from './ceremony.js';
 
 const STALE_MS = 600; // a phone that sent nothing for this long (six missed heartbeats) is treated as "let go of everything"
 const ITEM_SOUND = { bifana: 'munch', rooster: 'crow', project: 'project', cork: 'block', megaphone: 'blast' };
+const CEREMONY_SOUND = { slam: 'go', rise: 'land', pop: 'click', crown: 'ready', firework: 'firework' };
 const HAZARD_SOUND = { train: 'train', wave: 'wave', gulls: 'gulls', crowd: 'crowd', drinks: 'drinks', wifi: 'wifi', rain: 'rain', sun: 'sun', fireworks: 'fireworksLaunch' };
 
 export function createGame({ canvas, audio, sendTo, onEnd }) {
@@ -28,7 +30,9 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
   let lastStatus = new Map();
   let lastTime = null;
   let lastPlaces = null; // where the fighters were one step ago (only kept during the slow motion)
-  let endTimer = null;
+  let held = false; // set up, but waiting for the intro to end
+  let ceremony = null; // the end sequence after the match (ceremony.js)
+  let ceremonyAt = 0;
 
   // ---- inputs ----
 
@@ -166,16 +170,25 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
       const halfW = SCREEN.w / 2 / zoom;
       const halfH = SCREEN.h / 2 / zoom;
       cameraGoal = { x: Math.max(halfW, Math.min(SCREEN.w - halfW, e.x)), y: Math.max(halfH, Math.min(SCREEN.h - halfH, e.y)), zoom };
-      loop.winnerText = e.winnerText;
     },
+    // The end sequence with the podium takes over the canvas (D-155); the results screen
+    // (main.js) shows the stat cards over it.
     matchEnd(e) {
-      cameraGoal = { x: 640, y: 360, zoom: 1 };
-      fx.banners = []; // "FINAL KO!" makes room for the winner's line
-      fx.banner(loop.winnerText || 'Match over', { size: 54, color: '#ffffff', y: 320, life: 170 });
       const result = e.result;
       const finished = state;
-      clearTimeout(endTimer);
-      endTimer = setTimeout(() => onEnd(result, finished), 2600);
+      fx.clear();
+      cameraGoal = { x: 640, y: 360, zoom: 1 };
+      view.camera = { x: 640, y: 360, zoom: 1 };
+      ceremony = createCeremony({
+        players: result.players.map((p) => {
+          const f = finished.fighters.find((x) => x.slot === p.slot);
+          return { slot: p.slot, name: p.name, fighterId: p.fighterId, altColor: Boolean(f && f.altColor), place: p.place, crown: view.crowns.has(p.slot), x: f ? f.x : 640, y: f ? f.y : 600 };
+        }),
+        onCue: (name) => audio.play(CEREMONY_SOUND[name]),
+      });
+      ceremonyAt = performance.now();
+      loop.paused = true; // the rules are done; nothing more to step
+      onEnd(result, finished);
     },
   };
 
@@ -223,9 +236,12 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
   // flight smooth, the fighters are drawn between their last two places. Only the picture
   // changes: the places are put back before the rules look at them again.
   function drawSmooth() {
+    if (ceremony) return renderer.drawCeremony(state.stage.id, ceremony, (performance.now() - ceremonyAt) / 1000);
     const smooth = loop && state && state.phase === 'finalKo' && lastPlaces && lastPlaces.length === state.fighters.length;
     if (!smooth) {
       if (!state || state.phase !== 'finalKo') lastPlaces = null;
+      // During the intro only the stage is drawn behind it, without fighters or HUD.
+      if (held) return renderer.draw(state.stage.id, null, view);
       return renderer.draw(state ? state.stage.id : previewStage, state, view);
     }
     const t = alpha(loop.clock);
@@ -246,7 +262,8 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
   // ---- control from the lobby ----
 
   // players: [{ slot, name, fighterId }], one per phone.
-  async function start({ stageId, players, settings }) {
+  // With `hold` the match is set up and drawn but does not run until go() (the intro, D-153).
+  async function start({ stageId, players, settings }, { hold = false } = {}) {
     stop();
     previewStage = stageId;
     const ordered = [...players].sort((a, b) => a.slot - b.slot);
@@ -263,14 +280,30 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     fx.clear();
     view.camera = { x: 640, y: 360, zoom: 1 };
     cameraGoal = { x: 640, y: 360, zoom: 1 };
+    view.crowns = new Set(ordered.filter((p) => p.crown).map((p) => p.slot)); // cosmetic only (D-154)
     state = next;
     loop = createLoop({ state, getInputs, onEvent });
+    loop.paused = hold;
+    held = hold;
     audio.setMusic(stageId);
     lastTime = null;
   }
 
+  // The intro is over: the countdown starts. Whatever a phone pressed during the intro is forgotten.
+  function go() {
+    if (!loop || !held) return;
+    held = false;
+    for (const phone of phones.values()) {
+      phone.buffer.reset();
+      phone.lastSeen = performance.now();
+    }
+    loop.paused = false;
+    lastTime = null;
+  }
+
   function stop() {
-    clearTimeout(endTimer);
+    held = false;
+    ceremony = null;
     loop = null;
     state = null;
     fx.clear();
@@ -278,12 +311,12 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
   }
 
   return {
-    start, stop, onInput, setConnected,
+    start, go, stop, onInput, setConnected,
     // After a reconnect: send every phone its status again, whether it changed or not.
     resync() { lastStatus = new Map(); },
     setPreview(stageId) { previewStage = stageId; loadStage(stageId).catch(() => {}); },
     vote(slot, hazardId) { return state ? voteHazard(state, slot, hazardId) : false; },
-    setPaused(value) { if (loop && state && state.phase !== 'ended') loop.paused = value; return Boolean(loop && loop.paused); },
+    setPaused(value) { if (loop && state && state.phase !== 'ended' && !held) loop.paused = value; return Boolean(loop && loop.paused); },
     get running() { return Boolean(loop); },
     get paused() { return Boolean(loop && loop.paused); },
     get state() { return state; },

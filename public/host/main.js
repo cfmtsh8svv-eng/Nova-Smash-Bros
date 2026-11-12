@@ -9,6 +9,8 @@ import { createLink, storage } from '/shared/net.js';
 import { paintSprite, paintStage } from '/shared/art/sprites.js';
 import { duplicateColour } from '/shared/art/characters.js';
 import { createGame } from './game.js';
+import { createIntro } from './intro.js';
+import { BLOCKS, BUTTON_AT, FOURTH_X, GROUND, STATS_AT } from './ceremony.js';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, className, text) => {
@@ -36,6 +38,8 @@ let creatingRoom = false;
 let roomRetry = null;
 let startTimer = null;
 let voting = null; // the map vote while it runs: { slots, players, votes: Map slot -> stage, endsAt, winner }
+let intro = null; // the intro before the match while it runs: { skipped: Set of slots, ticker }
+const introScreen = createIntro($);
 
 const game = createGame({
   canvas: $('stage'),
@@ -48,8 +52,9 @@ const game = createGame({
 
 function show(name) {
   screen = name;
-  for (const id of ['title', 'lobby', 'vote', 'loading', 'pause', 'results']) $(id).hidden = id !== name;
-  $('frame').classList.toggle('playing', name === 'match');
+  for (const id of ['title', 'lobby', 'vote', 'loading', 'intro', 'pause', 'results']) $(id).hidden = id !== name;
+  // During the match and its end sequence the stage is not dimmed by the page (the end sequence dims it itself).
+  $('frame').classList.toggle('playing', name === 'match' || name === 'results');
   if (name === 'title' || name === 'lobby') audio.setMusic('lobby');
 }
 
@@ -90,6 +95,7 @@ const link = createLink({
     weak = false;
     if (code === 4002) {
       // The other tab has the room now: nothing may keep running here.
+      stopIntro();
       game.stop();
       match = null;
       pendingStart = null;
@@ -132,7 +138,9 @@ const MESSAGES = {
         // The match ended while we were offline: send the result now.
         submitResult();
       } else if (match && match.id === msg.matchId) {
-        matchPhase(game.paused); // still playing (or loading): phones get the right screen again
+        // still playing, loading or in the intro: phones get the right screen again
+        if (intro) introPhase();
+        else matchPhase(game.paused);
       } else {
         // The server still has a match that this page no longer has (the page was reloaded,
         // or the match was left while offline): it is ended on the server too.
@@ -172,6 +180,11 @@ const MESSAGES = {
       }
       if (old && old.connected !== p.connected) game.setConnected(p.slot);
     }
+    if (intro) {
+      // A player who lost the connection no longer holds up the intro.
+      renderPips();
+      checkIntroDone();
+    }
     if (voting && !voting.winner) {
       // A player who left or lost the connection during the vote no longer counts (D-136).
       for (const slot of [...voting.votes.keys()]) if (!counts(slot)) voting.votes.delete(slot);
@@ -195,6 +208,15 @@ const MESSAGES = {
     }
   },
 
+  skip(msg) {
+    if (!intro || !match || !match.players.some((p) => p.slot === msg.slot) || intro.skipped.has(msg.slot)) return;
+    intro.skipped.add(msg.slot);
+    audio.play('click');
+    renderPips();
+    introPhase();
+    checkIntroDone();
+  },
+
   vote_started() { beginVote(); },
 
   match_started(msg) { beginMatch(msg.matchId); },
@@ -211,6 +233,7 @@ const MESSAGES = {
       lobby.room = null;
       lobby.roster = [];
       storage.set('sessionStorage', 'nb_room', null);
+      stopIntro();
       game.stop();
       match = null;
       link.send({ t: 'host_create' });
@@ -256,7 +279,7 @@ const MESSAGES = {
 
 // Who would play if the match started now: every phone with a fighter that tapped Ready.
 function lineup() {
-  return lobby.roster.filter((p) => p.fighter && p.ready).map((p) => ({ slot: p.slot, name: p.gamertag, fighterId: p.fighter }));
+  return lobby.roster.filter((p) => p.fighter && p.ready).map((p) => ({ slot: p.slot, name: p.gamertag, fighterId: p.fighter, crown: Boolean(p.crown) }));
 }
 
 function renderSlot(index) {
@@ -272,7 +295,8 @@ function renderSlot(index) {
     info.append(el('span', 'tag', `P${index + 1} · ${player.gamertag}`));
     const fighter = player.fighter ? getFighter(player.fighter) : null;
     // Until a fighter is picked, only a grey silhouette is shown.
-    paintSprite(picture, player.fighter || FIGHTERS[index % FIGHTERS.length].id, { silhouette: !fighter, mainColour: fighter && isDuplicate(player) ? duplicateColour(fighter.id, PLAYER_COLORS[index]) : null }).catch(() => {});
+    // A player who won their last match wears the crown on the sprite, with no text (D-154).
+    paintSprite(picture, player.fighter || FIGHTERS[index % FIGHTERS.length].id, { silhouette: !fighter, mainColour: fighter && isDuplicate(player) ? duplicateColour(fighter.id, PLAYER_COLORS[index]) : null, headroom: CROWN_ROOM, crown: Boolean(player.crown) }).catch(() => {});
     info.append(el('div', 'fighter', fighter ? fighter.name : 'Choosing…'));
     if (!player.connected) info.append(el('div', 'state away', 'Reconnecting…'));
     else if (player.ready) info.append(el('div', 'state ready', 'Ready!'));
@@ -301,6 +325,8 @@ function renderSlot(index) {
   }
   return card;
 }
+
+const CROWN_ROOM = 16; // sprite pixels above every lobby sprite, so a crown fits
 
 // The later player with the same fighter wears the player colour (lower slots come first).
 function isDuplicate(player) {
@@ -564,9 +590,48 @@ async function beginMatch(matchId) {
     clearInterval(voting.ticker);
     voting = null;
   }
-  matchPhase();
-  await game.start(match);
+  const started = match;
+  await game.start(match, { hold: true });
+  if (match !== started) return; // the match was ended while it was loading
+  startIntro();
+}
+
+// ---- the intro before every match (GAME_SPEC §10b, D-153) ----
+
+function startIntro() {
+  intro = { skipped: new Set(), ticker: setInterval(() => { if (introScreen.over) endIntro(); }, 200) };
+  introScreen.open(match.stageId, pips());
+  show('intro');
+  introPhase();
+}
+
+// The players of the match, as the pips in the bottom right show them.
+const pips = () => match.players.map((p) => ({ slot: p.slot, connected: counts(p.slot), skipped: intro.skipped.has(p.slot) }));
+const renderPips = () => introScreen.renderPips(pips());
+
+function introPhase() {
+  phase({ name: 'intro', stage: match.stageId, slots: match.players.map((p) => p.slot), endsIn: introScreen.secondsLeft, skipped: [...intro.skipped] });
+}
+
+// Over early once every connected player of the match has pressed Skip.
+function checkIntroDone() {
+  const live = match.players.filter((p) => counts(p.slot));
+  if (live.length && live.every((p) => intro.skipped.has(p.slot))) endIntro();
+}
+
+function stopIntro() {
+  if (!intro) return;
+  clearInterval(intro.ticker);
+  introScreen.close();
+  intro = null;
+}
+
+function endIntro() {
+  if (!intro) return;
+  stopIntro();
+  game.go();
   show('match');
+  matchPhase();
 }
 
 function setPaused(value) {
@@ -579,6 +644,7 @@ function setPaused(value) {
 function quitMatch() {
   if (!match) return;
   link.send({ t: 'match_abort', matchId: match.id });
+  stopIntro();
   game.stop();
   match = null;
   show('lobby');
@@ -603,36 +669,40 @@ const ordinal = (n) => ['1st', '2nd', '3rd', '4th'][n - 1] || `${n}th`;
 function showResults(result) {
   if (!match) return;
   match.result = result;
-  game.stop();
-  show('results');
+  show('results'); // the end sequence keeps running on the canvas behind the cards
   audio.setMusic('lobby');
-  const byPlace = [...result.players].sort((a, b) => a.place - b.place);
-  const winner = byPlace[0];
-  $('winnerLine').textContent = `${winner.name} graduates with honours!`;
   $('resultNote').textContent = 'Saving the result…';
+  $('backToLobby').hidden = true;
 
-  // Podium order on screen: 2nd, 1st, 3rd, and a fourth player flat on the ground beside it.
-  const order = [byPlace[1], byPlace[0], byPlace[2], byPlace[3]].filter(Boolean);
-  $('podium').replaceChildren(...order.map((p) => {
-    const box = el('div', `place p${p.slot + 1} ${['first', 'second', 'third', 'fourth'][p.place - 1]}`);
-    box.style.setProperty('--p', PLAYER_COLORS[p.slot]);
-    box.dataset.slot = String(p.slot);
-    const duplicate = result.players.some((o) => o.slot < p.slot && o.fighterId === p.fighterId);
-    const picture = el('canvas');
-    paintSprite(picture, p.fighterId, { mainColour: duplicate ? duplicateColour(p.fighterId, PLAYER_COLORS[p.slot]) : null, pose: p.place === 4 ? 'ko' : p.place === 1 ? 'jump' : 'idle' }).catch(() => {});
-    box.append(el('span', 'tag', `P${p.slot + 1} · ${p.name}`), picture);
-    const step = el('div', 'step');
-    step.append(el('div', 'n', ordinal(p.place)));
-    step.append(el('div', '', `Dealt ${p.damageDealt} % · Taken ${p.damageTaken} %`));
-    step.append(el('div', '', `KOs ${p.kos} · Falls ${p.falls}`));
-    step.append(el('div', 'pts', ''));
-    step.append(el('div', 'ach', ''));
-    box.append(step);
-    return box;
-  }));
-  fillBoard($('resultBoard'), null);
+  // One card above each fighter on the podium; the 4th one's above the fighter lying on the ground.
+  const cards = [...result.players].sort((a, b) => a.place - b.place).map((p) => {
+    const card = el('div', `stat p${p.slot + 1} ${PLACE_CLASS[p.place - 1]}`);
+    card.style.setProperty('--p', PLAYER_COLORS[p.slot]);
+    card.dataset.slot = String(p.slot);
+    const x = p.place === 4 ? FOURTH_X : BLOCKS[p.place].x;
+    const top = p.place === 4 ? GROUND - 70 : GROUND - BLOCKS[p.place].h - 168;
+    card.style.left = `${(x / 1280) * 100}%`;
+    card.style.top = `${(top / 720) * 100}%`;
+    const head = el('div', 'h');
+    head.append(el('span', 'n', ordinal(p.place)), el('span', 'who', `P${p.slot + 1} · ${p.name}`));
+    card.append(head, el('div', '', `${p.damageDealt} % dealt · ${p.damageTaken} % taken`), el('div', '', `KOs ${p.kos} · Falls ${p.falls}`), el('div', 'pts', ''), el('div', 'ach', ''));
+    return card;
+  });
+  $('resultCards').replaceChildren(...cards);
+  clearResultTimers();
+  resultTimers = [
+    ...cards.map((card, i) => setTimeout(() => card.classList.add('on'), STATS_AT * 1000 + i * 110)),
+    setTimeout(() => { $('backToLobby').hidden = false; }, BUTTON_AT * 1000),
+  ];
 
   submitResult();
+}
+
+const PLACE_CLASS = ['first', 'second', 'third', 'fourth'];
+let resultTimers = [];
+function clearResultTimers() {
+  resultTimers.forEach(clearTimeout);
+  resultTimers = [];
 }
 
 // Send the result to the server and each phone's own line to the phones. Called again
@@ -671,12 +741,11 @@ function sendResultPhases(result, saved) {
 function renderResultExtras(saved) {
   $('resultNote').textContent = saved.note || (saved.stored ? 'Result saved.' : '');
   for (const line of saved.players) {
-    const box = $('podium').querySelector(`[data-slot="${line.slot}"]`);
+    const box = $('resultCards').querySelector(`[data-slot="${line.slot}"]`);
     if (!box) continue;
     box.querySelector('.pts').textContent = line.unsaved ? 'Not saved: no points' : `+${line.points} points`;
     box.querySelector('.ach').textContent = line.achievements.length ? `New: ${line.achievements.map((a) => a.name).join(', ')}` : '';
   }
-  fillBoard($('resultBoard'), saved.leaderboard, saved.stale);
   fillBoard($('board'), (saved.leaderboard || []).slice(0, 8), saved.stale);
   if (match && match.result) sendResultPhases(match.result, saved);
 }
@@ -684,6 +753,8 @@ function renderResultExtras(saved) {
 function backToLobby() {
   if (match && !match.saved) link.send({ t: 'match_abort', matchId: match.id }); // only matters if the result never got through
   match = null;
+  clearResultTimers();
+  game.stop(); // the end sequence
   show('lobby');
   lobbyPhase();
   renderLobby();
@@ -732,6 +803,7 @@ show('title');
 // (the host page runs the match and is trusted with its result; see docs/WALKTHROUGH.md).
 window.novaBrawl = {
   get screen() { return screen; },
+  get intro() { return intro ? { skipped: [...intro.skipped], secondsLeft: introScreen.secondsLeft } : null; },
   get state() { return game.state; },
   get roster() { return lobby.roster; },
 };

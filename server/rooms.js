@@ -23,7 +23,7 @@ import { checkResult, scoreResult } from './results.js';
 import { isValidMask } from '../src/game/input.js';
 import { FIGHTER_IDS } from '../src/game/fighters.js';
 import { HAZARD_IDS, STAGE_IDS } from '../src/game/stages.js';
-import { BOT_NAMES } from '../src/game/bot.js';
+import { BOT_NAMES, BOT_LEVELS } from '../src/game/bot.js';
 
 const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // without I and O, which look like 1 and 0
 const RELAY_TYPES = ['phase', 'status', 'feedback'];
@@ -294,7 +294,7 @@ export class Rooms {
     const bots = room.match ? room.match.bots : this.placeBots(room, room.slots.map((s, i) => (s ? i : -1)).filter((i) => i >= 0));
     return {
       t: 'roster', code: room.code, closed: room.closed, phase: room.phase,
-      players: [...humans, ...bots.map((b) => ({ slot: b.slot, bot: true, name: b.name, fighter: b.fighter, ready: true }))],
+      players: [...humans, ...bots.map((b) => ({ slot: b.slot, bot: true, name: b.name, fighter: b.fighter, level: b.level, ready: true }))],
       bench: room.bots.length - room.botsActive,
     };
   }
@@ -308,7 +308,7 @@ export class Rooms {
   // The active bots with their slots: the free slots 0 to 3 in ascending order, after `taken`.
   placeBots(room, taken) {
     const free = [0, 1, 2, 3].filter((i) => !taken.includes(i));
-    return room.bots.slice(0, room.botsActive).map((b, i) => ({ slot: free[i], name: b.name, fighter: b.fighter }));
+    return room.bots.slice(0, room.botsActive).map((b, i) => ({ slot: free[i], name: b.name, fighter: b.fighter, level: b.level }));
   }
 
   // In the lobby, humans plus active bots never exceed 4: the bot added last goes to the
@@ -656,17 +656,19 @@ const HOST_HANDLERS = {
     if (inner.t === 'phase' && msg.slot === 'all') room.phaseAll = inner;
   },
 
-  // The bots of the lobby (GAME_SPEC §5a, D-165): the fighters of the active bots, in the
-  // order they were added. Their names follow that order. A shorter list removes bots and
-  // empties the bench (the host took places away); the same length only changes fighters.
+  // The bots of the lobby (GAME_SPEC §5a, D-165, D-178): the active bots as
+  // { fighter, level }, in the order they were added. Their names follow that order. A
+  // shorter list removes bots and empties the bench (the host took places away); the same
+  // length only changes fighters and levels and keeps the bench.
   bots(conn, msg) {
     const room = conn.room;
-    const list = msg.fighters;
-    if (!onlyKeys(msg, ['t', 'fighters']) || !Array.isArray(list) || list.length > BOT_NAMES.length || !list.every((f) => typeof f === 'string' && FIGHTER_IDS.includes(f))) return this.strike(conn);
+    const list = msg.bots;
+    const entry = (b) => isPlainObject(b) && onlyKeys(b, ['fighter', 'level']) && FIGHTER_IDS.includes(b.fighter) && BOT_LEVELS.includes(b.level);
+    if (!onlyKeys(msg, ['t', 'bots']) || !Array.isArray(list) || list.length > BOT_NAMES.length || !list.every(entry)) return this.strike(conn);
     if (room.phase !== 'lobby') return this.fail(conn, 'bad_bots', { msg: 'Bots can only be changed in the lobby.' });
     if (this.humans(room) + list.length > LIMITS.playersPerRoom) return this.fail(conn, 'bad_bots', { msg: 'There is no free place for another bot.' });
     const bench = list.length < room.botsActive ? [] : room.bots.slice(room.botsActive);
-    room.bots = [...list.map((fighter, i) => ({ name: BOT_NAMES[i], fighter })), ...bench.map((b, i) => ({ ...b, name: BOT_NAMES[list.length + i] }))];
+    room.bots = [...list.map((b, i) => ({ name: BOT_NAMES[i], fighter: b.fighter, level: b.level })), ...bench.map((b, i) => ({ ...b, name: BOT_NAMES[list.length + i] }))];
     room.botsActive = list.length;
     return this.sendRoster(room);
   },

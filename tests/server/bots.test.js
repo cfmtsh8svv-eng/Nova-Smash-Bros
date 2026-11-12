@@ -1,5 +1,6 @@
-// Bots in the room (GAME_SPEC §5a, D-156 to D-165): the host's `bots` message, the bench,
-// the start rules with bots, the slots bots get, and results with bots in them.
+// Bots in the room (GAME_SPEC §5a, D-156 to D-165, D-178): the host's `bots` message with
+// fighters and levels, the bench, the start rules with bots, the slots bots get, and
+// results with bots in them.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { startServer, sampleResult } from '../helpers/server.js';
@@ -7,8 +8,10 @@ import { checkResult } from '../../server/results.js';
 
 const bots = (roster) => roster.players.filter((p) => p.bot).map((p) => [p.slot, p.name, p.fighter]);
 const humans = (roster) => roster.players.filter((p) => !p.bot).map((p) => p.gamertag);
-const setBots = async (h, fighters) => {
-  h.send({ t: 'bots', fighters });
+// A list entry is a fighter id (level medium) or a [fighter, level] pair.
+const entries = (list) => list.map((b) => (Array.isArray(b) ? { fighter: b[0], level: b[1] } : { fighter: b, level: 'medium' }));
+const setBots = async (h, list) => {
+  h.send({ t: 'bots', bots: entries(list) });
   return h.next('roster');
 };
 
@@ -35,24 +38,25 @@ test('a bad bots message is a strike; too many for the humans or the wrong phase
   const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
   await s.player(h, 'Max', { fighter: 'house_dj' });
   for (const msg of [
-    { t: 'bots' }, { t: 'bots', fighters: 'house_dj' }, { t: 'bots', fighters: ['moon_man'] }, { t: 'bots', fighters: [1] },
-    { t: 'bots', fighters: ['house_dj', 'house_dj', 'house_dj', 'house_dj'] }, { t: 'bots', fighters: [], extra: 1 },
+    { t: 'bots' }, { t: 'bots', bots: 'house_dj' }, { t: 'bots', bots: entries(['moon_man']) }, { t: 'bots', bots: [1] },
+    { t: 'bots', bots: entries(['house_dj', 'house_dj', 'house_dj', 'house_dj']) }, { t: 'bots', bots: [], extra: 1 },
+    { t: 'bots', bots: ['house_dj'] }, { t: 'bots', bots: [null] },
   ]) {
     h.send(msg);
     assert.equal((await h.next('error')).code, 'bad_message', JSON.stringify(msg));
   }
   // Two humans: at most two bots.
-  h.send({ t: 'bots', fighters: ['house_dj', 'surfer_girl', 'lisboa_og'] });
+  h.send({ t: 'bots', bots: entries(['house_dj', 'surfer_girl', 'lisboa_og']) });
   const err = await h.next('error');
   assert.equal(err.code, 'bad_bots');
   assert.match(err.msg, /no free place/);
   // A phone cannot send it.
-  a.send({ t: 'bots', fighters: [] });
+  a.send({ t: 'bots', bots: [] });
   assert.equal((await a.next('error')).code, 'not_host');
   // Not during a vote.
   h.send({ t: 'vote_start', slots: [0, 1] });
   await h.next('vote_started');
-  h.send({ t: 'bots', fighters: ['house_dj'] });
+  h.send({ t: 'bots', bots: entries(['house_dj']) });
   assert.match((await h.next('error')).msg, /only be changed in the lobby/);
   assert.equal(s.app.rooms.rooms.get(h.code).bots.length, 0);
 });
@@ -134,7 +138,7 @@ test('start rules: one human and a bot start; one human alone does not; an un-Re
   await h.next('vote_started');
   h.send({ t: 'match_start', stage: 'beach', lives: 1, slots: [a.slot] });
   const started = await h.next('match_started');
-  assert.deepEqual(started.bots, [{ slot: 1, name: 'Freshman', fighter: 'house_dj' }]);
+  assert.deepEqual(started.bots, [{ slot: 1, name: 'Freshman', fighter: 'house_dj', level: 'medium' }]);
   assert.deepEqual(s.app.rooms.rooms.get(h.code).match.bots, started.bots);
 });
 
@@ -150,7 +154,79 @@ test('bots get the slots the humans of the match do not use, in ascending order'
   assert.deepEqual(bots(roster).map((b) => b[0]), [1, 3]);
   h.send({ t: 'match_start', stage: 'bairro', lives: 2, slots: [0, 2] });
   const started = await h.next('match_started');
-  assert.deepEqual(started.bots, [{ slot: 1, name: 'Freshman', fighter: 'lisboa_og' }, { slot: 3, name: 'Intern', fighter: 'bairro_chad' }]);
+  assert.deepEqual(started.bots, [{ slot: 1, name: 'Freshman', fighter: 'lisboa_og', level: 'medium' }, { slot: 3, name: 'Intern', fighter: 'bairro_chad', level: 'medium' }]);
+});
+
+// ---- levels (GAME_SPEC §5a, D-175, D-178) ----
+
+const levels = (roster) => roster.players.filter((p) => p.bot).map((p) => [p.name, p.level]);
+
+test('levels: each bot keeps the level the host set, and the roster lists it', async (t) => {
+  const s = await startServer(t);
+  const h = await s.host();
+  await s.player(h, 'Ana', { fighter: 'finance_bro' });
+  let roster = await setBots(h, [['house_dj', 'easy'], ['surfer_girl', 'hard'], 'lisboa_og']);
+  assert.deepEqual(levels(roster), [['Freshman', 'easy'], ['Intern', 'hard'], ['Erasmus', 'medium']]);
+  // The same length changes a level; the others stay.
+  roster = await setBots(h, [['house_dj', 'easy'], ['surfer_girl', 'medium'], 'lisboa_og']);
+  assert.deepEqual(levels(roster), [['Freshman', 'easy'], ['Intern', 'medium'], ['Erasmus', 'medium']]);
+});
+
+test('levels: a bad, missing or extra field in an entry, and the old fighters form, are strikes', async (t) => {
+  const s = await startServer(t);
+  const h = await s.host();
+  await s.player(h, 'Ana', { fighter: 'finance_bro' });
+  for (const msg of [
+    { t: 'bots', bots: [{ fighter: 'house_dj', level: 'god' }] },
+    { t: 'bots', bots: [{ fighter: 'house_dj', level: 'Medium' }] },
+    { t: 'bots', bots: [{ fighter: 'house_dj', level: 2 }] },
+    { t: 'bots', bots: [{ fighter: 'house_dj' }] },
+    { t: 'bots', bots: [{ level: 'easy' }] },
+    { t: 'bots', bots: [{ fighter: 'house_dj', level: 'easy', name: 'Bob' }] },
+    { t: 'bots', fighters: ['house_dj'] },
+    { t: 'bots', fighters: ['house_dj'], bots: [{ fighter: 'house_dj', level: 'easy' }] },
+  ]) {
+    h.send(msg);
+    assert.equal((await h.next('error')).code, 'bad_message', JSON.stringify(msg));
+  }
+  assert.equal(s.app.rooms.rooms.get(h.code).bots.length, 0);
+});
+
+test('levels: a benched bot keeps its level when it comes back', async (t) => {
+  const s = await startServer(t);
+  const h = await s.host();
+  await s.player(h, 'Ana', { fighter: 'finance_bro' });
+  await setBots(h, [['house_dj', 'easy'], ['surfer_girl', 'medium'], ['lisboa_og', 'hard']]);
+  const max = await s.player(h, 'Max');
+  let roster = s.app.rooms.roster(s.app.rooms.rooms.get(h.code));
+  assert.deepEqual(levels(roster), [['Freshman', 'easy'], ['Intern', 'medium']]);
+  assert.equal(s.app.rooms.rooms.get(h.code).bots[2].level, 'hard', 'the bench keeps the level');
+  // While Erasmus waits, the host changes the levels of the active bots: the bench stays.
+  roster = await setBots(h, [['house_dj', 'hard'], ['surfer_girl', 'easy']]);
+  assert.equal(roster.bench, 1);
+  max.send({ t: 'leave' });
+  roster = await h.next('roster', { match: (r) => !r.players.some((p) => p.gamertag === 'Max') });
+  assert.deepEqual(levels(roster), [['Freshman', 'hard'], ['Intern', 'easy'], ['Erasmus', 'hard']]);
+  assert.deepEqual(bots(roster)[2], [3, 'Erasmus', 'lisboa_og']);
+});
+
+test('levels: match_started, room.match.bots and the room message after a host reconnect carry them', async (t) => {
+  const s = await startServer(t);
+  const h = await s.host();
+  await s.player(h, 'Ana', { fighter: 'finance_bro' });
+  await setBots(h, [['house_dj', 'hard'], ['lisboa_og', 'easy']]);
+  h.send({ t: 'match_start', stage: 'campus', lives: 1, slots: [0] });
+  const started = await h.next('match_started');
+  assert.deepEqual(started.bots, [{ slot: 1, name: 'Freshman', fighter: 'house_dj', level: 'hard' }, { slot: 2, name: 'Intern', fighter: 'lisboa_og', level: 'easy' }]);
+  assert.deepEqual(s.app.rooms.rooms.get(h.code).match.bots, started.bots);
+  const roster = s.app.rooms.roster(s.app.rooms.rooms.get(h.code));
+  assert.deepEqual(levels(roster), [['Freshman', 'hard'], ['Intern', 'easy']]);
+  await h.close();
+  const back = await s.open();
+  back.send({ t: 'host_resume', code: h.code, hostKey: h.hostKey });
+  const room = await back.next('room');
+  assert.equal(room.resumed, true);
+  assert.deepEqual(room.bots, started.bots);
 });
 
 // A result on the campus with 1 life: the first slot of `order` wins, the others follow in that order.
@@ -168,7 +244,7 @@ test('a match of two humans and a bot is saved; places count the bot; the bot ha
   await setBots(h, ['house_dj']);
   h.send({ t: 'match_start', stage: 'campus', lives: 1, slots: [0, 1] });
   const { matchId, bots: matchBots } = await h.next('match_started');
-  assert.deepEqual(matchBots, [{ slot: 2, name: 'Freshman', fighter: 'house_dj' }]);
+  assert.deepEqual(matchBots, [{ slot: 2, name: 'Freshman', fighter: 'house_dj', level: 'medium' }]);
   s.clock.now += 90_000;
   // The bot wins, Ana second, Max third.
   h.send({ t: 'match_result', matchId, result: resultFor([2, 0, 1], { 2: 'house_dj' }) });

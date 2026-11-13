@@ -23,6 +23,9 @@ var GAMERTAG = /^[A-Za-z0-9_]{3,12}$/;
 var HEX = /^[0-9a-f]{16,128}$/;
 var ACHIEVEMENT = /^[a-z_]{1,30}$/;
 var STAGES = ['campus', 'beach', 'bairro'];
+// The winner column holds a gamertag, or one of these when the winner has no account:
+// a bot won (D-172), or the winner's row could not be read when the result was saved.
+var WINNER_MARKERS = ['(bot)', '(unknown)'];
 
 function doPost(e) {
   try {
@@ -179,7 +182,7 @@ function recordMatch(payload) {
   var id = String(match.match_id || '');
   if (!/^[0-9a-f-]{36}$/.test(id) || STAGES.indexOf(match.stage) < 0 || !wholeNumber(match.lives, 3) || match.lives < 1 || !wholeNumber(match.duration_s, 21600) || !isJsonList(match.players_json) ||
       !/^[0-9T:.Z-]{10,30}$/.test(String(match.ended_at || '')) || match.mode !== 'stock' ||
-      !(GAMERTAG.test(String(match.winner)) || match.winner === '(keyboard player)') ||
+      !(GAMERTAG.test(String(match.winner)) || WINNER_MARKERS.indexOf(match.winner) >= 0) ||
       typeof match.players_json !== 'string' || match.players_json.length > 2000 || match.players_json.charAt(0) !== '[' ||
       !Array.isArray(updates) || updates.length < 2 || updates.length > 4) {
     return { ok: false, error: 'bad_request', message: 'Invalid match data.' };

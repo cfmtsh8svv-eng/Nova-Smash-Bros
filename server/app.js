@@ -167,7 +167,7 @@ export function createApp({ config, store = new MemoryStore(), now = () => Date.
     const route = url.pathname;
     const address = clientAddress(req, config.trustProxy);
 
-    if (route === '/healthz') return json(res, 200, { ok: true, store: store.kind, storeReachable: data.reachable, rooms: rooms.rooms.size, pendingResults: data.pending });
+    if (route === '/healthz') return json(res, 200, { ok: true, store: store.kind, storeReachable: data.reachable, rooms: rooms.rooms.size, pendingResults: data.pending, droppedResults: data.dropped });
 
     if (route.startsWith('/api/')) {
       if (!limiter.allow(`api:${address}`, LIMITS.apiPerMinutePerAddress, now())) return json(res, 429, { error: 'Too many requests. Wait a moment.' }, { 'Retry-After': '30' });

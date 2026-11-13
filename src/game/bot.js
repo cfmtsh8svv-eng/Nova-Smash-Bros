@@ -14,7 +14,8 @@
 //
 // Hazards: the bot only reads what players are shown (the announced hazard, its zone,
 // the visible train, wave or crowd). It never reads the hidden timers (when the next
-// hazard comes, the late train's delay).
+// hazard comes, the late train's delay). Now and then it misses a warning, as a player
+// looking at their phone does, and reacts only once the hazard is active (D-184).
 import { CONFIG, SPECIAL_TUNING } from './config.js';
 import { getFighter } from './fighters.js';
 import { hazardRect } from './hazards.js';
@@ -38,6 +39,9 @@ export function createBot({ slot, level = 'medium', seed = 1 }) {
     history: [], // what it saw, newest last
     keys: Object.fromEntries(PRESS_KEYS.map((k) => [k, { hold: 0, since: 99 }])),
     aimErr: 0, aimTimer: 0, hesitate: 0,
+    // Slips of a person (D-184) draw from their own numbers, so the rest of the bot plays as before.
+    slipRng: { seed: ((seed | 0) ^ Math.imul(slot + 7, 0x85ebca6b)) | 0 },
+    tipsyAge: 0, fumble: 0, hazardSeen: false, hazardMissed: false,
     graph: null, graphStage: null,
   };
 }
@@ -129,10 +133,27 @@ function buildGraph(stage) {
 
 // ---- the press manager: a thumb, not a machine ----
 
+// Tipsy (D-184): at first the bot steers the wrong way, then it steers around the swap,
+// but now and then it gets it wrong again for a moment. Called once per step while tipsy.
+function steersAround(bot) {
+  const cfg = bot.cfg;
+  bot.tipsyAge += 1;
+  if (bot.tipsyAge <= cfg.tipsyAdaptFrames) return false;
+  if (bot.fumble > 0) {
+    bot.fumble -= 1;
+    return false;
+  }
+  if (nextRandom(bot.slipRng) < cfg.tipsySlipChance) {
+    bot.fumble = cfg.tipsySlipFrames - 1;
+    return false;
+  }
+  return true;
+}
+
 function toButtons(bot, me, intent) {
   const cfg = bot.cfg;
   let dir = intent.dir || 0;
-  if (me.tipsy > 0) dir = -dir; // the phone says "you're drunk": a player soon learns to steer the other way
+  if (me.tipsy > 0 && steersAround(bot)) dir = -dir; // the phone says "you're drunk": a player learns to steer the other way
   const out = { left: dir < 0, right: dir > 0, up: Boolean(intent.up), down: false, attack: false, jump: false, special: false, attackP: false, jumpP: false, specialP: false };
   for (const key of PRESS_KEYS) {
     const k = bot.keys[key];
@@ -417,13 +438,34 @@ function decide(bot, state, me, seen) {
   return intent;
 }
 
+// Hazards (D-184): one roll per hazard when its warning is first seen. A missed warning
+// is only noticed once the hazard is active.
+function noticeHazard(bot, seen) {
+  const hz = seen.hazard;
+  if (!hz) {
+    bot.hazardSeen = false;
+    bot.hazardMissed = false;
+    return seen;
+  }
+  if (!bot.hazardSeen) {
+    bot.hazardSeen = true;
+    bot.hazardMissed = hz.phase === 'warn' && nextRandom(bot.slipRng) < bot.cfg.hazardMissChance;
+  }
+  if (bot.hazardMissed && hz.phase === 'warn') return { ...seen, hazard: null };
+  return seen;
+}
+
 // The bot's input for this step. Call it once per step, in order; it keeps its own history.
 export function botInput(bot, state) {
   bot.history.push(snapshot(state));
   const delay = bot.cfg.reactionFrames;
   while (bot.history.length > delay + 1) bot.history.shift();
-  const seen = bot.history[0];
   const me = state.fighters.find((f) => f.slot === bot.slot);
+  if (!me || !(me.tipsy > 0)) {
+    bot.tipsyAge = 0;
+    bot.fumble = 0;
+  }
+  const seen = noticeHazard(bot, bot.history[0]);
   let intent = NEUTRAL;
   if (me && me.state === 'alive' && state.phase === 'fight') intent = decide(bot, state, me, seen);
   return toButtons(bot, me || { tipsy: 0 }, intent);

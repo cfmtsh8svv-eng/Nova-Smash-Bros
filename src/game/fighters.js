@@ -27,7 +27,7 @@ export const FIGHTERS = [
     normal: 'Beer Throw', normalStyle: 'throw',
     special: {
       id: 'rounds_on_me', name: "Round's On Me", item: 'beer',
-      text: 'Slams his cup down. Everyone in a radius is tipsy for 4 s.',
+      text: 'Slams his cup down. Everyone in a radius is tipsy for 3 s.',
       phone: "You're drunk! Drink water!", flash: '#f0a81e',
     },
   },

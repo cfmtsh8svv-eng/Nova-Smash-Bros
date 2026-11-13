@@ -8,7 +8,7 @@ NOVA Brawl: a browser party fighter. A laptop shows the game, phones are the con
 npm ci                         # install exactly what package-lock.json says
 npm start                      # http://localhost:3000 (host page), /play (phone page)
 npm test                       # game rules + server tests (node:test), must stay green
-npm run test:browser           # the four browser tests; once before: npx playwright install chromium
+npm run test:browser           # the five browser tests; once before: npx playwright install chromium
 npm audit --audit-level=high   # must report nothing
 ```
 

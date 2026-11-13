@@ -45,6 +45,6 @@ host page  --result-->  server  --https-->  Apps Script web app  -->  Google She
 npm ci                  # install the exact dependency versions
 npm start               # run the server on http://localhost:3000
 npm test                # game rules and server tests
-npm run test:browser    # the four browser tests (once: npx playwright install chromium)
+npm run test:browser    # the five browser tests (once: npx playwright install chromium)
 npm audit --audit-level=high
 ```

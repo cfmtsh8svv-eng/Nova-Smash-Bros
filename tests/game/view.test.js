@@ -110,3 +110,31 @@ test('pause hint: "Press P or Esc to pause" under the main ground during the cou
   }
   assert.equal(pauseHint(null), false);
 });
+
+test('demo clock: m:ss of the fighting time left under the main ground; no pause hint in a demo match', async () => {
+  const { CLOCK, PAUSE_HINT, matchClock, pauseHint } = await import('../../src/game/view.js');
+  const { demoMatchSettings } = await import('../../src/game/config.js');
+  assert.equal(CLOCK.y, PAUSE_HINT.y, 'in the place of the pause hint');
+  const normal = fight();
+  assert.equal(matchClock(normal), null, 'no clock in a normal match');
+  const state = fight({ settings: demoMatchSettings({ items: false, hazards: false }) });
+  assert.equal(pauseHint(state), false);
+  assert.equal(matchClock(state), '2:00');
+  run(state, 1);
+  assert.equal(matchClock(state), '2:00', 'a started second still shows');
+  run(state, 59);
+  assert.equal(matchClock(state), '1:59');
+  state.fightFrames = 120 * 60 - 61;
+  assert.equal(matchClock(state), '0:02');
+  state.fightFrames = 120 * 60 - 1;
+  assert.equal(matchClock(state), '0:01');
+  run(state, 1);
+  assert.equal(state.phase, 'ended');
+  assert.equal(matchClock(state), '0:00', '0:00 on the frame the match ends');
+  // The clock follows fightFrames only: frames outside the fight do not count.
+  const slow = fight({ settings: demoMatchSettings({ items: false, hazards: false }) });
+  slow.phase = 'finalKo';
+  slow.finalTimer = 30;
+  run(slow, 10);
+  assert.equal(matchClock(slow), '2:00');
+});

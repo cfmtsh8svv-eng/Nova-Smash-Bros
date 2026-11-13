@@ -22,6 +22,7 @@ import { isInt, isPlainObject, isRoomCode, isSkip } from './validate.js';
 import { checkResult, scoreResult } from './results.js';
 import { isValidMask } from '../src/game/input.js';
 import { FIGHTER_IDS } from '../src/game/fighters.js';
+import { demoFighters, demoMatchSettings } from '../src/game/config.js';
 import { HAZARD_IDS, STAGE_IDS } from '../src/game/stages.js';
 import { BOT_NAMES, BOT_LEVELS } from '../src/game/bot.js';
 
@@ -56,7 +57,9 @@ const count = (v) => isInt(v, 0, 100000);
 // What each screen message may contain. Anything else is refused: a phone must never
 // get a value it would choke on (a "lives: 400000000" would make it draw that many hearts).
 const PHASE_FIELDS = {
-  lobby: (m) => onlyKeys(m, ['t', 'name']),
+  // fighters: in demo mode the fighters a phone may pick (D-193, D-199); without it, all of them.
+  lobby: (m) => onlyKeys(m, ['t', 'name', 'fighters'])
+    && optional(m.fighters, (v) => listOf(8, (id) => FIGHTER_IDS.includes(id))(v) && v.length > 0 && new Set(v).size === v.length),
   // The map vote screen (GAME_SPEC §10a): the stages to choose from, who votes, seconds left, and the winner at the end.
   vote: (m) => onlyKeys(m, ['t', 'name', 'stages', 'slots', 'endsIn', 'winner'])
     && optional(m.stages, listOf(3, (v) => STAGE_IDS.includes(v))) && optional(m.slots, listOf(4, (v) => isInt(v, 0, 3)))
@@ -96,6 +99,8 @@ export function relayProblem(m) {
     && FEEDBACK_KINDS.includes(m.kind) && optional(m.text, shortText(160)) && optional(m.title, shortText(60)) && optional(m.name, shortText(60))
     && optional(m.flash, colour) && optional(m.n, (v) => isInt(v, 0, 9)) && optional(m.vibrate, vibration));
 }
+
+export const DEMO_NOTE = 'Demo match: not saved.';
 
 export const ERRORS = {
   room_not_found: 'Room not found. Check the code on the big screen.',
@@ -360,6 +365,29 @@ export class Rooms {
     const fighters = slots.length + room.botsActive;
     if (fighters < 2) return refuse('At least 2 fighters are needed: add a bot or wait for another player.');
     if (fighters > LIMITS.playersPerRoom) return refuse('At most 4 fighters can fight.');
+    return true;
+  }
+
+  // Demo mode (docs/DEMO.md): a start may say `demo: true` and nothing else. Returns
+  // false (no demo field), true (demo) or null (a malformed value, which is a strike).
+  demoFlag(msg) {
+    if (!Object.hasOwn(msg, 'demo')) return false;
+    return msg.demo === true ? true : null;
+  }
+
+  // In demo mode only the demo fighters may fight: every human of the start list and every
+  // active bot. The picks themselves are not checked: the server does not know about demo
+  // mode while the lobby runs. Returns false (and has answered the host) if one is not.
+  demoStartable(conn, room, slots) {
+    const allowed = demoFighters();
+    const refuse = (why) => { this.fail(conn, 'bad_start', { msg: why }); return false; };
+    for (const index of slots) {
+      const slot = room.slots[index];
+      if (!allowed.includes(slot.fighter)) return refuse(`Demo mode: ${slot.gamertag} has to pick one of the demo fighters.`);
+    }
+    for (const bot of room.bots.slice(0, room.botsActive)) {
+      if (!allowed.includes(bot.fighter)) return refuse(`Demo mode: ${bot.name} has to play one of the demo fighters.`);
+    }
     return true;
   }
 
@@ -703,9 +731,12 @@ const HOST_HANDLERS = {
   // The map vote (GAME_SPEC §10a, D-136): the ready players vote for the stage on their phones.
   vote_start(conn, msg) {
     const room = conn.room;
+    const demo = this.demoFlag(msg);
+    if (demo === null) return this.strike(conn);
     if (room.phase !== 'lobby') return this.fail(conn, 'bad_start', { msg: 'A vote or a match is already running.' });
     if (!this.startable(conn, room, msg.slots)) return undefined;
-    room.vote = { slots: [...msg.slots], votes: new Map() };
+    if (demo && !this.demoStartable(conn, room, msg.slots)) return undefined;
+    room.vote = { slots: [...msg.slots], votes: new Map(), demo };
     room.phase = 'vote';
     room.lastActive = this.now();
     this.send(conn, { t: 'vote_started' });
@@ -730,7 +761,10 @@ const HOST_HANDLERS = {
     // Keyboard players were removed (D-132): a start that still lists any is refused.
     if (msg.guests !== undefined || msg.guestSlots !== undefined) return this.strike(conn);
     if (!STAGE_IDS.includes(msg.stage) || !isInt(msg.lives, 1, 3)) return this.strike(conn);
+    const demo = this.demoFlag(msg);
+    if (demo === null) return this.strike(conn);
     if (room.phase === 'vote') {
+      if (demo !== room.vote.demo) return refuse(demo ? 'This vote was not started in demo mode.' : 'This vote was started in demo mode.');
       // After a vote: only its players, and a stage with the most votes (a tie: any of the tied).
       if (Array.isArray(msg.slots) && msg.slots.some((s) => !room.vote.slots.includes(s))) return refuse('A player in the start list is not in the vote.');
       const count = new Map(STAGE_IDS.map((id) => [id, 0]));
@@ -738,11 +772,15 @@ const HOST_HANDLERS = {
       if (count.get(msg.stage) < Math.max(...count.values())) return refuse('The match must start on a stage with the most votes.');
     }
     if (!this.startable(conn, room, msg.slots)) return undefined;
+    if (demo) {
+      if (msg.lives !== demoMatchSettings().lives) return refuse(`Demo mode: a demo match is played with ${demoMatchSettings().lives} ${demoMatchSettings().lives === 1 ? 'life' : 'lives'}.`);
+      if (!this.demoStartable(conn, room, msg.slots)) return undefined;
+    }
     room.lastResult = null;
     room.vote = null;
     // The bots get the slots the humans of the match do not use, in ascending order (D-165).
     const bots = this.placeBots(room, msg.slots);
-    room.match = { id: randomUUID(), stage: msg.stage, lives: msg.lives, slots: [...msg.slots], bots, startedAt: this.now(), players: new Map(msg.slots.map((i) => [i, room.slots[i].lower])) };
+    room.match = { id: randomUUID(), stage: msg.stage, lives: msg.lives, slots: [...msg.slots], bots, startedAt: this.now(), demo, players: new Map(msg.slots.map((i) => [i, room.slots[i].lower])) };
     room.phase = 'match';
     room.lastActive = this.now();
     this.send(conn, { t: 'match_started', matchId: room.match.id, bots });
@@ -770,7 +808,11 @@ const HOST_HANDLERS = {
     // Limits that keep the leaderboard and the sheet from being flooded with results.
     const hour = Math.floor(this.now() / 3_600_000);
     const busyPlayer = [...roster.values()].some((row) => !this.limiter.peek(`results:${hour}:${row.gamertag_lower}`, LIMITS.resultsPerHourPerPlayer));
-    if (roster.size >= 2 && (busyPlayer || this.data.pending >= LIMITS.maxQueuedResults)) {
+    if (match.demo) {
+      // A demo match is never saved and never counted, like a practice match (docs/DEMO.md).
+      note = DEMO_NOTE;
+      for (const line of scored.lines) Object.assign(line, { totalPoints: (line.totalPoints || 0) - line.points, points: 0, achievements: [] });
+    } else if (roster.size >= 2 && (busyPlayer || this.data.pending >= LIMITS.maxQueuedResults)) {
       note = busyPlayer ? 'A player has reached the limit of matches per hour, so this one does not count.' : 'Too many results are waiting to be saved. This match does not count.';
       for (const line of scored.lines) Object.assign(line, { totalPoints: (line.totalPoints || 0) - line.points, points: 0, achievements: [] });
     } else if (roster.size >= 2) {

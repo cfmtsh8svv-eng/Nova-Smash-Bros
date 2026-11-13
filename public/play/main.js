@@ -25,6 +25,8 @@ const me = {
   room: null, token: storage.get('localStorage', 'nb_token'), gamertag: storage.get('localStorage', 'nb_tag'),
   slot: -1, joined: false, joining: false, lives: 3,
   fighter: 0, ready: false,
+  allowed: null, // in demo mode the fighter ids the host allows (docs/DEMO.md); null = all of them
+  pickAgain: false, // the fighter was moved because it is not allowed: the hint says so
   mapVote: { stage: null, card: 0, endsAt: 0, winner: null }, // the map vote (GAME_SPEC §10a)
   status: null, phase: null, koTitle: '', koText: '',
   cd: { left: 0, max: 1, at: 0 },
@@ -156,6 +158,7 @@ const MESSAGES = {
       if (!$('results').hidden || !$('pad').hidden) me.ready = false; // a new round: ready up again
       me.status = null; // nothing of the last match (damage, "You're out!") carries over
       me.hazards = null; // the hazard vote starts fresh too
+      allowFighters(msg.fighters);
       showSelect();
     } else if (msg.name === 'vote') {
       if (Array.isArray(msg.slots) && msg.slots.includes(me.slot)) showMapVote(msg);
@@ -426,6 +429,26 @@ function buildCarousel() {
   }, { passive: true });
 }
 
+// Demo mode: the lobby phase lists the fighters that can be picked; the carousel shows only
+// those, in their usual order. Without a list all of them are shown and the pick is kept.
+function allowFighters(list) {
+  const ids = Array.isArray(list) ? list.filter((id) => FIGHTERS.some((f) => f.id === id)) : [];
+  me.allowed = ids.length ? ids : null;
+  const allowed = (i) => !me.allowed || me.allowed.includes(FIGHTERS[i].id);
+  [...$('carousel').children].forEach((card, i) => { card.hidden = !allowed(i); });
+  [...$('dots').children].forEach((dot, i) => { dot.hidden = !allowed(i); });
+  if (!me.allowed) {
+    me.pickAgain = false;
+    return;
+  }
+  if (allowed(me.fighter)) return;
+  // The current fighter is not in the list: move to the first allowed one, no longer Ready.
+  me.fighter = FIGHTERS.findIndex((f) => f.id === me.allowed[0]);
+  me.ready = false;
+  me.pickAgain = true;
+  if (me.joined) link.send({ t: 'pick', fighter: FIGHTERS[me.fighter].id, ready: false });
+}
+
 function markCurrent() {
   [...$('carousel').children].forEach((card, i) => card.classList.toggle('current', i === me.fighter));
   [...$('dots').children].forEach((dot, i) => dot.classList.toggle('on', i === me.fighter));
@@ -445,7 +468,9 @@ function showSelect() {
   $('ready').textContent = me.ready ? 'Switch character' : 'Ready!';
   $('ready').classList.toggle('on', me.ready);
   $('carousel').style.overflowX = me.ready ? 'hidden' : 'auto';
-  $('selectHint').textContent = me.ready ? `${FIGHTERS[me.fighter].name} is in. Waiting for the host to start…` : 'Swipe to choose your fighter';
+  if (me.ready) me.pickAgain = false;
+  $('selectHint').textContent = me.ready ? `${FIGHTERS[me.fighter].name} is in. Waiting for the host to start…`
+    : me.pickAgain ? 'Your fighter cannot play this round. Pick again and tap Ready!' : 'Swipe to choose your fighter';
 }
 
 // The card that is in the middle of a carousel right now.
@@ -455,6 +480,7 @@ function centredCard(carousel, current) {
   let best = current;
   let bestDistance = Infinity;
   for (const card of carousel.children) {
+    if (card.hidden) continue; // a fighter that cannot be picked right now (demo mode)
     const d = Math.abs(card.offsetLeft + card.offsetWidth / 2 - mid);
     if (d < bestDistance) { bestDistance = d; best = Number(card.dataset.index); }
   }

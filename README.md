@@ -40,7 +40,7 @@ Then open **http://localhost:3000** on the laptop and click **Open a room**.
 ```bash
 npm test                          # game rules and server (about 530 tests, a few seconds)
 npx playwright install chromium   # once, for the browser test
-npm run test:browser              # four browser tests: host page + emulated iPhone and Android phones
+npm run test:browser              # five browser tests: host page + emulated iPhone and Android phones
 npm audit --audit-level=high      # dependency check
 ```
 
@@ -79,7 +79,7 @@ Each stage has three **hazards**: the Cascais Line train (sometimes late!), Bad 
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Every decision in one log |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/SETUP_SHEETS.md`](docs/SETUP_SHEETS.md) | Deploying, and connecting the Google Sheet |
 | [`docs/TEAM_TASKS.md`](docs/TEAM_TASKS.md) | Small follow-up tasks for each member |
-| [`docs/DEMO.md`](docs/DEMO.md) | Demo mode: planned, not built |
+| [`docs/DEMO.md`](docs/DEMO.md) | Demo mode for the presentation: how to switch it on, what changes, where the values are |
 | [`docs/SPECS.md`](docs/SPECS.md), [`docs/CONCEPT.md`](docs/CONCEPT.md) | Technical overview, brand and voice |
 | [`docs/archive/`](docs/archive/) | History: the build prompts of each round and the first brainstorm (ideas that were not built) |
 | [`design/`](design/) | The final art reference, the option rounds the team chose from and the first mock-up |

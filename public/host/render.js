@@ -5,7 +5,7 @@
 // items - fighters - things that fly - hazards in front - effects - name tags -
 // the HUD (player cards, hazard countdown, big texts).
 import { CONFIG, PLAYER_COLORS, SCREEN } from '/game/config.js';
-import { damageColor, drawnPose, hearts, heldItemAt, PAUSE_HINT, pauseHint } from '/game/view.js';
+import { CLOCK, damageColor, drawnPose, hearts, heldItemAt, matchClock, PAUSE_HINT, pauseHint } from '/game/view.js';
 import { hazardRect } from '/game/hazards.js';
 import { getFighter } from '/game/fighters.js';
 import { duplicateColour, handPoint, SPRITE } from '/shared/art/characters.js';
@@ -895,6 +895,17 @@ export function createRenderer(canvas) {
     ctx.restore();
   }
 
+  // Bottom centre, in the pause hint's place: the clock of a demo match (m:ss), in the
+  // lobby's display font, white with a dark outline like the other canvas text.
+  function drawClock(state) {
+    const text = matchClock(state);
+    if (!text) return;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `26px ${DISPLAY}`;
+    outlined(ctx, text, SCREEN.w / 2, CLOCK.y, '#ffffff', 6);
+  }
+
   function drawBanners(fx) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -999,6 +1010,7 @@ export function createRenderer(canvas) {
       drawCards(state);
       drawHazardText(state, view);
       drawPauseHint(state);
+      drawClock(state);
       drawBanners(fx);
     }
     if (fx && fx.flash > 0) {

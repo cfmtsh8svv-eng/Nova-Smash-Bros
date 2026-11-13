@@ -38,8 +38,20 @@ export function poseOf(f) {
 // strip under the main ground, so it never covers a platform, and it is semi-transparent.
 export const PAUSE_HINT = { text: 'Press P or Esc to pause', y: 704, alpha: 0.55 };
 
-// Shown during the countdown and the fight; hidden from the final KO on.
-export const pauseHint = (state) => Boolean(state) && (state.phase === 'countdown' || state.phase === 'fight');
+// Shown during the countdown and the fight; hidden from the final KO on, and never in a
+// match with a time cap (a demo match), where the clock takes its place.
+export const pauseHint = (state) => Boolean(state) && !(state.settings.timeCapS > 0) && (state.phase === 'countdown' || state.phase === 'fight');
+
+// The clock of a match with a time cap (demo mode, docs/DEMO.md): the fighting time left as
+// m:ss, in the place of the pause hint. It counts the frames the rules count (fightFrames),
+// so it stands still in the countdown, while paused and in the final-KO slow motion, and
+// shows 0:00 on the frame the cap ends the match. null when the match has no cap.
+export const CLOCK = { y: 704 };
+export function matchClock(state) {
+  if (!state || !(state.settings.timeCapS > 0)) return null;
+  const left = Math.max(0, Math.ceil((state.settings.timeCapS * 60 - state.fightFrames) / 60));
+  return `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+}
 
 // The pose as drawn: an attack or special aimed up has its own picture.
 export function drawnPose(f) {

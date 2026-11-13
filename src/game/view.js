@@ -46,7 +46,14 @@ export const pauseHint = (state) => Boolean(state) && !(state.settings.timeCapS 
 // m:ss, in the place of the pause hint. It counts the frames the rules count (fightFrames),
 // so it stands still in the countdown, while paused and in the final-KO slow motion, and
 // shows 0:00 on the frame the cap ends the match. null when the match has no cap.
-export const CLOCK = { y: 704 };
+// It fills `fill` of the strip between the main ground (y 600 on every stage) and the bottom
+// edge of the screen, outline included, centred in it (D-209).
+const CLOCK_STRIP = { top: 600, bottom: 720, fill: 0.8 };
+export const CLOCK = {
+  ...CLOCK_STRIP,
+  height: Math.round((CLOCK_STRIP.bottom - CLOCK_STRIP.top) * CLOCK_STRIP.fill),
+  y: (CLOCK_STRIP.top + CLOCK_STRIP.bottom) / 2,
+};
 export function matchClock(state) {
   if (!state || !(state.settings.timeCapS > 0)) return null;
   const left = Math.max(0, Math.ceil((state.settings.timeCapS * 60 - state.fightFrames) / 60));

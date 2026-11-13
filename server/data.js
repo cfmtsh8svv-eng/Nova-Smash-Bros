@@ -27,6 +27,7 @@ export class DataService {
     this.boardRetryAt = 0;
     this.boardStale = false;
     this.writes = 0; // counts successful writes, to notice a read that was overtaken
+    this.dropped = 0; // results the store refused for good (shown at /healthz, so a refusal is noticed)
     this.reachable = null; // did the last call to the store work? (null = not tried yet)
   }
 
@@ -106,6 +107,7 @@ export class DataService {
       } catch (err) {
         if (err instanceof StoreError && err.code === 'bad_request') {
           this.log(`Result ${job.match.match_id} was refused by the store and is dropped: ${err.message}`);
+          this.dropped += 1;
           this.queue.shift();
           continue;
         }

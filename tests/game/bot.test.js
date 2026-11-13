@@ -190,7 +190,7 @@ test('hazards: once announced, a bot on the hazard level leaves it', () => {
   }
 });
 
-test('tipsy (D-184): a bot first steers the wrong way, then steers around the swap', () => {
+test('tipsy (D-185): a bot first steers the wrong way, then steers around the swap', () => {
   const state = fresh();
   const [me, foe] = state.fighters;
   const bot = createBot({ slot: 0, seed: 5 });
@@ -210,7 +210,7 @@ test('tipsy (D-184): a bot first steers the wrong way, then steers around the sw
   assert.ok(late.includes('left') && !late.includes('right'), `after that: ${late.join(' ')}`);
 });
 
-test('tipsy (D-184): with tipsySlipChance 1 a bot that has adapted keeps getting it wrong', () => {
+test('tipsy (D-185): with tipsySlipChance 1 a bot that has adapted keeps getting it wrong', () => {
   const state = fresh();
   const [me, foe] = state.fighters;
   const bot = createBot({ slot: 0, seed: 5 });
@@ -226,7 +226,7 @@ test('tipsy (D-184): with tipsySlipChance 1 a bot that has adapted keeps getting
   assert.equal(left, 0);
 });
 
-test('hazards (D-184): with hazardMissChance 1 a bot stays during the warning and leaves once the hazard is active', () => {
+test('hazards (D-185): with hazardMissChance 1 a bot stays during the warning and leaves once the hazard is active', () => {
   const state = fresh({ stage: 'campus', settings: { hazards: true, hazardMinS: 600, hazardMaxS: 600 } });
   const [me, foe] = state.fighters;
   const bot = createBot({ slot: 0, seed: 2 });

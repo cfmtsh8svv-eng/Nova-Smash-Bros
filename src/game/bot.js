@@ -15,7 +15,7 @@
 // Hazards: the bot only reads what players are shown (the announced hazard, its zone,
 // the visible train, wave or crowd). It never reads the hidden timers (when the next
 // hazard comes, the late train's delay). Now and then it misses a warning, as a player
-// looking at their phone does, and reacts only once the hazard is active (D-184).
+// looking at their phone does, and reacts only once the hazard is active (D-185).
 import { CONFIG, SPECIAL_TUNING } from './config.js';
 import { getFighter } from './fighters.js';
 import { hazardRect } from './hazards.js';
@@ -39,7 +39,7 @@ export function createBot({ slot, level = 'medium', seed = 1 }) {
     history: [], // what it saw, newest last
     keys: Object.fromEntries(PRESS_KEYS.map((k) => [k, { hold: 0, since: 99 }])),
     aimErr: 0, aimTimer: 0, hesitate: 0,
-    // Slips of a person (D-184) draw from their own numbers, so the rest of the bot plays as before.
+    // Slips of a person (D-185) draw from their own numbers, so the rest of the bot plays as before.
     slipRng: { seed: ((seed | 0) ^ Math.imul(slot + 7, 0x85ebca6b)) | 0 },
     tipsyAge: 0, fumble: 0, hazardSeen: false, hazardMissed: false,
     graph: null, graphStage: null,
@@ -133,7 +133,7 @@ function buildGraph(stage) {
 
 // ---- the press manager: a thumb, not a machine ----
 
-// Tipsy (D-184): at first the bot steers the wrong way, then it steers around the swap,
+// Tipsy (D-185): at first the bot steers the wrong way, then it steers around the swap,
 // but now and then it gets it wrong again for a moment. Called once per step while tipsy.
 function steersAround(bot) {
   const cfg = bot.cfg;
@@ -438,7 +438,7 @@ function decide(bot, state, me, seen) {
   return intent;
 }
 
-// Hazards (D-184): one roll per hazard when its warning is first seen. A missed warning
+// Hazards (D-185): one roll per hazard when its warning is first seen. A missed warning
 // is only noticed once the hazard is active.
 function noticeHazard(bot, seen) {
   const hz = seen.hazard;

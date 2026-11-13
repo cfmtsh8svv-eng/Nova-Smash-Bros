@@ -126,10 +126,10 @@ export const CONFIG = {
       pressHold: 2,
       pressGap: 8,
       climbDelay: 20,
-      tipsyAdaptFrames: 60, // tipsy: steers the wrong way this long before it notices (D-184) ...
+      tipsyAdaptFrames: 60, // tipsy: steers the wrong way this long before it notices (D-185) ...
       tipsySlipChance: 0.02, // ... then, per frame, the chance to get it wrong again ...
       tipsySlipFrames: 15, // ... for this long
-      hazardMissChance: 0.3, // chance to miss a hazard warning and react only once it is active (D-184)
+      hazardMissChance: 0.3, // chance to miss a hazard warning and react only once it is active (D-185)
     },
     medium: {
       reactionFrames: 12, // acts on what it saw this many frames ago (0.2 s)
@@ -145,10 +145,10 @@ export const CONFIG = {
       pressHold: 2, // a press is held at least this many frames ...
       pressGap: 8, // ... and the same button is pressed again only this many frames after it was let go
       climbDelay: 12, // frames hanging at the ledge before Jump climbs up
-      tipsyAdaptFrames: 40, // tipsy: steers the wrong way this long before it notices (D-184) ...
+      tipsyAdaptFrames: 40, // tipsy: steers the wrong way this long before it notices (D-185) ...
       tipsySlipChance: 0.01, // ... then, per frame, the chance to get it wrong again ...
       tipsySlipFrames: 15, // ... for this long
-      hazardMissChance: 0.15, // chance to miss a hazard warning and react only once it is active (D-184)
+      hazardMissChance: 0.15, // chance to miss a hazard warning and react only once it is active (D-185)
     },
     hard: { // reacts sooner, misjudges less, attacks more (D-179)
       reactionFrames: 8,

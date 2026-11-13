@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { startServer } from '../helpers/server.js';
-import { botInput } from '../helpers/bot.js';
+import { scriptedInput } from '../helpers/scripted-player.js';
 import { createMatch, step, buildResult, phoneStatus } from '../../src/game/match.js';
 import { InputBuffer, encodeInput } from '../../src/game/input.js';
 // The points rule written out again here, on purpose: 100 / 60 / 40 / 20 for the place, plus 1 per 10 % damage dealt.
@@ -73,7 +73,7 @@ test('four phones register, join, pick, play a full match to a winner; the resul
     s.clock.now += FRAME_MS;
     // Each phone sends its buttons whenever they change.
     for (const phone of phones) {
-      const mask = encodeInput(botInput(state, phone.slot));
+      const mask = encodeInput(scriptedInput(state, phone.slot));
       if (mask !== phone.lastMask) {
         phone.lastMask = mask;
         phone.seq += 1;

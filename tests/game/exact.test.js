@@ -13,7 +13,7 @@ import { InputBuffer, BIT } from '../../src/game/input.js';
 import { createClock, advance, freeze } from '../../src/game/clock.js';
 import { createLoop } from '../../src/game/loop.js';
 import { fight, place, run, tap, of, feedbackFor, launchOut } from '../helpers/game.js';
-import { botInputs } from '../helpers/bot.js';
+import { scriptedInputs } from '../helpers/scripted-player.js';
 
 // Run until an event of this type shows up; returns it (the state is then on that very frame).
 function until(state, type, inputs = {}, max = 400) {
@@ -727,7 +727,7 @@ function playWithLoop(seed, effects) {
   const stage = ['campus', 'beach', 'bairro'][seed % 3];
   const state = fight({ stage, fighters: ['finance_bro', 'surfer_girl', 'house_dj'], settings: { items: true, hazards: true, lives: 3, hazardMinS: 6, hazardMaxS: 9 }, seed });
   const log = [];
-  const loop = createLoop({ state, getInputs: botInputs, effects, onEvent: (e) => { if (['hit', 'ko', 'itemPickup', 'hazardStart', 'finalKo'].includes(e.type)) log.push(`${state.frame}:${e.type}:${e.slot ?? ''}:${e.kind ?? e.item ?? e.hazard ?? ''}`); } });
+  const loop = createLoop({ state, getInputs: scriptedInputs, effects, onEvent: (e) => { if (['hit', 'ko', 'itemPickup', 'hazardStart', 'finalKo'].includes(e.type)) log.push(`${state.frame}:${e.type}:${e.slot ?? ''}:${e.kind ?? e.item ?? e.hazard ?? ''}`); } });
   let guard = 0;
   let frozenTicks = 0;
   while (state.phase !== 'ended' && guard++ < 60 * 60 * 20) {

@@ -1,10 +1,10 @@
 # NOVA Brawl: Demo Mode
 
-Demo mode is a preset for the course presentation: a match of at most two minutes, one life, faster hazards and four fighters. It is a host's tool. Nothing on the screen offers it, and the phones never mention it. The decisions behind it are D-187 to D-207 in [`DECISIONS.md`](DECISIONS.md).
+Demo mode is a preset for the course presentation: a match of at most two minutes, one life, faster hazards and four fighters. It is a host's tool. Nothing on the screen offers it, and the phones never mention it. The decisions behind it are D-187 to D-209 in [`DECISIONS.md`](DECISIONS.md).
 
 ## Switching it on and off
 
-On the host page, in the **lobby**, press **Shift+D**. The lobby then shows `DEMO MODE (to quit press Shift + D)` in its bottom right corner; nothing else appears. Press Shift+D again in the lobby to switch it off: the line goes away and nothing else is shown.
+On the host page, in the **lobby**, press **Shift+D**. The lobby then shows **DEMO MODE** in its bottom left corner, with **(to quit press Shift + D)** smaller on a second line; nothing else appears. Press Shift+D again in the lobby to switch it off: the line goes away and nothing else is shown.
 
 Shift+D does nothing anywhere else: not on the title screen, not during the stage vote, the intro, the match or the results. It is ignored while a text field has the focus. Nothing is stored, so a reload of the host page switches demo mode off.
 
@@ -16,7 +16,7 @@ Shift+D does nothing anywhere else: not on the title screen, not during the stag
 | End of the match | When one player is left | When one player is left, or after **120 s** of fighting |
 | At the time cap | | Among the fighters still in the match: more lives left wins, then the lower current damage %, then more damage dealt. The fighters freeze and **TIME!** appears, then the podium as usual. |
 | Hazards | Next warning 10 to 15 s after a hazard ends | 5 to 8 s |
-| Big screen, bottom centre | `Press P or Esc to pause` | The time left as `m:ss`. P and Esc still pause, and the clock stops while paused. |
+| Big screen, bottom centre | `Press P or Esc to pause` | The time left as `m:ss`, large (80 % of the strip under the main ground). P and Esc still pause, and the clock stops while paused. |
 | Fighters | All eight | Maastricht Blondie, Lisboa OG, Finance Bro, Surfer Girl. The phones show only these; a phone on another fighter is moved to Maastricht Blondie and has to tap Ready again. Bots play only these. Two players may pick the same one. |
 | Result | Saved (with at least two logged-in players) | **Never saved**: no sheet row, no points, no achievements, no crowns, no count towards the hourly limit. The big screen and the phones say "Demo match: not saved." |
 
@@ -44,7 +44,7 @@ Run `npm test` after a change. The test that pins the agreed values (`tests/game
 
 1. Open the deployed URL **two minutes before** presenting: the free host sleeps when idle and takes up to a minute to wake.
 2. Click **Open a room**, then press **Shift+D** in the lobby.
-3. Check the line `DEMO MODE (to quit press Shift + D)` in the bottom right corner and that the lives show 1 life.
+3. Check **DEMO MODE** in the bottom left corner and that the lives show 1 life.
 4. Let the players scan the QR code and pick a fighter. Start when the hint says everyone is ready.
 
 ## What was agreed on 2026-11-11

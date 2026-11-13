@@ -64,8 +64,6 @@ The team has played it on iPhones in Safari and reports that it works. Readabili
 - **Original art and sound made in code**: all sprites and stages are drawn from SVG at start-up (`public/shared/art/`), all sounds and the music are synthesised (`public/shared/audio.js`). No downloaded assets except two open fonts ([`CREDITS.md`](../CREDITS.md)).
 - **Consistent**: one configuration file holds every number of the rules (`src/game/config.js`); the stage art draws exactly the platforms the rules use; the joystick and the buttons produce the seven buttons the rules read.
 
-Left out on purpose: demo mode ([`DEMO.md`](DEMO.md) describes what is prepared and what is missing).
-
 ## 4. Verification (10 %)
 
 > "Tests cover accepted and rejected actions and edge cases, and all pass on `main`."

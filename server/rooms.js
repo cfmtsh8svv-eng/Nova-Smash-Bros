@@ -57,7 +57,7 @@ const count = (v) => isInt(v, 0, 100000);
 // What each screen message may contain. Anything else is refused: a phone must never
 // get a value it would choke on (a "lives: 400000000" would make it draw that many hearts).
 const PHASE_FIELDS = {
-  // fighters: in demo mode the fighters a phone may pick (D-189); without it, all of them.
+  // fighters: in demo mode the fighters a phone may pick (D-193, D-199); without it, all of them.
   lobby: (m) => onlyKeys(m, ['t', 'name', 'fighters'])
     && optional(m.fighters, (v) => listOf(8, (id) => FIGHTER_IDS.includes(id))(v) && v.length > 0 && new Set(v).size === v.length),
   // The map vote screen (GAME_SPEC §10a): the stages to choose from, who votes, seconds left, and the winner at the end.

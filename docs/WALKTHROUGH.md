@@ -182,6 +182,10 @@ More damage means a faster launch. A heavier fighter is launched more slowly. Af
 
 **Slow motion that cannot change the result.** The final KO runs in slow motion for two seconds, and every hit freezes the game for a moment (a strong one a little longer). Both are done in `loop.js` by changing *when* the next step is taken, never *what* a step does. A step is always 1/60 second of game time. A test plays whole matches with and without these effects and checks that every event happens on the same step.
 
+### Demo mode in the rules
+
+Demo mode (GAME_SPEC §6b, [`DEMO.md`](DEMO.md)) changes only settings, never a rule. Its values are one object, `DEMO_SETTINGS` in `config.js` (1 life, `timeCapS: 120`, hazards 5 to 8 s apart, four fighter ids). `demoMatchSettings(lobby)` turns them, together with the lobby's items and hazards switches, into match settings through `makeSettings`, so a bad edit falls back safely; `demoFighters()` drops unknown fighter ids. The time cap itself was already in `match.js`: when `fightFrames` reaches `timeCapS × 60`, the fighters still in the match are ranked by lives left, then lower current damage, then damage dealt, and the result carries `byTimeCap: true`. `matchClock(state)` in `view.js` turns `fightFrames` into the `m:ss` the big screen shows, so the clock stops wherever the rules stop counting (countdown, pause, final-KO slow motion). Tests: `tests/game/demo.test.js` and the clock test in `view.test.js`.
+
 ### Bots (`src/game/bot.js`)
 
 **Where it lives and how its input gets in.** A bot is not a special kind of fighter. The rules cannot tell it from a phone: `createBot({ slot, level, seed })` makes a small object with the bot's memory, and `botInput(bot, state)` returns exactly what a phone's `InputBuffer.consume()` returns (`left, right, up, down, attack, jump, special` and the `attackP, jumpP, specialP` presses). On the host page, `game.js` keeps one bot per bot slot for the whole match and, in `getInputs()`, asks each of them for its input every step, next to the phones' buffers. `step()` did not change. The loop does not call `getInputs()` while the match is paused or held behind the intro, so the bots pause too. `botInput` only reads the state; a test checks that the state is byte for byte the same after the call.
@@ -246,10 +250,10 @@ Every page has one **WebSocket** to the server: a connection that stays open so 
 | Phone | `join` | "I am this player (token), let me into room CODE" |
 | Phone | `input` | The seven buttons, as one number, with a running counter |
 | Phone | `pick`, `vote` | Fighter and ready; stage vote (only in the map vote) or hazard vote (only during a match) |
-| Host | `vote_start`, `vote_cancel` | Open the map vote for the ready players; give it up |
+| Host | `vote_start`, `vote_cancel` | Open the map vote for the ready players (optional `demo: true`); give it up |
 | Host | `bots` | The lobby's bots as `{ fighter, level }`, in the order they were added (lobby only, at most 3) |
-| Host | `match_start`, `match_result`, `match_abort` | Start, finish, cancel a match |
-| Host | `to` | "Pass this on to phone 2" or "to all": `phase` (which screen), `status` (damage, lives), `feedback` (vibrate, flash, text) |
+| Host | `match_start`, `match_result`, `match_abort` | Start (optional `demo: true` for a demo match), finish, cancel a match |
+| Host | `to` | "Pass this on to phone 2" or "to all": `phase` (which screen; the lobby phase may carry `fighters`, the fighters a phone may pick in demo mode), `status` (damage, lives), `feedback` (vibrate, flash, text) |
 | Server | `roster` | To the host: who is in the room |
 
 **The server trusts nothing it receives.** Every message goes through one function that checks, in this order: is it text, is it small enough, is this sender sending too fast, is it valid JSON, is the type known, **is this sender allowed to send this type**, and are the fields what they should be. Anything else is dropped and counted; a sender that keeps doing it is disconnected. The server never crashes on a bad message.
@@ -261,6 +265,8 @@ Every page has one **WebSocket** to the server: a connection that stays open so 
 **Bots in the room** (round 4, D-156 to D-165). The room keeps the bots, so a reload of the host page does not lose them and the start and result checks can count them. They are an ordered list `room.bots` (named Freshman, Intern, Erasmus by their place in it); the first `room.botsActive` of them play, the rest wait on a **bench**. Bots have no phone and no entry in `room.slots`. Every time the roster goes out in the lobby, `settleBots` makes sure humans plus active bots never exceed four: a human who joins sends the last active bot to the bench, and when a human leaves, the bot that went there last comes back. Outside the lobby nothing moves; the bench is settled when the room is back there. The host's `bots` message (`{ t: 'bots', bots: [{ fighter, level }, ...] }`, D-178) sets the fighters and levels of the active bots: the same length changes them and keeps the bench, a shorter list removes bots and empties the bench. A malformed message (an unknown fighter or level, a missing or extra field, the old `fighters` form) is a strike. Each bot keeps its level, also on the bench. The roster lists the active bots with `bot: true`, their `level` and the slot each would get. **Starting** needs at least one Ready human, every human in the lobby Ready and at least two fighters with the bots; at the start the bots get the slots the humans of the match do not use, in ascending order, and the server keeps them with their levels with the match (`room.match.bots`) and sends them in `match_started` (and in the `room` message after a host reconnect). The level is not part of a result. A phone that joins during the match may get the slot number of a bot of that match: the server passes its input on as usual, and the host page ignores input for any slot that has no phone in the match.
 
 **Reconnecting.** A phone that drops keeps its slot: for 30 seconds in the lobby and the map vote, and until the end of the match during a match. When it comes back with its token it gets the same slot, and the server replays the last screen and status so it is up to date at once. The host page can also reconnect: when it created the room it got a secret key, and with that key it takes the room back.
+
+**Demo mode on the server** (D-187 to D-207). The server does not know about demo mode while the lobby runs: picks are checked as always. Only a start says it: `vote_start` and `match_start` may carry `demo: true` (any other value is a strike). Then the start is refused unless the lives are `DEMO_SETTINGS.lives` and every human's and active bot's fighter is one of `DEMO_SETTINGS.fighters`; a match after a demo vote must be a demo match too. The room's match remembers `demo`, and its result is checked with the time-cap rules (see Results) and **never stored**. The lobby `phase` message may carry `fighters`, a list of 1 to 8 different valid fighter ids, checked like every other relayed field (D-124).
 
 ### Accounts (`accounts.js`, `app.js`)
 
@@ -280,6 +286,8 @@ At the end of a match the host page sends the result. The server:
 5. Puts everything into the queue for the sheet and answers the host page at once.
 
 Every human fighter belongs to a logged-in phone (keyboard players were removed in round 2, D-132). A bot's line names its slot from `room.match.bots` and is checked like every other line (and must still have the fighter it started with); it has no account, gets no points, achievements or crown, and is left out of the `matches` row (a bot that won is written as `(bot)`). The humans' places count the bots (D-161). If fewer than two of the humans' accounts can be read when the result arrives (only one human played, or the sheet is down), the match is a "practice match" and is not stored; a player whose account could not be read gets no points.
+
+**A demo match** (started with `demo: true`) is checked the same way, with two differences: it may end by the time cap (`byTimeCap: true`, only for a demo match; a normal match with it is refused with "This build has no time limit."), and then several players may still have lives, as long as the winner is in place 1, everyone still in places above everyone who is out and more lives never places lower. Its duration may not exceed `DEMO_SETTINGS.timeCapS` plus 2 s. However many logged-in players took part, a demo match is never stored and never counted for the hourly limit: the answer is `result_saved` with `stored: false`, no points or achievements and the note "Demo match: not saved.", so the host page's end sequence runs as usual.
 
 ### The store (`store/`, `data.js`, `apps-script/Code.gs`)
 
@@ -330,6 +338,8 @@ The script in the sheet (`Code.gs`) is the last guard before a cell is written. 
 **Drawing order**, back to front: the stage (one prepared picture), hazards behind the fighters, items, fighters, things that fly, hazards in front (train, wave, crowd, rain, rockets), effects, name tags, and last the display on top: player cards top left, hazard countdown top right, big texts in the middle.
 
 **The lobby** shows the QR code, the four slots and the settings. A new player's card pops in with a flash in their colour; until they have chosen a fighter it shows a grey silhouette. The stage choice is **Vote (default)** or one of the three stages. Under the cards, **Add bot** and **Remove bot** send the server the new list of bot fighters; a new bot gets a random fighter nobody has picked if there is one (`Math.random` is fine here, it is not part of the match). A bot's card acts as a button (`role="button"`, a click, Enter or Space switches it to the next fighter); under the fighter name, in place of the "Ready!" line, it has its level row **◀ Medium ▶** (D-177). A new bot starts on Medium; the arrows are real buttons ("Freshman: easier", "Freshman: harder") that change only the level and stop at Easy and Hard. Every change sends the whole `bots` list with fighters and levels, and `game.start` creates each bot with its own level. The level is shown only on this card. Bots carry a BOT tag wherever their name is shown (card, name pill, HUD card, podium, stat card), never wear a crown, have no voter sprite in the map vote and no Skip pip in the intro, and nothing is ever sent to a phone for them.
+
+**Demo mode** (GAME_SPEC §6b). `Shift+D` in the lobby (and nowhere else) toggles `demo.on` in `main.js`; nothing is stored. While it is on, the lobby shows the line `DEMO MODE (to quit press Shift + D)` bottom right (no toast either way, D-207), the lives buttons are disabled on the demo value, and the lobby phase goes to the phones with `fighters` (again to a phone that joins or comes back). New bots, bot cycling and the switch itself keep the bots on the demo fighters. Start stays disabled with the hint "Waiting for everyone to pick one of the demo fighters" while a human has another fighter. The start carries `demo: true`, and the match settings come from `demoMatchSettings`. `render.js` draws the clock from `matchClock` at the bottom centre instead of the pause hint. A match that ends at the cap has no final KO, so `game.js` shows **TIME!** for 1.8 s (in the FINAL KO! style) before the end sequence. `window.novaBrawl.demo` reports the mode for the browser test.
 
 **The map vote.** With Vote, Start opens the vote screen: the three stage pictures side by side, each with its live count and the small sprites of the players who voted for it, and a 10 s countdown. The host page counts the votes as they come in and ends the vote when every player who still counts has voted, or when the time is up. It draws the winner with `tallyVote` (a tie is random among the tied stages), shows it for 1.5 s, then starts the match. The stage pictures are the stage art drawn small (`paintStage` in `public/shared/art/sprites.js`).
 
@@ -405,7 +415,7 @@ What is deliberately **not** protected, and why: see the next section.
 | Command | What runs |
 |---|---|
 | `npm test` | `tests/game/` (the rules) and `tests/server/` (the server, including the end-to-end match) |
-| `npm run test:browser` | The four files in `tests/browser/` in a real browser: `smoke` (join and play), `flow` (a whole evening), `regressions` (connection drops), `bots` (one phone and bots, the level arrows, the bench) |
+| `npm run test:browser` | The five files in `tests/browser/` in a real browser: `smoke` (join and play), `flow` (a whole evening), `regressions` (connection drops), `bots` (one phone and bots, the level arrows, the bench), `demo` (Shift+D, four fighters, a demo match to the time cap, not saved) |
 | `npm audit --audit-level=high` | Known problems in dependencies |
 
 All three run in GitHub Actions on every push and pull request.
@@ -442,7 +452,7 @@ Say these plainly when asked; they are choices, not accidents.
 11. **No bad-word filter** for gamertags (team decision).
 12. **Vibration does not work on iPhones** (a browser limit); flash and sound replace it.
 13. **Tuning is a first version**, the bots' numbers too (`bots.easy`, `bots.medium`, `bots.hard` in `config.js`). They were tuned against a scripted player; real players on phones will show what needs changing.
-14. **Demo mode is not built.** What was agreed is in `DEMO.md`.
+14. **Demo mode trusts the host page** like everything else: the server checks that a demo result is possible, but cannot know the clock was honest. A demo match is never saved, so there is nothing to win by it.
 15. **The big screen needs a current browser** (Chrome, Edge, Firefox or Safari from 2023 on). The phone page also runs on older phones (iOS 15 and later).
 
 ---
@@ -453,7 +463,6 @@ Say these plainly when asked; they are choices, not accidents.
 |---|---|
 | **Results nobody can fake** | Run the rules on the server too. Because the rules are pure and repeatable, the server could replay a match from the recorded inputs and check the result, or run the match itself. |
 | **More players or many rooms** | Replace the sheet with a real database, and keep rooms in a shared store so several servers can run. Only `server/store/` and `server/data.js` would change, because everything goes through one interface. |
-| **Demo mode** | Add a lobby toggle that sets three values in the settings object (1 life, hazards every 15 s, a 120 s time cap). The time-cap rule already exists in the rules and is tested. Two more places must then learn about it: the host has to send the cap with the start, and the server's result check has to accept a match that ended at the cap (today it refuses those on purpose). |
 | **A ninth fighter** | Add its looks in `public/shared/art/characters.js`, its numbers in `config.js`, its texts in `fighters.js` and one function for its special in `specials.js`. |
 | **A new stage** | Add platforms and hazards in `src/game/stages.js` and a drawing function in `art/stages.js`. |
 | **A new hazard or item** | One entry in `hazards.js` or `items.js`, numbers in `config.js`, one test for its safe platform. |

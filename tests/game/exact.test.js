@@ -229,10 +229,10 @@ function reachCase(fighter, dx, { input = {}, button = 'special', y = 600, caste
 for (const [name, fighter, inside, outside, damage, opts] of [
   ['normal attack (90 px from the body centre)', 'finance_bro', 108, 116, 8, { button: 'attack', frames: 12 }],
   ['Cash Rain (220 px)', 'finance_bro', 214, 226, 6, {}],
-  ["Round's On Me (200 px)", 'bairro_chad', 194, 206, 4, {}],
+  ["Round's On Me (200 px)", 'bairro_chad', 194, 206, 7, {}],
   ['Ring Light Flash (320 px)', 'wannabe_influencer', 314, 326, 5, {}],
-  ['Bass Drop (180 px)', 'house_dj', 174, 186, 12, {}],
-  ['Padel Smash (510 px flight)', 'maastricht_blondie', 540, 560, 18, {}],
+  ['Bass Drop (230 px)', 'house_dj', 224, 236, 12, {}],
+  ['Padel Smash (510 px flight)', 'maastricht_blondie', 540, 560, 14, {}],
   ['Ding-Ding (600 px roll)', 'lisboa_og', 680, 700, 12, { casterX: 150 }],
   ['Spaghetti Lasso (380 px)', 'carcavelos_gang_member', 395, 410, 6, {}],
 ]) {
@@ -260,7 +260,7 @@ test('a radius counts up to and including its edge', () => {
 // ---- aiming left and up, for everything that has a direction ----
 
 test('Padel Smash, Wave Rider, Spaghetti Lasso and the thrown book go left when the fighter looks left', () => {
-  assert.equal(reachCase('maastricht_blondie', -300, { casterX: 800 }), 18);
+  assert.equal(reachCase('maastricht_blondie', -300, { casterX: 800 }), 14);
   assert.equal(reachCase('maastricht_blondie', 300, { casterX: 800, input: { left: true }, frames: 60 }), 0, 'looking left misses the opponent on the right');
   assert.equal(reachCase('surfer_girl', -200, { casterX: 800, frames: 40 }), 10);
   assert.equal(reachCase('carcavelos_gang_member', -300, { casterX: 800, frames: 30 }), 6);
@@ -354,7 +354,7 @@ test('a tram tossed up comes down again and then rolls along the ground', () => 
 
 // ---- how long effects last, in frames ----
 
-test('effect lengths: slip 90, tipsy 240, blinded 60, lasso stun 24, bifana 600, lucky rooster 300 frames', () => {
+test('effect lengths: slip 90, tipsy 180, blinded 60, lasso stun 42, bifana 600, lucky rooster 300 frames', () => {
   const just = (value, frames) => assert.ok(value === frames || value === frames - 1, `${value} vs ${frames}`);
   const cast = (fighter, dx) => {
     const state = fight({ fighters: [fighter, 'house_dj'] });
@@ -364,9 +364,9 @@ test('effect lengths: slip 90, tipsy 240, blinded 60, lasso stun 24, bifana 600,
     return state.fighters[1];
   };
   just(cast('finance_bro', 150).slip, 90);
-  just(cast('bairro_chad', 150).tipsy, 240);
+  just(cast('bairro_chad', 150).tipsy, 180);
   just(cast('wannabe_influencer', 150).stun, 60);
-  just(cast('carcavelos_gang_member', 300).stun, 24);
+  just(cast('carcavelos_gang_member', 300).stun, 42);
   for (const [type, key, frames] of [['bifana', 'bifana', 600], ['rooster', 'rooster', 300]]) {
     const state = fight();
     const a = place(state.fighters[0], 400);

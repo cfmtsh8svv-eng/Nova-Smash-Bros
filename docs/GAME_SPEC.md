@@ -131,8 +131,9 @@ Bots fill places so that one or two people can still play a full match (D-156). 
 - **Fighting.** Attacks when the target is within reach and in front (holding Up when the target is above). Uses the special when it is ready and the target is in the special's range. Uses the stomp now and then when above a target.
 - **Getting back.** Off the stage it steers towards the main ground, uses its double jump and the ledge grab, and climbs up with Jump. A medium bot does not fall off the stage by itself.
 - **Items.** Picks up an item that lies on its way (same platform, close by) and uses a held item with its normal attacks. Holding the Group Project, it goes for the nearest opponent to pass it on.
-- **Hazards.** Reacts only to what a human can see or read: once a hazard is announced (name and 3, 2, 1), it moves to a safe level, but not sooner. A late train that comes without a warning is a surprise for bots too.
+- **Hazards.** Reacts only to what a human can see or read: once a hazard is announced (name and 3, 2, 1), it moves to a safe level, but not sooner. Like a player looking at their phone, it sometimes misses the warning and reacts only once the hazard is active (Easy 30 %, Medium 15 %, Hard 5 % of warnings, D-185). A late train that comes without a warning is a surprise for bots too.
 - **Human limits.** A medium bot reacts with a delay of about a fifth of a second (it acts on what it saw a few frames ago), sometimes misjudges a distance and does not press buttons faster than a person on a phone could. **Target strength:** a first-time player on a phone wins about every second one-on-one against it. The numbers are in `config.js` (`bots.medium`) for the team to tune by playing.
+- **Tipsy** (D-185). A tipsy bot first steers the wrong way, as a player who has just read "You're drunk!" does, and only after a moment (Easy 1 s, Medium 0.67 s, Hard 0.33 s) steers around the swap. After that it still gets it wrong now and then for a quarter of a second.
 - **Easy and Hard** (D-176). Easy reacts later, misjudges more, attacks less and hesitates more often; Hard reacts sooner, misjudges less and attacks more. Every level keeps the human limits: it never reads hidden timers, sees the others with a delay of at least 6 frames (0.1 s) and presses no faster than `pressHold` 2 / `pressGap` 8 allow. **Target strength,** measured with the scripted simple human of the bot tests (the same script that wins about 63 % against Medium): it wins about **85 to 90 %** against Easy and about **25 to 35 %** against Hard.
 
 **Details settled in the build** (D-166 to D-174). The bot sees the other fighters, items and hazards 0.2 s late and itself as it is now. The room keeps the bots as one ordered list whose first ones play and the rest wait on the bench; Remove bot also empties the bench. The roster gives each bot the slot it will get, and the server hands out the final slots at the start (`match_started`). A result line for a bot has no account and no points; the sheet's `matches` row lists only the humans, with `(bot)` as winner when a bot won.
@@ -194,13 +195,13 @@ Pixel sprites, 81 px tall, three tones per colour, dark outline (style "HD pixel
 | Fighter | Weight | Speed | Normal | Special | Special effect | Phone message |
 |---|---|---|---|---|---|---|
 | Finance Bro | 100 | 3 | Laptop Swing | **Cash Rain** | Banknotes in a 220 px radius: 6 %, opponents slip and slide away for 1.5 s | "You slipped on cash!" |
-| Maastricht Blondie | 85 | 4 | Tote Bag Swing | **Padel Smash** | Hits a ball forward: 18 % and strong knockback on the first opponent hit | "Smashed!" |
-| Bairro Chad | 120 | 2 | Beer Throw | **Round's On Me** | 200 px radius: 4 %, tipsy (left and right swapped) for 4 s | "You're drunk! Drink water!" |
+| Maastricht Blondie | 85 | 4 | Tote Bag Swing | **Padel Smash** | Hits a ball forward: 14 % and strong knockback on the first opponent hit | "Smashed!" |
+| Bairro Chad | 120 | 2 | Beer Throw | **Round's On Me** | 200 px radius: 7 %, tipsy (left and right swapped) for 3 s | "You're drunk! Drink water!" |
 | Surfer Girl | 85 | 5 | Board Swipe | **Wave Rider** | Surfs 360 px forward on a wave: 10 % and pushes opponents along | "Wipeout!" |
 | Wannabe Influencer | 90 | 4 | Selfie Stick Poke | **Ring Light Flash** | Only the **nearest** opponent within 320 px: 5 %, stunned 1 s, phone flashes white | "Blinded! No filter can save you." |
-| House DJ | 100 | 3 | Vinyl Throw | **Bass Drop** | Jump and slam, 180 px radius: 12 %, launched upward | "BASS DROP!" |
+| House DJ | 100 | 3 | Vinyl Throw | **Bass Drop** | Jump and slam, 230 px radius: 12 %, launched up and to the side | "BASS DROP!" |
 | Lisboa OG | 115 | 2 | Sardine Slap | **Ding-Ding** | A mini Tram 28 rolls along the ground: 12 %, sideways knockback | "Run over by the 28!" |
-| Carcavelos Gang Member | 100 | 3 | Pizza Throw | **Spaghetti Lasso** | 380 px forward: pulls the first opponent hit to him, 6 %, 0.4 s stun | "Caught in the pasta!" |
+| Carcavelos Gang Member | 100 | 3 | Pizza Throw | **Spaghetti Lasso** | 380 px forward: pulls the first opponent hit to him, 6 %, 0.7 s stun | "Caught in the pasta!" |
 
 Special cooldown: 6 to 8 s. Looks and colours are defined in `public/shared/art/characters.js` (from the reference `design/final/characters.js`).
 
@@ -272,7 +273,7 @@ Both are free. `docs/DEPLOY.md` has the steps for each.
 
 **Host (laptop):** Title (no team names) → Lobby (QR code, room code, player cards, Add bot / Remove bot (§5a), stage choice: Vote or one of the three stages, close room, lives 1/2/3, items and hazards on/off, **separate volume sliders for music and effects**, leaderboard) → Map vote (with Vote only, §10a) → Intro (§10b) → Countdown → Match (HUD with one card per player at the top) → End sequence and results on the podium (winner, per-player stats, points, new achievements; no leaderboard) → back to the lobby. There is no rematch button.
 
-**Phone:** Register / log in → Fighter select (swipe through the 8 fighters one at a time, with the neighbours peeking in at the sides; each card shows the sprite, the two attacks and **Speed and Weight as five-step bars, without numbers**) → Ready → Map vote (with Vote only, §10a) → Intro with a Skip button (§10b) → Gamepad → KO'd → Eliminated + hazard vote → Results.
+**Phone:** Register / log in → Fighter select (swipe through the 8 fighters one at a time, with the neighbours peeking in at the sides; each card shows the sprite, the two attacks and **Speed and Weight as five-step bars, without numbers**) → Ready (once ready, the button says **Switch character** and takes the player back to the choice, D-186) → Map vote (with Vote only, §10a) → Intro with a Skip button (§10b) → Gamepad → KO'd → Eliminated + hazard vote → Results.
 
 ### 10a. Map vote
 

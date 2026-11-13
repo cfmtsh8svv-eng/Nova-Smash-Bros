@@ -387,7 +387,7 @@ test('Cork Shield: blocks specials, projectiles and hazards, and their status ef
   place(chad, 400);
   place(dj, 480);
   dj.held = { type: 'cork', uses: 1 };
-  tap(state, 0, { special: true }, 40); // Round's On Me: 4 % and tipsy
+  tap(state, 0, { special: true }, 40); // Round's On Me: 7 % and tipsy
   assert.deepEqual([dj.percent, dj.tipsy], [0, 0], 'no damage, not tipsy');
   dj.held = { type: 'cork', uses: 1 };
   assert.equal(applyHit(state, dj, { by: null, kind: 'hazard', source: 'train', damage: 20, baseKb: 8, kbGrowth: 7, angleDeg: 30, dirX: 1 }), 0);

@@ -190,6 +190,67 @@ test('hazards: once announced, a bot on the hazard level leaves it', () => {
   }
 });
 
+test('tipsy (D-185): a bot first steers the wrong way, then steers around the swap', () => {
+  const state = fresh();
+  const [me, foe] = state.fighters;
+  const bot = createBot({ slot: 0, seed: 5 });
+  bot.cfg = { ...bot.cfg, tipsySlipChance: 0, hesitateChance: 0 };
+  const presses = [];
+  for (let i = 0; i < 40 + M.tipsyAdaptFrames; i++) {
+    // The target stands far to the right; the bot is held in place and stays tipsy.
+    Object.assign(me, { x: 400, vx: 0, tipsy: 99 });
+    Object.assign(foe, { x: 1100, vx: 0, invincible: 99 });
+    const inp = botInput(bot, state);
+    presses.push(inp.right ? 'right' : inp.left ? 'left' : '-');
+    step(state, { 0: inp });
+  }
+  const early = presses.slice(0, M.tipsyAdaptFrames);
+  const late = presses.slice(M.tipsyAdaptFrames + 1);
+  assert.ok(early.includes('right') && !early.includes('left'), `first ${M.tipsyAdaptFrames} frames: ${early.join(' ')}`);
+  assert.ok(late.includes('left') && !late.includes('right'), `after that: ${late.join(' ')}`);
+});
+
+test('tipsy (D-185): with tipsySlipChance 1 a bot that has adapted keeps getting it wrong', () => {
+  const state = fresh();
+  const [me, foe] = state.fighters;
+  const bot = createBot({ slot: 0, seed: 5 });
+  bot.cfg = { ...bot.cfg, tipsySlipChance: 1, hesitateChance: 0 };
+  let left = 0;
+  for (let i = 0; i < 40 + M.tipsyAdaptFrames; i++) {
+    Object.assign(me, { x: 400, vx: 0, tipsy: 99 });
+    Object.assign(foe, { x: 1100, vx: 0, invincible: 99 });
+    const inp = botInput(bot, state);
+    if (inp.left) left += 1;
+    step(state, { 0: inp });
+  }
+  assert.equal(left, 0);
+});
+
+test('hazards (D-185): with hazardMissChance 1 a bot stays during the warning and leaves once the hazard is active', () => {
+  const state = fresh({ stage: 'campus', settings: { hazards: true, hazardMinS: 600, hazardMaxS: 600 } });
+  const [me, foe] = state.fighters;
+  const bot = createBot({ slot: 0, seed: 2 });
+  bot.cfg = { ...bot.cfg, hazardMissChance: 1 };
+  for (let i = 0; i < SECOND; i++) step(state, { 0: botInput(bot, state) });
+  Object.assign(me, { x: 640, y: 600, vx: 0, vy: 0, onGround: true, groundId: 0 });
+  Object.assign(foe, { x: 1100, y: 600 });
+  // A bot that saw the warning leaves the ground level in this time (test above).
+  beginWarning(state, { id: 'train' });
+  let upDuringWarning = false;
+  for (let i = 0; i < WARN_FRAMES; i++) {
+    step(state, { 0: botInput(bot, state) });
+    if (me.onGround && me.y <= CONFIG.levels.groundAbove) upDuringWarning = true;
+  }
+  assert.equal(upDuringWarning, false, 'it left the ground level during the warning');
+  assert.notEqual(state.hazard.phase, 'warn');
+  let up = false;
+  for (let i = 0; i < 3 * SECOND && !up; i++) {
+    step(state, { 0: botInput(bot, state) });
+    if (me.onGround && me.y <= CONFIG.levels.groundAbove) up = true;
+  }
+  assert.ok(up, 'still on the ground level 3 s after the hazard started');
+});
+
 test('botInput never changes the state it gets', () => {
   const state = fresh({ stage: 'bairro', settings: { items: true, hazards: true, hazardMinS: 1, hazardMaxS: 2 } });
   const bots = [createBot({ slot: 0, seed: 1 }), createBot({ slot: 1, seed: 1 })];

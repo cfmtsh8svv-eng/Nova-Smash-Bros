@@ -38,7 +38,7 @@ Then open **http://localhost:3000** on the laptop and click **Open a room**.
 ## Run the tests
 
 ```bash
-npm test                          # game rules and server (about 510 tests, a few seconds)
+npm test                          # game rules and server (about 530 tests, a few seconds)
 npx playwright install chromium   # once, for the browser test
 npm run test:browser              # host page + emulated iPhone + emulated Android phone
 npm audit --audit-level=high      # dependency check
@@ -51,7 +51,7 @@ The same commands run on every push in GitHub Actions (`.github/workflows/ci.yml
 1. **Laptop:** open the URL, click *Open a room*. A QR code and a 4-letter room code appear.
 2. **Phones:** scan the QR code. New players choose a gamertag (3 to 12 letters, numbers or `_`) and a 4-digit PIN; returning players are logged in automatically.
 3. **Pick a fighter** by swiping, tap **Ready!**
-4. **Laptop:** add bots if you like (*Add bot*, *Remove bot*; a click on a bot's card changes its fighter), leave the stage on **Vote** (the default) or pick one, choose the number of lives, then press *Start*. Everyone in the lobby must be Ready, and a match needs at least two fighters, bots included. A match with only one person in it is a practice match and gives no points. With Vote, every phone shows the three stages: swipe, tap **Vote!**; the vote ends when everyone has voted or after 10 s.
+4. **Laptop:** add bots if you like (*Add bot*, *Remove bot*; a click on a bot's card changes its fighter, and its ◀ ▶ arrows set it to Easy, Medium or Hard), leave the stage on **Vote** (the default) or pick one, choose the number of lives, then press *Start*. Everyone in the lobby must be Ready, and a match needs at least two fighters, bots included. A match with only one person in it is a practice match and gives no points. With Vote, every phone shows the three stages: swipe, tap **Vote!**; the vote ends when everyone has voted or after 10 s.
 5. **Fight.** Turn the phone sideways.
 
 The left half of the phone is a joystick: put your thumb down anywhere there and drag.

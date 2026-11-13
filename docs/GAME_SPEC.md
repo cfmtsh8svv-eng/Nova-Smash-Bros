@@ -4,7 +4,7 @@
 
 Sound: music per stage and effects are synthesised in the browser, with separate volume controls on the host. There are no keyboard players (D-132). Every human plays from a phone; the host can fill free places with **bots** (§5a, D-156 onwards).
 
-Final art reference: [`design/final/`](../design/final/) (`reference.html`, `characters.js`, `stages.js`).
+Final art reference: [`design/final/`](../design/final/) (`reference.html`, `characters.js`, `stages.js`). The game itself draws with `public/shared/art/` (ported from there and extended with poses), and the platforms it uses are in `src/game/stages.js`.
 
 ---
 
@@ -46,7 +46,7 @@ Laptop (host page, runs game) ───┘    (static files, rooms, relay, accou
 
 **Messages** are small JSON objects over WebSocket. The server validates every message (type, size, fields, sender role) and drops anything invalid without crashing. Phone → server → host: `input` (button state, sent on every change plus a heartbeat). Host → server → one phone: `status`, `phase`, `feedback` (vibrate pattern, flash colour, text).
 
-**Reconnect.** A phone that locks or drops keeps its slot for 30 s and rejoins with its session token.
+**Reconnect.** A phone that locks or drops keeps its slot, for 30 s in the lobby and the map vote and until the end of a running match, and rejoins with its session token.
 
 **Known limits** (to state in the walkthrough): the host page is trusted to report match results, so the server only checks plausibility (see §8). The free host sleeps when idle. Google Sheets is slow and rate-limited, so it is never used during a match.
 
@@ -56,7 +56,7 @@ Laptop (host page, runs game) ───┘    (static files, rooms, relay, accou
 - Returning players log in with the same gamertag and PIN. The phone keeps a signed session token, so a returning player is normally logged in automatically.
 - The server hashes the PIN with `scrypt`, a per-player salt and a server-side pepper. The sheet stores only salt and hash.
 - Gamertags are not filtered for bad words (team decision).
-- Wrong PIN five times within 10 minutes locks that gamertag for 10 minutes.
+- Wrong PIN five times within 10 minutes locks that gamertag for 10 minutes. On top of that, at most 20 wrong PINs per gamertag in 24 hours (D-123).
 
 | Sheet tab | Columns |
 |---|---|
@@ -202,11 +202,11 @@ Pixel sprites, 81 px tall, three tones per colour, dark outline (style "HD pixel
 | Lisboa OG | 115 | 2 | Sardine Slap | **Ding-Ding** | A mini Tram 28 rolls along the ground: 12 %, sideways knockback | "Run over by the 28!" |
 | Carcavelos Gang Member | 100 | 3 | Pizza Throw | **Spaghetti Lasso** | 380 px forward: pulls the first opponent hit to him, 6 %, 0.4 s stun | "Caught in the pasta!" |
 
-Special cooldown: 6 to 8 s. Looks and colours are defined in `design/final/characters.js`.
+Special cooldown: 6 to 8 s. Looks and colours are defined in `public/shared/art/characters.js` (from the reference `design/final/characters.js`).
 
 ### 7.2 Stages (3)
 
-Detailed illustration, drawn in code, true to the real places. Platforms are **part of the scenery** (roofs, canopies, balconies, a lifeguard tower) and every playable surface carries the stage's striped trim. Layouts are in `design/final/stages.js`.
+Detailed illustration, drawn in code, true to the real places. Platforms are **part of the scenery** (roofs, canopies, balconies, a lifeguard tower) and every playable surface carries the stage's striped trim. The platform layouts are in `src/game/stages.js` (the rules and the art both read them); the art reference is `design/final/stages.js`.
 
 | Stage | Time | Platforms | Hazards |
 |---|---|---|---|
@@ -217,12 +217,13 @@ Detailed illustration, drawn in code, true to the real places. Platforms are **p
 **Three hazards per stage** (D-143 to D-148):
 
 - **Cascais Line Train.** The train is drawn on the rails at the bottom of the screen (y 678 to 720), tall enough to reach up through the terrace level, where it hits (20 %). It looks like a Linha de Cascais unit: three long, low carriages of ribbed steel with a yellow cab front, **1,260 px** in all (D-150), so it covers most of the terrace while it passes. **25 % of trains are late:** the warning and 3, 2, 1 run as usual, then nothing happens and nothing is shown; **5 s later** the train arrives **without any warning**.
-- **Bad Wi-Fi.** Unchanged: inputs in one zone (the roofs or the ground floor) arrive 200 ms late for 6 s.
+- **Bad Wi-Fi.** Inputs in one zone (the roofs or the ground floor, D-098) arrive 200 ms late for 6 s.
 - **Sudden Rain.** Rain over the whole map for **6 s**: every fighter slips as with Cash Rain, on every platform. No damage, so it may cover everything. Rain over the stage, a darker sky, wet shine on the platforms; phone line "It's raining! Everything is slippery."
 - **Big Wave.** It **rises from the bottom of the screen** at a random point in one random half of the sandbank, then rolls towards the far edge of the stage (the edge on the other side) and off it. Fighters standing on the sand that it touches are **dragged along** with it, strongly enough to carry them over the edge, and take 8 % once. Jumping onto a platform or over the wave escapes it. It stops dragging at the stage edge, so a dragged fighter flies on and falls, with a chance to grab the ledge. The water is drawn from the bottom edge of the screen up.
-- **Seagulls.** Unchanged.
+- **Seagulls.** A flock flies over one half of the beach (the sand or the roofs) for 2 s and takes what each fighter there holds, except the Group Project, plus one item lying there; a fighter with empty hands gets a 3 % peck and a very short stun (D-098, D-099).
 - **Midday Sun.** For **5 s** every fighter on the **sand level** takes **2 % every 0.5 s** (at most 20 %). The roofs and the lifeguard tower are safe. Bright glare over the sand, heat shimmer; phone line "Sunburn! Get in the shade."
-- **Drunk Crowd** and **Drinks.** Unchanged.
+- **Drunk Crowd.** A crowd 300 px wide walks along the street and carries the fighters it touches with it, 5 % once (D-061, D-100).
+- **Drinks.** Three drinks stand on one platform for 8 s; a fighter who touches one is tipsy (left and right swapped) for 8 s (D-016, D-098).
 - **Fireworks.** Five marked spots in the street, one in each fifth of it (a glowing fuse on the ground during the warning). When it fires, a rocket 45 px wide shoots straight up from each spot. A fighter it touches in the street is **carried upward** with it for about **0.5 s**, then the rocket **explodes**: 12 % and a launch (base_kb 6, kb_growth 8, 80°). Fighters on the balconies and roofs are safe (the rockets start in the street). Coloured explosion particles; phone line "Fireworks! Santos Populares came early."
 
 One hazard at a time. After a hazard ends, the next warning starts at a random point **10 to 15 s** later. The Big Wave and the Midday Sun show no hint in the picture during their warning, only the text in the top right (D-151). Every hazard is **announced as animated text only**: the hazard's name, then a large **3, 2, 1** where each number pops in on its own, on the big screen and on every phone. No box and no bar. On the big screen it sits in the **top right corner**, over open sky, so it never covers a platform or a fighter. **Every hazard can be escaped** by moving or jumping: each one only affects one level or zone, and at least one platform is always safe. (Sudden Rain is the one exception: it covers the whole map but does no damage.)
@@ -314,6 +315,6 @@ There is **no leaderboard** on the results screen; it stays in the lobby. A line
 | It works | Deployed, health check, reconnects, every invalid input handled, sheet outage handled |
 | UI and UX | One-scan join, auto-login, clear errors, hazard warnings, phone feedback, rotate hint |
 | Scope | Real-time multiplayer over the network, phones as controllers, accounts, leaderboard, achievements, 8 fighters, 3 stages, hazards, items, bots |
-| Verification | Unit tests for rules, combat, specials, items, hazards; rejected actions and edge cases; server and protocol tests; one browser smoke test; CI on `main` |
+| Verification | Unit tests for rules, combat, specials, items, hazards, bots; rejected actions and edge cases; server and protocol tests; a test of the sheet script (`Code.gs`); four browser test files; CI on every push and pull request |
 | Security | §8 |
 | Walkthrough | `docs/WALKTHROUGH.md`: how it is built, why, limits, what could change |

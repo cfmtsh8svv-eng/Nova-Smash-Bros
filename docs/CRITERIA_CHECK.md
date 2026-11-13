@@ -1,6 +1,6 @@
 # Grading criteria check
 
-Written at the end of the build, updated after the merge into `main` and again on 2026-11-13 (after `fix/sheet-bot-winner`, PR #9). The table of runs below keeps the older runs as they were reported; the newest are at the top. For each of the six criteria: what in the repository answers it, the evidence, and what is still missing. Nothing is claimed here that was not run.
+Written at the end of the build, updated after the merge into `main`, on 2026-11-13 after `fix/sheet-bot-winner` (PR #9), and again on 2026-11-13 after the special balance (PR #14) and demo mode (PR #15). The table of runs below keeps the older runs as they were reported; the newest are at the top. For each of the six criteria: what in the repository answers it, the evidence, and what is still missing. Nothing is claimed here that was not run.
 
 ## What was run, and what was not
 
@@ -8,6 +8,7 @@ Run on the build machine (macOS, Node 26.13.0; the unit and server tests also un
 
 | Command | Result |
 |---|---|
+| `npm test` on `main` after demo mode (PR #15, commit `510153e`, 2026-11-13, Node 22) | 562 tests, 562 pass, 0 fail. The browser tests are now five files (`demo` was added); they were not run for this line |
 | `npm test` on the branch `fix/sheet-bot-winner` (2026-11-13, Node 22) | 536 tests, 536 pass, 0 fail |
 | GitHub Actions on pull request #9 (`fix/sheet-bot-winner`, commit `dcd1616`), push and pull request runs | Both succeeded: `npm test`, `npm audit --audit-level=high` and `npm run test:browser` (four browser tests) |
 | `npm test` | 474 tests, 474 pass, 0 fail (round 2 branch, Node 22.23.4, about 11 seconds) |
@@ -52,7 +53,7 @@ Missing for the top level: one pass through every workflow on a real phone, a re
 - **Errors say what to do.** Messages are written for the player ("That gamertag is taken. Log in with 'I have an account'.", "Wrong PIN, 4 tries left.", "The host closed the room.") and are checked word for word in `tests/browser/smoke.test.js`. Connection trouble is always visible: "Weak connection", "Connection lost, reconnecting…", "The big screen lost its connection…".
 - **Checked by looking.** Every screen of the host page and the phone page was captured at laptop size and at iPhone and Android sizes and reviewed; long names, the landscape fighter select and overlapping banners were fixed after that.
 
-The team has played it on iPhones in Safari and reports that it works. Readability on the projector can only be judged in the room, and how the buttons feel is the team's call: The game-feel review left five tuning notes for the team in [`TEAM_TASKS.md`](TEAM_TASKS.md).
+The team has played it on iPhones in Safari and reports that it works. Readability on the projector can only be judged in the room, and how the buttons feel is the team's call: The game-feel review left tuning notes for the team in [`TEAM_TASKS.md`](TEAM_TASKS.md).
 
 ## 3. Scope and ambition (20 %)
 
@@ -60,6 +61,8 @@ The team has played it on iPhones in Safari and reports that it works. Readabili
 
 - **A real-time multiplayer game across devices**: one host page, two to four phones, a relay server with rooms, and reconnection in every phase.
 - **Game content**: 8 fighters with different weight, speed and a special each (`src/game/fighters.js`, `specials.js`), 3 stages with 3 hazards each (`stages.js`, `hazards.js`), 9 items (`items.js`), a map vote with stage previews, a hazard vote for eliminated players, lives, the 200 % burnout.
+- **Bots** at three levels (Easy, Medium, Hard) that play with the same buttons a phone sends and keep human limits (`src/game/bot.js`, D-156 to D-181), so one person can play a full match.
+- **A hidden demo mode** for the presentation: Shift+D in the lobby, two minutes, one life, four fighters, never saved (`DEMO_SETTINGS` in `src/game/config.js`, [`DEMO.md`](DEMO.md)).
 - **Accounts and persistence**: gamertag and PIN, session tokens, points, 8 achievements, an all-time leaderboard, stored in a Google Sheet through Apps Script (`server/store/sheets.js`, `google-sheet/Code.gs`) with an in-memory store for development and outages.
 - **Original art and sound made in code**: all sprites and stages are drawn from SVG at start-up (`public/shared/art/`), all sounds and the music are synthesised (`public/shared/audio.js`). No downloaded assets except two open fonts ([`CREDITS.md`](../CREDITS.md)).
 - **Consistent**: one configuration file holds every number of the rules (`src/game/config.js`); the stage art draws exactly the platforms the rules use; the joystick and the buttons produce the seven buttons the rules read.
@@ -68,7 +71,7 @@ The team has played it on iPhones in Safari and reports that it works. Readabili
 
 > "Tests cover accepted and rejected actions and edge cases, and all pass on `main`."
 
-- **540 automated tests**: 536 with `node:test` for the rules, the server and the sheet script, 4 browser tests. All pass in CI (see the table at the top).
+- **567 automated tests**: 562 with `node:test` for the rules, the server and the sheet script, 5 browser tests. See the table at the top for what was run where.
 - **Accepted actions**: each rule (`tests/game/rules.test.js`, `movement.test.js`), each of the eight specials inside its range (`specials.test.js`), each item (`items.test.js`), each hazard with its safe platform (`hazards.test.js`), registration, login, rooms, a full match (`tests/server/`).
 - **Rejected actions**: specials and items out of range, votes from the wrong player or for the wrong stage, wrong PINs and the lockout, tampered and expired tokens, a player trying host actions, a host touching another host's room, forged and implausible results, oversized and malformed messages (`tests/server/rooms.test.js`, `strict.test.js`, `results.test.js`, `accounts.test.js`).
 - **Edge cases**: a tap shorter than one frame, presses bunched by a network hiccup, simultaneous hits, the last player standing, a KO in the same step as a burnout, exact boundaries of every limit (`tests/game/exact.test.js`, `input.test.js`, `tests/server/strict.test.js`), and a regression test for every defect the reviews found (`tests/*/regressions.test.js`).
@@ -98,7 +101,7 @@ Open point, stated in [`WALKTHROUGH.md`](WALKTHROUGH.md) section 8: the host pag
 This criterion is about the people, so the repository can only prepare them.
 
 - [`WALKTHROUGH.md`](WALKTHROUGH.md): the big picture, five questions every member should be able to answer, one part per package with "what it does", "why it was built this way" and "limits", then security, tests, known limits, how it could change, and five likely questions for each package owner.
-- [`DECISIONS.md`](DECISIONS.md): every decision with the alternative that was not taken and the reason. The team confirmed the build decisions (D-098 to D-131), the bot round (D-156 to D-165) and D-181 and D-182 on 2026-11-13; only D-125 still waits for the team.
+- [`DECISIONS.md`](DECISIONS.md): every decision with the alternative that was not taken and the reason. The team confirmed the build decisions (D-098 to D-131), the bot round (D-156 to D-165), D-181, D-182 and the demo mode details (D-196 to D-206) on 2026-11-13; only D-125 still waits for the team.
 - [`TEAM_TASKS.md`](TEAM_TASKS.md): one small change for each member in their own package, with the test to write for it, so that each member has changed and tested the code they explain.
 - The commit history is split by package, so each member can follow their own part with `git log`.
 

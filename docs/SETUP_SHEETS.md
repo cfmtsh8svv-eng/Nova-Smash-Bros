@@ -107,7 +107,7 @@ With a wrong secret the answer is `{"ok":false,"error":"forbidden",...}`.
 
 Editing `Code.gs` in the editor does **not** change the deployed web app. After pasting a new version: **Deploy → Manage deployments → pencil icon → Version: New version → Deploy**. The URL stays the same.
 
-### Adding the crown column (build_v3, D-154)
+### Adding the crown column (round 3, D-154)
 
 The script now writes a 14th column, `last_won`, in the `players` tab: 1 when the player's last saved match was a win, 0 otherwise. A sheet created before this change has no header for it. After deploying the new `Code.gs`, type `last_won` into cell **N1** of the `players` tab. Empty cells below it count as 0 (no crown) until that player's next saved match.
 

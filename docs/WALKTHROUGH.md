@@ -54,7 +54,7 @@ The most important design idea is the first row: **the rules do not know that th
 
 In a **Google Sheet** with two tabs:
 
-- `players`: one row per player. Gamertag, a salt and a hash for the PIN (never the PIN itself), and the totals: matches, wins, points, KOs, falls, damage dealt and taken, achievements.
+- `players`: one row per player. Gamertag, a salt and a hash for the PIN (never the PIN itself), and the totals: matches, wins, points, KOs, falls, damage dealt and taken, achievements, and whether their last saved match was a win (the crown, `last_won`).
 - `matches`: one row per finished match. Id, time, stage, lives, duration, winner, and a short list of the players' numbers.
 
 Only the server reaches the sheet, through a small script that lives inside the sheet (`google-sheet/Code.gs`). Browsers never talk to the sheet.
@@ -70,12 +70,12 @@ There is no database. That was a team decision: a sheet is something everyone ca
 
 ### What do the tests cover, and what not?
 
-**Covered** (about 530 tests, `npm test`, a few seconds):
+**Covered** (about 560 tests, `npm test`, a few seconds):
 
 - **The rules:** knockback, the 200 % burnout, every blast zone, respawn and invincibility, lives, how a match ends, jumping, aiming, each of the eight specials inside and outside its range, each item, each hazard with its safe platform, the vote, and that slow motion never changes a result.
 - **The server:** every way a registration or login is refused, the lockout, tampered and expired tokens, who may start a match and submit a result, implausible results, malformed, oversized and unknown messages, reconnects, and what happens when the sheet is down.
 - **End to end:** a real server, one host and four controllers over real WebSockets play a whole match with the real rules; the result arrives in the store and on the leaderboard.
-- **In a real browser** (`npm run test:browser`): the host page plus an emulated iPhone and an emulated Android phone register, pick, ready up, start and play; the fighters on the big screen follow the phones and no page logs an error. A second test plays a whole evening (stage vote, three phones, a hazard announcement, an elimination with the hazard vote, results, a second match, removing a player, logging out). A third cuts the host's connection at the worst moments (around Start, in mid-match, when the match ends).
+- **In a real browser** (`npm run test:browser`): the host page plus an emulated iPhone and an emulated Android phone register, pick, ready up, start and play; the fighters on the big screen follow the phones and no page logs an error. A second test plays a whole evening (stage vote, three phones, a hazard announcement, an elimination with the hazard vote, results, a second match, removing a player, logging out). A third cuts the host's connection at the worst moments (around Start, in mid-match, when the match ends). A fourth plays one phone against bots (the level arrows, the bench), and a fifth plays a demo match to the time cap.
 
 **Not covered:**
 
@@ -223,7 +223,7 @@ Demo mode (GAME_SPEC §6b, [`DEMO.md`](DEMO.md)) changes only settings, never a 
 - Fighters are boxes. Hits are "does this rectangle touch that rectangle". That is simple and fair, but an attack can hit a little outside the drawn sprite.
 - No shield, no grabs, no combos: decided by the team to keep it understandable in ten seconds.
 - The numbers are a first tuning. A scripted test player finishes matches quickly; real players will show what needs changing. The same goes for the bots' numbers.
-- The bot is a set of rules of thumb, not a planner: it does not dodge attacks, does not read the opponent's special cooldown and does not edge-guard. That fits "a first-time player" (D-157). Hard is the same rules with quicker numbers; a bot that plays smarter would need new behaviour (the God level, O-13, not built).
+- The bot is a set of rules of thumb, not a planner: it does not dodge attacks, does not read the opponent's special cooldown and does not edge-guard. That fits "a first-time player" (D-157). Hard is the same rules with quicker numbers; a bot that plays smarter would need new behaviour (a God level was discussed as O-13 and dropped for now, D-183).
 - With no time limit, a match between players who never fight never ends. The host can end it from the pause screen.
 
 ---
@@ -535,6 +535,6 @@ The fighter stands still and can still be hit. The phone reconnects by itself, s
 
 ## 11. How it was built
 
-The team decided the game in a planning session (the team chose art, HUD, phone and podium from generated visual options, kept in the git history; the decisions are in `DECISIONS.md`, the result in `GAME_SPEC.md`). The code was then written with Claude in one session, in three packages: rules, server, client. After each package, independent reviewer agents that had not written the code checked it against the spec, hunted for bugs, checked security, and tried to break the tests. Every finding was reproduced before it was fixed. Each fixed defect in the rules and the server has a regression test; the client fixes are covered where a browser test can reach them. Decisions made along the way are listed in `DECISIONS.md` (D-098 onwards); the team confirmed them on 2026-11-13, except D-125.
+The team decided the game in a planning session (the team chose art, HUD, phone and podium from generated visual options, kept in the git history; the decisions are in `DECISIONS.md`, the result in `GAME_SPEC.md`). The code was then written with Claude in one session, in three packages: rules, server, client. After each package, independent reviewer agents that had not written the code checked it against the spec, hunted for bugs, checked security, and tried to break the tests. Every finding was reproduced before it was fixed. Each fixed defect in the rules and the server has a regression test; the client fixes are covered where a browser test can reach them. Decisions made along the way are listed in `DECISIONS.md` (D-098 onwards); the team confirmed them on 2026-11-13, all except D-125.
 
-Every commit of the build names Claude as co-author, so the history is honest about how the code was written. The tasks in `TEAM_TASKS.md` are there so that each member changes and explains their own part.
+Claude wrote most of the code. The commits of the first build and many later ones are authored by Claude or carry a `Co-Authored-By: Claude` line. The later build rounds (for example the bots, the bot levels and demo mode) were also written in Claude sessions, but committed under Bastian Volkery's name without that line, because their build prompts asked for it; those prompts are in `docs/archive/`, and the decisions Claude made in them are marked "Claude" in `DECISIONS.md`. The tasks in `TEAM_TASKS.md` are there so that each member changes and explains their own part.

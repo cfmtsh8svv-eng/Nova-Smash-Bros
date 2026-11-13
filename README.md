@@ -38,7 +38,7 @@ Then open **http://localhost:3000** on the laptop and click **Open a room**.
 ## Run the tests
 
 ```bash
-npm test                          # game rules and server (about 530 tests, a few seconds)
+npm test                          # game rules and server (about 560 tests, a few seconds)
 npx playwright install chromium   # once, for the browser test
 npm run test:browser              # five browser tests: host page + emulated iPhone and Android phones
 npm audit --audit-level=high      # dependency check

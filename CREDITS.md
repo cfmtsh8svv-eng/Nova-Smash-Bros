@@ -26,7 +26,7 @@ Both fonts are bundled in `public/shared/fonts/` and served from our own server.
 |---|---|---|
 | [ws](https://github.com/websockets/ws) 8.22.2 | WebSocket server | MIT |
 | [qrcode](https://github.com/soldair/node-qrcode) 1.5.4 | QR code for the join link | MIT |
-| [Playwright](https://playwright.dev) 1.65.0 | Browser smoke test (development only) | Apache 2.0 |
+| [Playwright](https://playwright.dev) 1.65.0 | Browser tests (development only) | Apache 2.0 |
 
 ## Sound and art
 

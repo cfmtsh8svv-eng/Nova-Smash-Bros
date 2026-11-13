@@ -1,6 +1,6 @@
 # NOVA Brawl: Game Spec v2.0
 
-**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards) the round 2 changes of 2026-11-12 (D-132 onwards) and the bots of round 4 (D-156 onwards, bot levels D-175 onwards) and demo mode (D-187 onwards, §6b). Where `CONCEPT.md` or `SPECS.md` say something different, this file wins. Brand voice, signature lines and humour rules in `CONCEPT.md` §3 still apply.
+**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards), the round 2 changes of 2026-11-12 (D-132 onwards), the bots of round 4 (D-156 onwards, bot levels D-175 onwards), the special balance (D-184 to D-186) and demo mode (D-187 onwards, §6b). Where `CONCEPT.md` or `SPECS.md` say something different, this file wins. Brand voice, signature lines and humour rules in `CONCEPT.md` §3 still apply.
 
 Sound: music per stage and effects are synthesised in the browser, with separate volume controls on the host. There are no keyboard players (D-132). Every human plays from a phone; the host can fill free places with **bots** (§5a, D-156 onwards).
 

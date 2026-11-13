@@ -1,5 +1,5 @@
 // Browser test: bots (GAME_SPEC §5a). One phone and bots play a whole match to its end;
-// then a human takes a bot's place and gives it back.
+// the level arrows on a bot card (D-177); then a human takes a bot's place and gives it back.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium, devices } from 'playwright';
@@ -66,7 +66,9 @@ test('one phone and bots: add, remove, a whole match to its end, practice result
   assert.deepEqual(await botNames(host), ['1:Freshman', '2:Intern']);
   assert.equal(await text(host, '.slot.p2 .tag'), 'P2 · Freshman');
   assert.equal(await text(host, '.slot.p2 .botTag'), 'BOT');
-  assert.equal(await text(host, '.slot.p2 .state'), 'Ready!');
+  // The level row replaces the Ready! line (D-177).
+  assert.equal(await host.locator('.slot.p2 .state').count(), 0);
+  assert.equal(await text(host, '.slot.p2 .levelName'), 'Medium', 'a new bot starts on Medium');
   // A new bot's fighter is not the human's.
   const anaFighter = await host.evaluate(() => window.novaBrawl.roster[0].fighter);
   assert.ok((await host.evaluate(() => window.novaBrawl.bots.map((b) => b.fighter))).every((f) => f !== anaFighter));
@@ -79,6 +81,35 @@ test('one phone and bots: add, remove, a whole match to its end, practice result
   await host.waitForFunction((b) => document.querySelector('.slot.p2 .fighter').textContent !== b, before);
   assert.match(await text(host, '#startHint'), /1 player and 1 bot are ready/);
 
+  // --- the level arrows (D-177): only the level changes, they stop at Easy and Hard
+  const easier = '.slot.p2 button[aria-label="Freshman: easier"]';
+  const harder = '.slot.p2 button[aria-label="Freshman: harder"]';
+  const cardFighter = await text(host, '.slot.p2 .fighter');
+  const botFighter = await host.evaluate(() => window.novaBrawl.bots[0].fighter);
+  const levelIs = (level) => host.waitForFunction((l) => window.novaBrawl.bots[0].level === l, level);
+  await host.click(harder);
+  await levelIs('hard');
+  assert.equal(await text(host, '.slot.p2 .levelName'), 'Hard');
+  assert.equal(await host.isDisabled(harder), true, 'no level above Hard');
+  assert.equal(await host.isDisabled(easier), false);
+  await host.click(easier);
+  await levelIs('medium');
+  await host.click(easier);
+  await levelIs('easy');
+  assert.equal(await text(host, '.slot.p2 .levelName'), 'Easy');
+  assert.equal(await host.isDisabled(easier), true, 'no level below Easy');
+  assert.equal(await text(host, '.slot.p2 .fighter'), cardFighter, 'an arrow does not change the fighter');
+  assert.equal(await host.evaluate(() => window.novaBrawl.bots[0].fighter), botFighter);
+  // The card still cycles the fighter with the keyboard, and keeps the level.
+  await host.focus('.slot.p2');
+  await host.keyboard.press('Enter');
+  await host.waitForFunction((b) => document.querySelector('.slot.p2 .fighter').textContent !== b, cardFighter);
+  assert.equal(await text(host, '.slot.p2 .levelName'), 'Easy');
+  // Every name fits on the card: nothing of the name pill, the fighter or the level row is cut off.
+  const cut = await host.evaluate(() => [...document.querySelectorAll('.slot.bot .tag, .slot.bot .fighter, .slot.bot .level, .slot.bot .botTag')]
+    .filter((e) => e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().right > e.closest('.slot').getBoundingClientRect().right).map((e) => e.className));
+  assert.deepEqual(cut, []);
+
   // --- a fixed stage, one life: the match runs to its end
   await host.click('#stageButtons button[data-value="campus"]');
   await host.click('#lifeButtons button[data-value="1"]');
@@ -90,6 +121,7 @@ test('one phone and bots: add, remove, a whole match to its end, practice result
   await host.waitForFunction(() => window.novaBrawl.state && window.novaBrawl.state.phase === 'fight', null, { timeout: 20_000 });
   const fighters = await host.evaluate(() => window.novaBrawl.state.fighters.map((f) => [f.slot, f.name, f.bot]));
   assert.deepEqual(fighters, [[0, 'Ana', false], [1, 'Freshman', true]]);
+  assert.deepEqual(await host.evaluate(() => window.novaBrawl.botLevels), { 1: 'easy' }, 'the bot plays at the level chosen in the lobby');
   assert.equal(await host.evaluate(() => window.novaBrawl.takesInput(1)), false, 'no phone steers the bot');
   // The bot moves by itself.
   const startX = await host.evaluate(() => window.novaBrawl.state.fighters[1].x);
@@ -115,6 +147,7 @@ test('one phone and bots: add, remove, a whole match to its end, practice result
   await host.waitForSelector('#lobby:not([hidden])');
   assert.deepEqual(await botNames(host), ['1:Freshman']);
   assert.match(await text(host, '.slot.p2 .tag'), /Freshman/);
+  assert.equal(await text(host, '.slot.p2 .levelName'), 'Easy', 'the level stays with the bot');
 
   // --- one human and three bots: a second phone sends the last bot to the bench, and gets it back on leaving
   await host.click('#addBot');

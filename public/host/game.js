@@ -267,7 +267,7 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
 
   // ---- control from the lobby ----
 
-  // players: [{ slot, name, fighterId }], one per phone; bots: [{ slot, name, fighter }] (from the server).
+  // players: [{ slot, name, fighterId }], one per phone; bots: [{ slot, name, fighter, level }] (from the server).
   // With `hold` the match is set up and drawn but does not run until go() (the intro, D-153).
   async function start({ stageId, players, bots: botList = [], settings }, { hold = false } = {}) {
     stop();
@@ -283,8 +283,9 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     ]);
     phones = new Map();
     for (const p of players) phones.set(p.slot, { buffer: new InputBuffer(), lastSeen: performance.now() });
-    // Each bot gets its own random numbers from the match seed and its slot (the match replays exactly).
-    bots = new Map(botList.map((b) => [b.slot, createBot({ slot: b.slot, level: 'medium', seed })]));
+    // Each bot plays at its own level (D-175) and gets its own random numbers from the match
+    // seed and its slot (the match replays exactly).
+    bots = new Map(botList.map((b) => [b.slot, createBot({ slot: b.slot, level: b.level, seed })]));
     lastStatus = new Map();
     fx.clear();
     view.camera = { x: 640, y: 360, zoom: 1 };
@@ -327,6 +328,8 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     setPreview(stageId) { previewStage = stageId; loadStage(stageId).catch(() => {}); },
     vote(slot, hazardId) { return state && phones.has(slot) ? voteHazard(state, slot, hazardId) : false; },
     takesInput(slot) { return phones.has(slot); },
+    // The level each bot of the match plays at, by slot (a copy; for the browser test).
+    botLevels() { return Object.fromEntries([...bots].map(([slot, bot]) => [slot, bot.level])); },
     setPaused(value) { if (loop && state && state.phase !== 'ended' && !held) loop.paused = value; return Boolean(loop && loop.paused); },
     get running() { return Boolean(loop); },
     get paused() { return Boolean(loop && loop.paused); },

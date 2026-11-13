@@ -3,6 +3,7 @@
 // and ends matches. The match itself runs in game.js.
 import { PLAYER_COLORS } from '/game/config.js';
 import { FIGHTERS, getFighter } from '/game/fighters.js';
+import { BOT_LEVELS } from '/game/bot.js';
 import { HAZARDS, STAGES, STAGE_IDS, tallyVote } from '/game/stages.js';
 import { createAudio } from '/shared/audio.js';
 import { createLink, storage } from '/shared/net.js';
@@ -24,7 +25,7 @@ const audio = createAudio();
 const lobby = {
   room: null, // { code, hostKey }
   roster: [], // the humans (phones) as the server reports them
-  bots: [], // the active bots: [{ slot, name, fighter }] (GAME_SPEC §5a), kept by the server
+  bots: [], // the active bots: [{ slot, name, fighter, level }] (GAME_SPEC §5a), kept by the server
   seenBots: new Set(), // bot names on the cards last time, to play the entrance when one is added or comes back
   closed: false,
   stage: 'vote', // 'vote' (the default, D-135) or a stage id
@@ -171,7 +172,7 @@ const MESSAGES = {
   roster(msg) {
     const before = new Map(lobby.roster.map((p) => [p.slot, p]));
     lobby.roster = msg.players.filter((p) => !p.bot);
-    lobby.bots = msg.players.filter((p) => p.bot).map((p) => ({ slot: p.slot, name: p.name, fighter: p.fighter }));
+    lobby.bots = msg.players.filter((p) => p.bot).map((p) => ({ slot: p.slot, name: p.name, fighter: p.fighter, level: p.level }));
     // A bot that is new on the cards (added, or back from the bench) gets the entrance effect.
     for (const b of lobby.bots) {
       if (!lobby.seenBots.has(b.name)) {
@@ -319,31 +320,76 @@ function freshBotFighter() {
   return pickFrom(free.length ? free : notHuman.length ? notHuman : all).toString();
 }
 
-function sendBots(fighters) {
+// The level names on the card (D-175); the server only knows the ids.
+const LEVEL_NAMES = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+
+// Every change sends the whole list of active bots with fighters and levels (D-178).
+function sendBots(list) {
   if (!inLobby()) return;
   audio.play('click');
-  link.send({ t: 'bots', fighters });
+  link.send({ t: 'bots', bots: list.map((b) => ({ fighter: b.fighter, level: b.level })) });
 }
 
+// A new bot starts on Medium (D-177).
 function addBot() {
-  if (canAddBot()) sendBots([...lobby.bots.map((b) => b.fighter), freshBotFighter()]);
+  if (canAddBot()) sendBots([...lobby.bots, { fighter: freshBotFighter(), level: 'medium' }]);
 }
 
 function removeBot() {
-  if (inLobby() && lobby.bots.length) sendBots(lobby.bots.slice(0, -1).map((b) => b.fighter));
+  if (inLobby() && lobby.bots.length) sendBots(lobby.bots.slice(0, -1));
 }
 
 // A click on a bot's card switches it to the next fighter (D-159).
 function cycleBot(index) {
-  const list = lobby.bots.map((b) => b.fighter);
-  const at = FIGHTERS.findIndex((f) => f.id === list[index]);
-  list[index] = FIGHTERS[(at + 1) % FIGHTERS.length].id;
+  const list = lobby.bots.map((b) => ({ ...b }));
+  const at = FIGHTERS.findIndex((f) => f.id === list[index].fighter);
+  list[index].fighter = FIGHTERS[(at + 1) % FIGHTERS.length].id;
   sendBots(list);
 }
 
+// The arrows on a bot's card: one level down (-1) or up (+1), no wrap-around (D-177).
+function stepBotLevel(index, by) {
+  const list = lobby.bots.map((b) => ({ ...b }));
+  const at = BOT_LEVELS.indexOf(list[index].level);
+  const next = BOT_LEVELS[(at < 0 ? BOT_LEVELS.indexOf('medium') : at) + by];
+  if (!next) return;
+  list[index].level = next;
+  sendBots(list);
+}
+
+// The level row under the fighter name, in place of the "Ready!" line: ◀ Medium ▶ (D-177).
+function levelRow(index, bot) {
+  const at = BOT_LEVELS.indexOf(bot.level);
+  const row = el('div', 'level');
+  const arrow = (text, by, label, disabled) => {
+    const button = el('button', 'levelArrow', text);
+    button.type = 'button';
+    button.dataset.focus = `level-${index}-${by}`;
+    button.setAttribute('aria-label', `${bot.name}: ${label}`);
+    button.title = button.getAttribute('aria-label');
+    button.disabled = disabled;
+    // Only the level changes: the click and the keys must not reach the card (which cycles the fighter).
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      stepBotLevel(lobby.bots.indexOf(bot), by);
+    });
+    return button;
+  };
+  row.append(
+    arrow('◀', -1, 'easier', at <= 0),
+    el('span', 'levelName', LEVEL_NAMES[bot.level] || LEVEL_NAMES.medium),
+    arrow('▶', 1, 'harder', at < 0 || at >= BOT_LEVELS.length - 1),
+  );
+  return row;
+}
+
 function renderBotSlot(index, bot) {
-  const card = el('button', `slot bot p${index + 1}`);
-  card.type = 'button';
+  // Not a <button>, because it holds the level buttons: an element that acts like one,
+  // with a click, Enter and Space, so the fighter still cycles with the keyboard.
+  const card = el('div', `slot bot p${index + 1}`);
+  card.setAttribute('role', 'button');
+  card.tabIndex = 0;
+  card.dataset.focus = `bot-${index}`;
   card.style.setProperty('--p', PLAYER_COLORS[index]);
   card.title = `${bot.name} (bot): click for the next fighter`;
   card.setAttribute('aria-label', card.title);
@@ -356,9 +402,14 @@ function renderBotSlot(index, bot) {
   // The BOT tag sits in the card's top right corner (where a human card has its ×), the
   // same place on every bot card, so it never moves with the length of a name.
   card.append(el('span', 'botTag corner', 'BOT'));
-  info.append(el('span', 'tag', `P${index + 1} · ${bot.name}`), el('div', 'fighter', fighter ? fighter.name : ''), el('div', 'state ready', 'Ready!'));
+  info.append(el('span', 'tag', `P${index + 1} · ${bot.name}`), el('div', 'fighter', fighter ? fighter.name : ''), levelRow(index, bot));
   card.append(picture, info);
   card.addEventListener('click', () => cycleBot(lobby.bots.indexOf(bot)));
+  card.addEventListener('keydown', (e) => {
+    if (e.target !== card || (e.key !== 'Enter' && e.key !== ' ')) return;
+    e.preventDefault(); // Space would scroll the page
+    cycleBot(lobby.bots.indexOf(bot));
+  });
   if (bot.fresh) {
     card.classList.add('joined');
     bot.fresh = false;
@@ -420,7 +471,15 @@ function isDuplicate(player) {
 }
 function renderLobby() {
   const slots = $('slots');
+  // The cards are drawn anew on every roster: a bot card or level arrow that had the
+  // keyboard focus gets it back, so the keyboard can keep stepping through levels.
+  const focused = slots.contains(document.activeElement) ? document.activeElement.dataset.focus : null;
   slots.replaceChildren(...[0, 1, 2, 3].map(renderSlot));
+  if (focused) {
+    const again = slots.querySelector(`[data-focus="${focused}"]`);
+    const target = again && again.disabled ? again.parentElement.querySelector('.levelArrow:not(:disabled)') : again;
+    if (target) target.focus();
+  }
 
   const all = lineup();
   const waiting = lobby.roster.length - all.length;
@@ -902,5 +961,6 @@ window.novaBrawl = {
   get state() { return game.state; },
   get roster() { return lobby.roster; },
   get bots() { return lobby.bots; },
+  get botLevels() { return game.botLevels(); },
   takesInput: (slot) => game.takesInput(slot),
 };

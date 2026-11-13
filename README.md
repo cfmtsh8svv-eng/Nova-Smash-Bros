@@ -4,7 +4,7 @@
 
 Team project for **Introduction to Programming**.
 
-Two to four players scan a QR code, their phones turn into controllers, and they fight on the **Nova SBE Campus**, at **Carcavelos Beach** and in **Bairro Alto**. Every hit raises your damage %, and the higher it gets, the further you fly. Get knocked off the screen or reach 200 % and you lose a life. The last player standing wins.
+One to four players scan a QR code, their phones turn into controllers, and they fight on the **Nova SBE Campus**, at **Carcavelos Beach** and in **Bairro Alto**. Every hit raises your damage %, and the higher it gets, the further you fly. Get knocked off the screen or reach 200 % and you lose a life. The last player standing wins. Short of players? The host fills free places with **bots** (Freshman, Intern, Erasmus), so even one person can play a full match.
 
 ## Deployed app
 
@@ -33,12 +33,12 @@ Then open **http://localhost:3000** on the laptop and click **Open a room**.
 
 - Without any configuration the server keeps accounts and scores in memory (they are gone when it stops). To use the Google Sheet, follow [`docs/SETUP_SHEETS.md`](docs/SETUP_SHEETS.md).
 - **Phones** must be able to reach the laptop. Either use the deployed URL, or put laptop and phones in the same Wi-Fi and open the page through the laptop's network address (for example `http://192.168.1.20:3000`) instead of `localhost`, so the QR code points to an address the phones can open.
-- Every fighter is played from a phone; there are no keyboard players. Two browser tabs on a computer can stand in for phones while developing: open `/play` in each.
+- Every human plays from a phone; there are no keyboard players. Two browser tabs on a computer can stand in for phones while developing: open `/play` in each, or open one and add bots in the lobby.
 
 ## Run the tests
 
 ```bash
-npm test                          # game rules and server (about 470 tests, a few seconds)
+npm test                          # game rules and server (about 530 tests, a few seconds)
 npx playwright install chromium   # once, for the browser test
 npm run test:browser              # host page + emulated iPhone + emulated Android phone
 npm audit --audit-level=high      # dependency check
@@ -51,7 +51,7 @@ The same commands run on every push in GitHub Actions (`.github/workflows/ci.yml
 1. **Laptop:** open the URL, click *Open a room*. A QR code and a 4-letter room code appear.
 2. **Phones:** scan the QR code. New players choose a gamertag (3 to 12 letters, numbers or `_`) and a 4-digit PIN; returning players are logged in automatically.
 3. **Pick a fighter** by swiping, tap **Ready!**
-4. **Laptop:** leave the stage on **Vote** (the default) or pick one, choose the number of lives, then press *Start*. With Vote, every phone shows the three stages: swipe, tap **Vote!**; the vote ends when everyone has voted or after 10 s.
+4. **Laptop:** add bots if you like (*Add bot*, *Remove bot*; a click on a bot's card changes its fighter, and its ◀ ▶ arrows set it to Easy, Medium or Hard), leave the stage on **Vote** (the default) or pick one, choose the number of lives, then press *Start*. Everyone in the lobby must be Ready, and a match needs at least two fighters, bots included. A match with only one person in it is a practice match and gives no points. With Vote, every phone shows the three stages: swipe, tap **Vote!**; the vote ends when everyone has voted or after 10 s.
 5. **Fight.** Turn the phone sideways.
 
 The left half of the phone is a joystick: put your thumb down anywhere there and drag.

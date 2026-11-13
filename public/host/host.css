@@ -47,6 +47,19 @@ button.plain { background: transparent; box-shadow: none; color: var(--mute); }
 .slot .state.away { color: var(--yellow); }
 .slot .remove { position: absolute; top: 0.4cqw; right: 0.4cqw; padding: 0 0.5cqw; font-size: 0.95cqw; line-height: 1.5; background: transparent; box-shadow: none; border-color: transparent; color: var(--mute); }
 .slot .remove:hover, .slot .remove[data-sure] { color: #fff; background: var(--red); border-color: rgba(255, 255, 255, 0.4); }
+/* A bot's card (GAME_SPEC §5a) is a button: a click switches its fighter. */
+.slot.bot { cursor: pointer; }
+.slot.bot:hover { filter: brightness(1.08); }
+.slot.bot:focus-visible { outline: 0.25cqw solid var(--yellow); outline-offset: 0.2cqw; }
+/* The level row of a bot card (D-177): ◀ Medium ▶, the word in the lobby's yellow between two small dark arrows. */
+.slot .level { display: flex; align-items: center; gap: 0.45cqw; margin-top: 0.35cqw; }
+.slot .levelName { font-family: var(--display); font-size: 1.05cqw; line-height: 1.15; color: var(--yellow); min-width: 4.6cqw; text-align: center; }
+.slot .levelArrow { display: grid; place-items: center; width: 1.9cqw; height: 1.7cqw; padding: 0; font-size: 0.75cqw; line-height: 1; border-width: 0.15cqw; border-radius: 0.5cqw; background: var(--dark); color: #fff; box-shadow: 0 0.2cqw 0 rgba(0, 0, 0, 0.45); }
+.slot .levelArrow:active:not(:disabled) { transform: translateY(0.12cqw); box-shadow: 0 0.08cqw 0 rgba(0, 0, 0, 0.45); }
+.slot .levelArrow:disabled { opacity: 0.3; }
+.botTag { display: inline-block; margin-left: 0.5em; padding: 0 0.45em; border-radius: 99px; background: var(--dark); color: #fff; border: 1px solid #fff; font-size: 0.8em; font-weight: 900; letter-spacing: 0.05em; vertical-align: 0.08em; }
+.slot .botTag.corner { position: absolute; top: 0.7cqw; right: 0.8cqw; margin: 0; font-size: 0.85cqw; padding: 0.05em 0.6em; }
+.botButtons { display: flex; gap: 0.8cqw; justify-content: center; margin-top: 0.9cqw; }
 .slot.joined { animation: joined 0.6s ease-out; }
 .slot.joined::after { content: ""; position: absolute; inset: 0; background: var(--p); animation: flash 0.6s ease-out forwards; pointer-events: none; }
 @keyframes joined { 0% { transform: scale(0.6); } 55% { transform: scale(1.08); } 100% { transform: scale(1); } }

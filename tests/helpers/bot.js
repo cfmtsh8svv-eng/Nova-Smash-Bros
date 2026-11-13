@@ -1,6 +1,6 @@
 // A very simple scripted player, used only by the tests to play whole matches.
-// It is not part of the game (the game has no bots). Its choices depend only on
-// the match state, so a match played by bots is fully repeatable.
+// It is not the game's own bot (that is src/game/bot.js). Its choices depend only on
+// the match state, so a match it plays is fully repeatable.
 import { neutralInput } from '../../src/game/input.js';
 
 export function botInput(state, slot) {

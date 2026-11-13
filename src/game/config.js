@@ -108,6 +108,57 @@ export const CONFIG = {
   },
   // Height bands used by hazards: a fighter is "on the ground level" when the feet are below this line.
   levels: { groundAbove: 520, roofBelow: 400 },
+  // Bots (GAME_SPEC §5a, D-157, D-163). One number set per strength; only `medium` is used now.
+  // Easy and hard are meant to be other sets with the same keys (no new code paths).
+  bots: {
+    // Three levels with the same keys for the same code (D-176). Every level keeps the
+    // human limits: reactionFrames at least 6, pressHold 2, pressGap 8.
+    easy: { // reacts later, misjudges more, attacks less, hesitates more (D-179)
+      reactionFrames: 18,
+      aimError: 40,
+      aimEvery: 40,
+      attackChance: 0.17,
+      specialChance: 0.01,
+      stompChance: 0.02,
+      leaderBias: 0.25,
+      itemReach: 200,
+      hesitateChance: 0.015,
+      hesitateFrames: 30,
+      pressHold: 2,
+      pressGap: 8,
+      climbDelay: 20,
+    },
+    medium: {
+      reactionFrames: 12, // acts on what it saw this many frames ago (0.2 s)
+      aimError: 26, // misjudges a distance by up to this many px ...
+      aimEvery: 40, // ... with a new misjudgement this often
+      attackChance: 0.2, // chance per frame to attack while the target seems to be in reach
+      specialChance: 0.02, // chance per frame to use a ready special while the target seems to be in its range
+      stompChance: 0.04, // chance per frame to stomp while above a target
+      leaderBias: 0.25, // the leader counts as this share nearer than it is
+      itemReach: 200, // picks up an item on its own platform within this distance
+      hesitateChance: 0.01, // chance per frame to stop and think ...
+      hesitateFrames: 20, // ... for this long
+      pressHold: 2, // a press is held at least this many frames ...
+      pressGap: 8, // ... and the same button is pressed again only this many frames after it was let go
+      climbDelay: 12, // frames hanging at the ledge before Jump climbs up
+    },
+    hard: { // reacts sooner, misjudges less, attacks more (D-179)
+      reactionFrames: 8,
+      aimError: 10,
+      aimEvery: 40,
+      attackChance: 0.3,
+      specialChance: 0.04,
+      stompChance: 0.06,
+      leaderBias: 0.25,
+      itemReach: 200,
+      hesitateChance: 0.003,
+      hesitateFrames: 12,
+      pressHold: 2,
+      pressGap: 8,
+      climbDelay: 8,
+    },
+  },
 };
 
 // Weight (heavier = flies less far) and speed (2..5) of each fighter.

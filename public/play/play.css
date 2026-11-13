@@ -159,3 +159,6 @@ button.skip.on { background: var(--green); }
   .flash.go, .hazard b.pop, .phoneIcon { animation: none; }
   .card { transition: none; }
 }
+
+/* The BOT tag after a bot's nickname (GAME_SPEC §5a, D-162). */
+.botTag { display: inline-block; margin-left: 0.4em; padding: 0 0.45em; border-radius: 99px; background: var(--dark); color: #fff; border: 1px solid #fff; font-size: 0.75em; font-weight: 900; letter-spacing: 0.05em; vertical-align: 0.1em; }

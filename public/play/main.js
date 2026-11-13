@@ -694,7 +694,14 @@ document.addEventListener('visibilitychange', () => {
 function showResults(msg) {
   const place = Number(msg.place) || 0;
   $('resultPlace').textContent = msg.won ? 'YOU WIN!' : `${['1st', '2nd', '3rd', '4th'][place - 1] || ''} place`;
-  $('resultWinner').textContent = msg.won ? 'You graduate with honours!' : `${String(msg.winner || 'Somebody')} graduates with honours!`;
+  if (msg.won) $('resultWinner').textContent = 'You graduate with honours!';
+  else {
+    // A bot that won carries the BOT tag after its nickname (GAME_SPEC §5a, D-162).
+    const name = el('span', '', String(msg.winner || 'Somebody'));
+    const parts = [name];
+    if (msg.winnerBot) parts.push(el('span', 'botTag', 'BOT'));
+    $('resultWinner').replaceChildren(...parts, el('span', '', ' graduates with honours!'));
+  }
   const stats = msg.stats || {};
   const rows = [['Damage dealt', `${Number(stats.dealt) || 0} %`], ['Damage taken', `${Number(stats.taken) || 0} %`], ['KOs', Number(stats.kos) || 0], ['Falls', Number(stats.falls) || 0]];
   $('resultStats').replaceChildren(...rows.flatMap(([k, v]) => [el('dt', '', k), el('dd', '', String(v))]));

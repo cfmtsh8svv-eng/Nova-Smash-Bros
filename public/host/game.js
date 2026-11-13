@@ -6,6 +6,7 @@ import { createLoop } from '/game/loop.js';
 import { alpha } from '/game/clock.js';
 import { InputBuffer } from '/game/input.js';
 import { voteHazard } from '/game/hazards.js';
+import { botInput, createBot } from '/game/bot.js';
 import { damageColor } from '/game/view.js';
 import { loadAllPoses, loadStage } from '/shared/art/sprites.js';
 import { duplicateColour } from '/shared/art/characters.js';
@@ -26,7 +27,8 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
   let loop = null;
   let state = null;
   let previewStage = 'campus';
-  let phones = new Map(); // slot -> { buffer, lastSeen }
+  let phones = new Map(); // slot -> { buffer, lastSeen }, humans only
+  let bots = new Map(); // slot -> the bot's brain (src/game/bot.js), kept for the whole match
   let lastStatus = new Map();
   let lastTime = null;
   let lastPlaces = null; // where the fighters were one step ago (only kept during the slow motion)
@@ -36,16 +38,20 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
 
   // ---- inputs ----
 
-  function getInputs() {
+  // Called once per step (never while paused or during the intro, so the bots pause too).
+  function getInputs(current) {
     const now = performance.now();
     const inputs = {};
     for (const [slot, phone] of phones) {
       if (now - phone.lastSeen > STALE_MS) phone.buffer.letGo();
       inputs[slot] = phone.buffer.consume();
     }
+    for (const [slot, bot] of bots) inputs[slot] = botInput(bot, current);
     return inputs;
   }
 
+  // Only the phones of the match's humans steer fighters. A phone that joined during the
+  // match may have the slot number of a bot: its buttons are ignored here.
   function onInput(slot, mask, seq) {
     const phone = phones.get(slot);
     if (!phone) return;
@@ -182,7 +188,7 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
       ceremony = createCeremony({
         players: result.players.map((p) => {
           const f = finished.fighters.find((x) => x.slot === p.slot);
-          return { slot: p.slot, name: p.name, fighterId: p.fighterId, altColor: Boolean(f && f.altColor), place: p.place, crown: view.crowns.has(p.slot), x: f ? f.x : 640, y: f ? f.y : 600 };
+          return { slot: p.slot, name: p.name, bot: Boolean(p.bot), fighterId: p.fighterId, altColor: Boolean(f && f.altColor), place: p.place, crown: view.crowns.has(p.slot), x: f ? f.x : 640, y: f ? f.y : 600 };
         }),
         onCue: (name) => audio.play(CEREMONY_SOUND[name]),
       });
@@ -261,12 +267,13 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
 
   // ---- control from the lobby ----
 
-  // players: [{ slot, name, fighterId }], one per phone.
+  // players: [{ slot, name, fighterId }], one per phone; bots: [{ slot, name, fighter, level }] (from the server).
   // With `hold` the match is set up and drawn but does not run until go() (the intro, D-153).
-  async function start({ stageId, players, settings }, { hold = false } = {}) {
+  async function start({ stageId, players, bots: botList = [], settings }, { hold = false } = {}) {
     stop();
     previewStage = stageId;
-    const ordered = [...players].sort((a, b) => a.slot - b.slot);
+    const fromBots = botList.map((b) => ({ slot: b.slot, name: b.name, fighterId: b.fighter, bot: true }));
+    const ordered = [...players, ...fromBots].sort((a, b) => a.slot - b.slot);
     const seed = (Math.random() * 2 ** 31) | 0;
     const next = createMatch({ stageId, players: ordered, settings, seed });
     // Draw every pose of every fighter before the first frame, so nothing pops in mid-fight.
@@ -275,12 +282,15 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
       ...next.fighters.map((f) => loadAllPoses(f.fighterId, f.altColor ? duplicateColour(f.fighterId, PLAYER_COLORS[f.slot]) : null).catch(() => {})),
     ]);
     phones = new Map();
-    for (const p of ordered) phones.set(p.slot, { buffer: new InputBuffer(), lastSeen: performance.now() });
+    for (const p of players) phones.set(p.slot, { buffer: new InputBuffer(), lastSeen: performance.now() });
+    // Each bot plays at its own level (D-175) and gets its own random numbers from the match
+    // seed and its slot (the match replays exactly).
+    bots = new Map(botList.map((b) => [b.slot, createBot({ slot: b.slot, level: b.level, seed })]));
     lastStatus = new Map();
     fx.clear();
     view.camera = { x: 640, y: 360, zoom: 1 };
     cameraGoal = { x: 640, y: 360, zoom: 1 };
-    view.crowns = new Set(ordered.filter((p) => p.crown).map((p) => p.slot)); // cosmetic only (D-154)
+    view.crowns = new Set(players.filter((p) => p.crown).map((p) => p.slot)); // cosmetic only (D-154); never on a bot
     state = next;
     loop = createLoop({ state, getInputs, onEvent });
     loop.paused = hold;
@@ -306,6 +316,7 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     ceremony = null;
     loop = null;
     state = null;
+    bots = new Map();
     fx.clear();
     cameraGoal = { x: 640, y: 360, zoom: 1 };
   }
@@ -315,7 +326,10 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     // After a reconnect: send every phone its status again, whether it changed or not.
     resync() { lastStatus = new Map(); },
     setPreview(stageId) { previewStage = stageId; loadStage(stageId).catch(() => {}); },
-    vote(slot, hazardId) { return state ? voteHazard(state, slot, hazardId) : false; },
+    vote(slot, hazardId) { return state && phones.has(slot) ? voteHazard(state, slot, hazardId) : false; },
+    takesInput(slot) { return phones.has(slot); },
+    // The level each bot of the match plays at, by slot (a copy; for the browser test).
+    botLevels() { return Object.fromEntries([...bots].map(([slot, bot]) => [slot, bot.level])); },
     setPaused(value) { if (loop && state && state.phase !== 'ended' && !held) loop.paused = value; return Boolean(loop && loop.paused); },
     get running() { return Boolean(loop); },
     get paused() { return Boolean(loop && loop.paused); },

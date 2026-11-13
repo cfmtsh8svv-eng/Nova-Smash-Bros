@@ -14,6 +14,34 @@ export function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+// The small BOT tag next to a bot's name (GAME_SPEC §5a, D-162): a dark pill with white
+// letters, left edge at x, centred on y. Returns its width, so the caller can place what follows.
+export const botTagWidth = (ctx, size) => {
+  ctx.save();
+  ctx.font = `900 ${size}px "Nunito", "Segoe UI", sans-serif`;
+  const w = ctx.measureText('BOT').width + size * 0.9;
+  ctx.restore();
+  return w;
+};
+export function drawBotTag(ctx, x, y, size) {
+  const w = botTagWidth(ctx, size);
+  const h = size * 1.35;
+  ctx.save();
+  ctx.fillStyle = '#16122a';
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = Math.max(1, size / 8);
+  roundRect(ctx, x, y - h / 2, w, h, h / 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `900 ${size}px "Nunito", "Segoe UI", sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('BOT', x + w / 2, y + size * 0.06);
+  ctx.restore();
+  return w;
+}
+
 // One of the nine items, standing on the origin (it is about 40 px wide and 40 px high).
 export function drawItemShape(ctx, type, t) {
   ctx.lineWidth = 3;

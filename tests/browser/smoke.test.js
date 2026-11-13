@@ -182,7 +182,7 @@ test('host page, an iPhone and an Android phone: register, pick, ready, start, p
   await iphone.click('#ready');
   await host.waitForFunction(() => window.novaBrawl.roster[0].ready);
   assert.equal(await host.isDisabled('#startMatch'), true, 'one ready player cannot start');
-  assert.match(await host.textContent('#startHint'), /At least 2 players/);
+  assert.match(await host.textContent('#startHint'), /Waiting for 1 player to pick a fighter and tap Ready/); // every human must be ready (D-156)
   // the Android phone swipes to the fourth fighter, readies up, changes its mind, readies up again
   await android.evaluate(() => {
     const carousel = document.getElementById('carousel');

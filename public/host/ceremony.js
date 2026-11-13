@@ -13,6 +13,7 @@
 import { PLAYER_COLORS, SCREEN } from '/game/config.js';
 import { duplicateColour, INK, SPRITE } from '/shared/art/characters.js';
 import { getSprite } from '/shared/art/sprites.js';
+import { botTagWidth, drawBotTag } from './icons.js';
 import { CROWN_SINK, drawCrown, headAboveFeet } from '/shared/art/crown.js';
 
 const DISPLAY = '"Bungee", "Arial Black", sans-serif';
@@ -72,7 +73,7 @@ function lyingOffset(sprite) {
   }
 }
 
-// players: [{ slot, name, fighterId, altColor, place, crown, x, y }] (x, y: where the fighter was
+// players: [{ slot, name, bot, fighterId, altColor, place, crown, x, y }] (x, y: where the fighter was
 // when the match ended; crown: worn coming into this match). onCue(name) plays the sounds.
 export function createCeremony({ players, onCue = () => {} }) {
   const people = players.map((p) => ({ ...p, main: p.altColor ? duplicateColour(p.fighterId, PLAYER_COLORS[p.slot]) : null, popped: false, landed: false }));
@@ -251,7 +252,7 @@ export function createCeremony({ players, onCue = () => {} }) {
           if (c > 0.8 && !p.popped) { p.popped = true; burst(f.x + 60 * side, headY(p, f) - 30, 14, 3, 'spark'); onCue('pop'); }
         }
       }
-      if (p.place === 1) {
+      if (p.place === 1 && !p.bot) { // bots never wear a crown (GAME_SPEC §5a)
         if (p.crown) {
           drawCrown(ctx, f.x - 3, headY(p, f), 0.9);
         } else {
@@ -285,6 +286,8 @@ export function createCeremony({ players, onCue = () => {} }) {
       ctx.strokeText(line, 0, 0);
       ctx.fillStyle = '#f6c343';
       ctx.fillText(line, 0, 0);
+      // A bot that won carries the BOT tag under its name (D-162), never a crown of the sheet.
+      if (winner.bot) drawBotTag(ctx, -botTagWidth(ctx, 26) / 2, 66, 26);
       ctx.restore();
       if (settle > 0) {
         ctx.save();

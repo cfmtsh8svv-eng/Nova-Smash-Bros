@@ -33,24 +33,35 @@ test('a new player has no crown; the winner of a saved match gets one, the other
   const h = await s.host();
   const a = await s.player(h, 'Ana', { fighter: 'finance_bro' });
   const b = await s.player(h, 'Max', { fighter: 'house_dj' });
-  const c = await s.player(h, 'Zoe', { fighter: 'house_dj' });
-  assert.deepEqual(crowns(await (h.send({ t: 'room_set', closed: false }), h.next('roster'))), { Ana: false, Max: false, Zoe: false });
+  assert.deepEqual(crowns(await (h.send({ t: 'room_set', closed: false }), h.next('roster'))), { Ana: false, Max: false });
 
   // Ana beats Max: Ana wears the crown.
   await play(s, h, [a.slot, b.slot], sampleResult({ slots: [a.slot, b.slot] }));
-  assert.deepEqual(crowns(await h.next('roster', { match: (r) => r.players.some((p) => p.crown) })), { Ana: true, Max: false, Zoe: false });
+  assert.deepEqual(crowns(await h.next('roster', { match: (r) => r.players.some((p) => p.crown) })), { Ana: true, Max: false });
   assert.equal(s.store.players.get('ana').last_won, true);
   assert.equal(s.store.players.get('max').last_won, false);
 
-  // Zoe beats Max: now Ana and Zoe both wear one (several crowns at once).
-  await readyAgain(h, [b, c]);
+  // Ana leaves (every human in the lobby plays, D-156); Zoe beats Max: now Ana and Zoe both wear one.
+  a.send({ t: 'leave' });
+  await h.next('roster', { match: (r) => !r.players.some((p) => p.gamertag === 'Ana') });
+  const c = await s.player(h, 'Zoe', { fighter: 'house_dj' });
+  await readyAgain(h, [b]);
   await play(s, h, [c.slot, b.slot], sampleResult({ slots: [c.slot, b.slot] }));
-  assert.deepEqual(crowns(await h.next('roster', { match: (r) => r.players.find((p) => p.gamertag === 'Zoe').crown })), { Ana: true, Max: false, Zoe: true });
+  assert.deepEqual(crowns(await h.next('roster', { match: (r) => r.players.find((p) => p.gamertag === 'Zoe').crown })), { Max: false, Zoe: true });
+  assert.equal(s.app.data.players.get('ana').last_won, true, 'several crowns at once');
 
-  // Max beats Ana: Ana loses hers, Max gets one, Zoe keeps hers.
-  await readyAgain(h, [a, b]);
-  await play(s, h, [b.slot, a.slot], sampleResult({ slots: [b.slot, a.slot] }));
-  assert.deepEqual(crowns(await h.next('roster', { match: (r) => r.players.find((p) => p.gamertag === 'Max').crown })), { Ana: false, Max: true, Zoe: true });
+  // Zoe leaves, Ana comes back; Max beats Ana: Ana loses hers, Max gets one, Zoe keeps hers.
+  c.send({ t: 'leave' });
+  await h.next('roster', { match: (r) => !r.players.some((p) => p.gamertag === 'Zoe') });
+  const back = await s.open();
+  back.send({ t: 'join', room: h.code, token: a.token });
+  const joined = await back.next('joined');
+  await h.next('roster');
+  back.slot = joined.slot;
+  await readyAgain(h, [back, b]);
+  await play(s, h, [b.slot, back.slot], sampleResult({ slots: [b.slot, back.slot] }));
+  assert.deepEqual(crowns(await h.next('roster', { match: (r) => r.players.find((p) => p.gamertag === 'Max').crown })), { Ana: false, Max: true });
+  assert.equal(s.app.data.players.get('zoe').last_won, true);
 });
 
 test('a practice match (one account readable) changes no crown', async (t) => {

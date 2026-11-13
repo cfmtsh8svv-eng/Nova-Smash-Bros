@@ -3,6 +3,7 @@
 // and ends matches. The match itself runs in game.js.
 import { PLAYER_COLORS } from '/game/config.js';
 import { FIGHTERS, getFighter } from '/game/fighters.js';
+import { BOT_LEVELS } from '/game/bot.js';
 import { HAZARDS, STAGES, STAGE_IDS, tallyVote } from '/game/stages.js';
 import { createAudio } from '/shared/audio.js';
 import { createLink, storage } from '/shared/net.js';
@@ -23,7 +24,9 @@ const el = (tag, className, text) => {
 const audio = createAudio();
 const lobby = {
   room: null, // { code, hostKey }
-  roster: [], // players as the server reports them
+  roster: [], // the humans (phones) as the server reports them
+  bots: [], // the active bots: [{ slot, name, fighter, level }] (GAME_SPEC §5a), kept by the server
+  seenBots: new Set(), // bot names on the cards last time, to play the entrance when one is added or comes back
   closed: false,
   stage: 'vote', // 'vote' (the default, D-135) or a stage id
   lives: 3,
@@ -56,6 +59,7 @@ function show(name) {
   // During the match and its end sequence the stage is not dimmed by the page (the end sequence dims it itself).
   $('frame').classList.toggle('playing', name === 'match' || name === 'results');
   if (name === 'title' || name === 'lobby') audio.setMusic('lobby');
+  if (name === 'lobby') renderLobby(); // the bot buttons depend on the screen
 }
 
 let toastTimer = null;
@@ -133,7 +137,7 @@ const MESSAGES = {
     } else if (msg.resumed && msg.phase === 'match') {
       if (pendingStart) {
         // The connection dropped just after "Start": the server did start the match. Carry on.
-        beginMatch(msg.matchId);
+        beginMatch(msg.matchId, msg.bots);
       } else if (match && match.id === msg.matchId && match.result && !match.saved) {
         // The match ended while we were offline: send the result now.
         submitResult();
@@ -167,7 +171,16 @@ const MESSAGES = {
 
   roster(msg) {
     const before = new Map(lobby.roster.map((p) => [p.slot, p]));
-    lobby.roster = msg.players;
+    lobby.roster = msg.players.filter((p) => !p.bot);
+    lobby.bots = msg.players.filter((p) => p.bot).map((p) => ({ slot: p.slot, name: p.name, fighter: p.fighter, level: p.level }));
+    // A bot that is new on the cards (added, or back from the bench) gets the entrance effect.
+    for (const b of lobby.bots) {
+      if (!lobby.seenBots.has(b.name)) {
+        b.fresh = true;
+        if (msg.phase === 'lobby') audio.play('join');
+      }
+    }
+    lobby.seenBots = new Set(lobby.bots.map((b) => b.name));
     lobby.closed = msg.closed;
     for (const p of msg.players) {
       const old = before.get(p.slot);
@@ -194,7 +207,7 @@ const MESSAGES = {
     renderLobby();
   },
 
-  input(msg) { game.onInput(msg.slot, msg.m, msg.q); },
+  input(msg) { game.onInput(msg.slot, msg.m, msg.q); }, // ignored for a slot without a phone in the match (a bot's)
 
   vote(msg) {
     if (msg.kind === 'stage') {
@@ -204,7 +217,7 @@ const MESSAGES = {
       renderVote();
       checkVoteDone();
     } else if (msg.kind === 'hazard') {
-      game.vote(msg.slot, msg.value);
+      if (match && match.players.some((p) => p.slot === msg.slot)) game.vote(msg.slot, msg.value);
     }
   },
 
@@ -219,7 +232,7 @@ const MESSAGES = {
 
   vote_started() { beginVote(); },
 
-  match_started(msg) { beginMatch(msg.matchId); },
+  match_started(msg) { beginMatch(msg.matchId, msg.bots); },
 
   result_saved(msg) {
     if (!match || msg.matchId !== match.id) return;
@@ -282,7 +295,131 @@ function lineup() {
   return lobby.roster.filter((p) => p.fighter && p.ready).map((p) => ({ slot: p.slot, name: p.gamertag, fighterId: p.fighter, crown: Boolean(p.crown) }));
 }
 
+// The start rule (GAME_SPEC §5, D-156): at least 1 Ready human, every human in the lobby
+// Ready, and at least 2 fighters with the bots.
+function canStart() {
+  const ready = lineup();
+  return ready.length >= 1 && ready.length === lobby.roster.length && ready.length + lobby.bots.length >= 2;
+}
+
+// ---- bots in the lobby (GAME_SPEC §5a) ----
+
+const MAX_BOTS = 3;
+const inLobby = () => screen === 'lobby' && !voting && !pendingStart && !match;
+const canAddBot = () => inLobby() && lobby.bots.length < MAX_BOTS && lobby.roster.length + lobby.bots.length < 4;
+
+// A new bot's fighter: random, if possible one no human (and no other bot) has picked.
+// Math.random is fine here: it is cosmetic and not part of the match (D-159).
+function freshBotFighter() {
+  const humans = new Set(lobby.roster.map((p) => p.fighter).filter(Boolean));
+  const bots = new Set(lobby.bots.map((b) => b.fighter));
+  const pickFrom = (list) => list[Math.floor(Math.random() * list.length)];
+  const all = FIGHTERS.map((f) => f.id);
+  const free = all.filter((id) => !humans.has(id) && !bots.has(id));
+  const notHuman = all.filter((id) => !humans.has(id));
+  return pickFrom(free.length ? free : notHuman.length ? notHuman : all).toString();
+}
+
+// The level names on the card (D-175); the server only knows the ids.
+const LEVEL_NAMES = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+
+// Every change sends the whole list of active bots with fighters and levels (D-178).
+function sendBots(list) {
+  if (!inLobby()) return;
+  audio.play('click');
+  link.send({ t: 'bots', bots: list.map((b) => ({ fighter: b.fighter, level: b.level })) });
+}
+
+// A new bot starts on Medium (D-177).
+function addBot() {
+  if (canAddBot()) sendBots([...lobby.bots, { fighter: freshBotFighter(), level: 'medium' }]);
+}
+
+function removeBot() {
+  if (inLobby() && lobby.bots.length) sendBots(lobby.bots.slice(0, -1));
+}
+
+// A click on a bot's card switches it to the next fighter (D-159).
+function cycleBot(index) {
+  const list = lobby.bots.map((b) => ({ ...b }));
+  const at = FIGHTERS.findIndex((f) => f.id === list[index].fighter);
+  list[index].fighter = FIGHTERS[(at + 1) % FIGHTERS.length].id;
+  sendBots(list);
+}
+
+// The arrows on a bot's card: one level down (-1) or up (+1), no wrap-around (D-177).
+function stepBotLevel(index, by) {
+  const list = lobby.bots.map((b) => ({ ...b }));
+  const at = BOT_LEVELS.indexOf(list[index].level);
+  const next = BOT_LEVELS[(at < 0 ? BOT_LEVELS.indexOf('medium') : at) + by];
+  if (!next) return;
+  list[index].level = next;
+  sendBots(list);
+}
+
+// The level row under the fighter name, in place of the "Ready!" line: ◀ Medium ▶ (D-177).
+function levelRow(index, bot) {
+  const at = BOT_LEVELS.indexOf(bot.level);
+  const row = el('div', 'level');
+  const arrow = (text, by, label, disabled) => {
+    const button = el('button', 'levelArrow', text);
+    button.type = 'button';
+    button.dataset.focus = `level-${index}-${by}`;
+    button.setAttribute('aria-label', `${bot.name}: ${label}`);
+    button.title = button.getAttribute('aria-label');
+    button.disabled = disabled;
+    // Only the level changes: the click and the keys must not reach the card (which cycles the fighter).
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      stepBotLevel(lobby.bots.indexOf(bot), by);
+    });
+    return button;
+  };
+  row.append(
+    arrow('◀', -1, 'easier', at <= 0),
+    el('span', 'levelName', LEVEL_NAMES[bot.level] || LEVEL_NAMES.medium),
+    arrow('▶', 1, 'harder', at < 0 || at >= BOT_LEVELS.length - 1),
+  );
+  return row;
+}
+
+function renderBotSlot(index, bot) {
+  // Not a <button>, because it holds the level buttons: an element that acts like one,
+  // with a click, Enter and Space, so the fighter still cycles with the keyboard.
+  const card = el('div', `slot bot p${index + 1}`);
+  card.setAttribute('role', 'button');
+  card.tabIndex = 0;
+  card.dataset.focus = `bot-${index}`;
+  card.style.setProperty('--p', PLAYER_COLORS[index]);
+  card.title = `${bot.name} (bot): click for the next fighter`;
+  card.setAttribute('aria-label', card.title);
+  const picture = el('canvas');
+  const fighter = getFighter(bot.fighter);
+  // The later player with the same fighter wears the player colour, as in the match.
+  const duplicate = [...lobby.roster, ...lobby.bots.map((b) => ({ slot: b.slot, fighter: b.fighter }))].some((p) => p.slot < index && p.fighter === bot.fighter);
+  paintSprite(picture, bot.fighter, { mainColour: duplicate ? duplicateColour(bot.fighter, PLAYER_COLORS[index]) : null, headroom: CROWN_ROOM }).catch(() => {});
+  const info = el('div');
+  // The BOT tag sits in the card's top right corner (where a human card has its ×), the
+  // same place on every bot card, so it never moves with the length of a name.
+  card.append(el('span', 'botTag corner', 'BOT'));
+  info.append(el('span', 'tag', `P${index + 1} · ${bot.name}`), el('div', 'fighter', fighter ? fighter.name : ''), levelRow(index, bot));
+  card.append(picture, info);
+  card.addEventListener('click', () => cycleBot(lobby.bots.indexOf(bot)));
+  card.addEventListener('keydown', (e) => {
+    if (e.target !== card || (e.key !== 'Enter' && e.key !== ' ')) return;
+    e.preventDefault(); // Space would scroll the page
+    cycleBot(lobby.bots.indexOf(bot));
+  });
+  if (bot.fresh) {
+    card.classList.add('joined');
+    bot.fresh = false;
+  }
+  return card;
+}
+
 function renderSlot(index) {
+  const bot = lobby.bots.find((b) => b.slot === index);
+  if (bot) return renderBotSlot(index, bot);
   const player = lobby.roster.find((p) => p.slot === index);
   const card = el('div', `slot p${index + 1}`);
   card.style.setProperty('--p', PLAYER_COLORS[index]);
@@ -330,18 +467,30 @@ const CROWN_ROOM = 16; // sprite pixels above every lobby sprite, so a crown fit
 
 // The later player with the same fighter wears the player colour (lower slots come first).
 function isDuplicate(player) {
-  return lobby.roster.some((p) => p.slot < player.slot && p.fighter === player.fighter);
+  return [...lobby.roster, ...lobby.bots].some((p) => p.slot < player.slot && p.fighter === player.fighter);
 }
 function renderLobby() {
   const slots = $('slots');
+  // The cards are drawn anew on every roster: a bot card or level arrow that had the
+  // keyboard focus gets it back, so the keyboard can keep stepping through levels.
+  const focused = slots.contains(document.activeElement) ? document.activeElement.dataset.focus : null;
   slots.replaceChildren(...[0, 1, 2, 3].map(renderSlot));
+  if (focused) {
+    const again = slots.querySelector(`[data-focus="${focused}"]`);
+    const target = again && again.disabled ? again.parentElement.querySelector('.levelArrow:not(:disabled)') : again;
+    if (target) target.focus();
+  }
 
   const all = lineup();
   const waiting = lobby.roster.length - all.length;
-  $('startMatch').disabled = all.length < 2;
-  $('startHint').textContent = all.length < 2
-    ? (lobby.roster.length ? 'At least 2 players need to pick a fighter and tap Ready.' : 'Waiting for players…')
-    : `${all.length} players are ready.${waiting > 0 ? ` ${waiting} still choosing will sit this one out.` : ''}`;
+  const fighters = all.length + lobby.bots.length;
+  $('startMatch').disabled = !canStart();
+  $('startHint').textContent = !lobby.roster.length ? 'Waiting for players…'
+    : waiting > 0 ? `Waiting for ${waiting} ${waiting === 1 ? 'player' : 'players'} to pick a fighter and tap Ready.`
+      : fighters < 2 ? 'Add a bot or wait for another player.'
+        : `${all.length} ${all.length === 1 ? 'player' : 'players'}${lobby.bots.length ? ` and ${lobby.bots.length} ${lobby.bots.length === 1 ? 'bot' : 'bots'}` : ''} ${fighters === 1 ? 'is' : 'are'} ready.`;
+  $('addBot').disabled = !canAddBot();
+  $('removeBot').disabled = !(inLobby() && lobby.bots.length > 0);
 
   for (const button of $('stageButtons').children) button.setAttribute('aria-pressed', String(lobby.stage === button.dataset.value));
   $('startMatch').textContent = lobby.stage === 'vote' ? 'Start the vote' : 'Start match';
@@ -378,6 +527,8 @@ function buildLobbyControls() {
   $('volEffects').addEventListener('input', (e) => { audio.setVolume('effects', e.target.value / 100); });
   $('volEffects').addEventListener('change', () => audio.play('hit'));
   $('startMatch').addEventListener('click', requestStart);
+  $('addBot').addEventListener('click', addBot);
+  $('removeBot').addEventListener('click', removeBot);
   $('cancelVote').addEventListener('click', () => { audio.play('click'); endVote(); });
   $('backToLobby').addEventListener('click', backToLobby);
   $('resume').addEventListener('click', () => setPaused(false));
@@ -414,7 +565,7 @@ let pendingStart = null;
 
 function requestStart() {
   const all = lineup();
-  if (all.length < 2 || pendingStart || voting) return;
+  if (!canStart() || pendingStart || voting) return;
   audio.unlock();
   // With "Vote" (the default) the phones choose the stage first; with a fixed stage the match starts at once.
   if (lobby.stage === 'vote') requestVote(all);
@@ -549,7 +700,7 @@ function finishVote() {
     if (!voting || voting.winner !== winner) return;
     // The players of the vote who are still in the room fight; anyone who joined meanwhile waits.
     const players = lineup().filter((p) => slots.includes(p.slot));
-    if (players.length < 2) {
+    if (players.length < 1 || players.length + lobby.bots.length < 2) {
       endVote();
       toast('Not enough players are left for a match.');
       return;
@@ -580,9 +731,10 @@ function matchPhase(paused = false) {
   });
 }
 
-async function beginMatch(matchId) {
+// bots: the bots of this match with their slots, as the server gave them out (D-165).
+async function beginMatch(matchId, bots = []) {
   if (!pendingStart) return;
-  match = { id: matchId, ...pendingStart };
+  match = { id: matchId, ...pendingStart, bots: Array.isArray(bots) ? bots : [] };
   pendingStart = null;
   clearTimeout(startTimer);
   if (voting) {
@@ -684,7 +836,9 @@ function showResults(result) {
     card.style.left = `${(x / 1280) * 100}%`;
     card.style.top = `${(top / 720) * 100}%`;
     const head = el('div', 'h');
-    head.append(el('span', 'n', ordinal(p.place)), el('span', 'who', `P${p.slot + 1} · ${p.name}`));
+    const who = el('span', 'who', `P${p.slot + 1} · ${p.name}`);
+    if (p.bot) who.append(el('span', 'botTag', 'BOT'));
+    head.append(el('span', 'n', ordinal(p.place)), who);
     card.append(head, el('div', '', `${p.damageDealt} % dealt · ${p.damageTaken} % taken`), el('div', '', `KOs ${p.kos} · Falls ${p.falls}`), el('div', 'pts', ''), el('div', 'ach', ''));
     return card;
   });
@@ -726,10 +880,10 @@ function sendResultPhases(result, saved) {
   for (const p of result.players) {
     // Only to the phone of the player who played: somebody new may have taken that slot since.
     const now = lobby.roster.find((r) => r.slot === p.slot);
-    if (!now || now.gamertag !== p.name) continue;
+    if (p.bot || !now || now.gamertag !== p.name) continue;
     const line = saved ? saved.players.find((l) => l.slot === p.slot) : null;
     phase({
-      name: 'results', place: p.place, of: result.players.length, won: p.place === 1, winner: winner.name,
+      name: 'results', place: p.place, of: result.players.length, won: p.place === 1, winner: winner.name, winnerBot: Boolean(winner.bot),
       stats: { dealt: p.damageDealt, taken: p.damageTaken, kos: p.kos, falls: p.falls },
       points: line ? line.points : null, total: line ? line.totalPoints ?? null : null,
       achievements: line ? line.achievements.map((a) => ({ name: a.name, text: a.text })) : [],
@@ -742,7 +896,7 @@ function renderResultExtras(saved) {
   $('resultNote').textContent = saved.note || (saved.stored ? 'Result saved.' : '');
   for (const line of saved.players) {
     const box = $('resultCards').querySelector(`[data-slot="${line.slot}"]`);
-    if (!box) continue;
+    if (!box || line.bot) continue; // a bot's card shows no points
     box.querySelector('.pts').textContent = line.unsaved ? 'Not saved: no points' : `+${line.points} points`;
     box.querySelector('.ach').textContent = line.achievements.length ? `New: ${line.achievements.map((a) => a.name).join(', ')}` : '';
   }
@@ -806,4 +960,7 @@ window.novaBrawl = {
   get intro() { return intro ? { skipped: [...intro.skipped], secondsLeft: introScreen.secondsLeft } : null; },
   get state() { return game.state; },
   get roster() { return lobby.roster; },
+  get bots() { return lobby.bots; },
+  get botLevels() { return game.botLevels(); },
+  takesInput: (slot) => game.takesInput(slot),
 };

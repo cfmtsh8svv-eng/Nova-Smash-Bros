@@ -10,7 +10,7 @@ import { hazardRect } from '/game/hazards.js';
 import { getFighter } from '/game/fighters.js';
 import { duplicateColour, handPoint, SPRITE } from '/shared/art/characters.js';
 import { getSprite, getStageImage, loadStage } from '/shared/art/sprites.js';
-import { drawItemShape as drawItemPicture, roundRect } from './icons.js';
+import { botTagWidth, drawBotTag, drawItemShape as drawItemPicture, roundRect } from './icons.js';
 import { CROWN_SINK, drawCrown, headAboveFeet } from '/shared/art/crown.js';
 
 const DISPLAY = '"Bungee", "Arial Black", sans-serif';
@@ -760,7 +760,10 @@ export function createRenderer(canvas) {
     ctx.font = `800 15px ${BODY}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const w = ctx.measureText(text).width + 22;
+    // A bot carries the BOT tag after its name (D-162).
+    const before = `P${f.slot + 1} · ${f.name}`;
+    const tagW = f.bot ? botTagWidth(ctx, 10) + 6 : 0;
+    const w = ctx.measureText(text).width + 22 + tagW;
     // A fighter outside the picture gets a marker at the edge instead.
     const off = f.x < 10 || f.x > SCREEN.w - 10 || f.y < 30 || f.y - H > SCREEN.h;
     const x = Math.max(w / 2 + 8, Math.min(SCREEN.w - w / 2 - 8, f.x));
@@ -771,7 +774,17 @@ export function createRenderer(canvas) {
     ctx.fillStyle = color;
     roundRect(ctx, x - w / 2, y - 11, w, 22, 11); ctx.fill(); ctx.stroke();
     ctx.fillStyle = f.slot === 3 ? INK : '#ffffff';
-    ctx.fillText(text, x, y + 1);
+    if (f.bot) {
+      ctx.textAlign = 'left';
+      const left = x - w / 2 + 11;
+      const nameW = ctx.measureText(before).width;
+      ctx.fillText(before, left, y + 1);
+      drawBotTag(ctx, left + nameW + 4, y, 10);
+      ctx.fillText(`  ${hearts(f.lives, lives)}`, left + nameW + tagW, y + 1);
+      ctx.textAlign = 'center';
+    } else {
+      ctx.fillText(text, x, y + 1);
+    }
     if (off) {
       ctx.fillStyle = color;
       ctx.beginPath();
@@ -812,7 +825,8 @@ export function createRenderer(canvas) {
       // The name gets the room that the damage number leaves; a long gamertag is written smaller, never cut off.
       const shown = out ? 'OUT' : `${Math.floor(f.state === 'dead' ? 0 : f.percent)}%`;
       ctx.font = `${out ? 22 : 28}px ${DISPLAY}`;
-      const room = w - ctx.measureText(shown).width - 28;
+      const tagW = f.bot ? botTagWidth(ctx, 9) + 5 : 0;
+      const room = w - ctx.measureText(shown).width - 28 - tagW;
       let size = 14;
       ctx.font = `800 ${size}px ${BODY}`;
       while (ctx.measureText(f.name).width > room && size > 7) {
@@ -820,6 +834,7 @@ export function createRenderer(canvas) {
         ctx.font = `800 ${size}px ${BODY}`;
       }
       ctx.fillText(f.name, x + 11, y + 20);
+      if (f.bot) drawBotTag(ctx, x + 11 + ctx.measureText(f.name).width + 5, y + 15, 9);
       // The player label, small, in the corner of the card: colour is never the only cue.
       ctx.font = `800 9px ${BODY}`;
       ctx.textAlign = 'right';

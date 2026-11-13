@@ -223,12 +223,12 @@ test('never more than four fighters: four phones plus anything extra is refused'
   assert.ok((await h.next('match_started')).matchId);
 });
 
-test('a match with three of four players stores a result for exactly those three', async (t) => {
+test('a match of three stores a result for exactly those three, not for a fourth who joined during it', async (t) => {
   const s = await startServer(t);
   const h = await s.host();
   for (const name of ['One', 'Two', 'Three']) await s.player(h, name, { fighter: 'finance_bro' });
-  await s.player(h, 'Four'); // still choosing
   const matchId = await start(h, [0, 1, 2]);
+  await s.player(h, 'Four'); // joins during the match
   s.clock.now += 90_000;
   // A result that names the fourth player instead of the third is refused.
   h.send({ t: 'match_result', matchId, result: sampleResult({ slots: [0, 1, 3] }) });

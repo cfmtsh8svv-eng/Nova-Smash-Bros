@@ -31,7 +31,8 @@ const RESPAWN_S = 2;
 const MAX_DAMAGE_PER_SECOND = 80; // far above what one fighter can deal, even hitting three opponents // there is no time limit; this only stops absurd numbers
 
 // Check a result the host sent against what the server knows about the match.
-// match: { id, stage, lives, slots: [..], startedAt }
+// match: { id, stage, lives, slots: [..] (humans), bots: [{ slot, name, fighter }], startedAt }
+// A bot's line is checked like any other; its fighter must be the one it started with.
 // Returns { ok: true, players } with cleaned numbers, or { ok: false, reason }.
 export function checkResult(match, result, now) {
   const bad = (reason) => ({ ok: false, reason });
@@ -47,7 +48,9 @@ export function checkResult(match, result, now) {
   if (result.durationS > elapsedS - COUNTDOWN_S + 1.5) return bad('The match cannot have lasted longer than the time since it started.');
   if (result.durationS < RESPAWN_S * (match.lives - 1)) return bad('The match is too short for the lives that were lost.');
 
-  const n = match.slots.length;
+  const bots = match.bots || [];
+  const allSlots = [...match.slots, ...bots.map((b) => b.slot)];
+  const n = allSlots.length;
   if (!Array.isArray(result.players) || result.players.length !== n) return bad('The player list does not match the players who started.');
   const seen = new Set();
   const players = [];
@@ -62,9 +65,11 @@ export function checkResult(match, result, now) {
     // every 6 s, so up to 4 % a second can be healed and taken again (D-142).
     if (p.damageTaken > match.lives * 240 + result.durationS * 4) return bad('More damage taken than is possible.');
     if (typeof p.fighterId !== 'string' || !FIGHTER_IDS.includes(p.fighterId)) return bad('Unknown fighter.');
+    const bot = bots.find((b) => b.slot === p.slot);
+    if (bot && p.fighterId !== bot.fighter) return bad('A bot played another fighter than it started with.');
     players.push({ slot: p.slot, place: p.place, falls: p.falls, kos: p.kos, specialKos: p.specialKos, endLives: p.endLives, endPercent: p.endPercent, damageDealt: p.damageDealt, damageTaken: p.damageTaken, fighterId: p.fighterId });
   }
-  for (const slot of match.slots) if (!seen.has(slot)) return bad('A player who started the match is missing from the result.');
+  for (const slot of allSlots) if (!seen.has(slot)) return bad('A player who started the match is missing from the result.');
   if (new Set(players.map((p) => p.place)).size !== n) return bad('Two players share a place.');
 
   const winner = players.find((p) => p.place === 1);
@@ -116,7 +121,13 @@ export function newAchievements(before, p, stage) {
 export function scoreResult(match, checked, roster, endedAt) {
   const updates = [];
   const lines = [];
+  const bots = new Map((match.bots || []).map((b) => [b.slot, b]));
   for (const p of checked.players) {
+    // A bot has no account: no points, no achievements, never in the sheet (D-161).
+    if (bots.has(p.slot)) {
+      lines.push({ slot: p.slot, bot: true, name: bots.get(p.slot).name, place: p.place, points: 0, achievements: [] });
+      continue;
+    }
     const row = roster.get(p.slot);
     if (!row) {
       // The account could not be read (the sheet is down): this player's numbers are not saved.
@@ -144,8 +155,9 @@ export function scoreResult(match, checked, roster, endedAt) {
     mode: 'stock',
     lives: match.lives,
     duration_s: checked.durationS,
-    winner: winnerRow ? winnerRow.gamertag : '(unknown)',
-    players_json: JSON.stringify(checked.players.map((p) => ({
+    // A bot that won is written as "(bot)"; the humans keep their place among all fighters.
+    winner: winnerRow ? winnerRow.gamertag : bots.has(winnerLine.slot) ? '(bot)' : '(unknown)',
+    players_json: JSON.stringify(checked.players.filter((p) => !bots.has(p.slot)).map((p) => ({
       gamertag: roster.get(p.slot)?.gamertag || '(unknown)', fighter: p.fighterId, place: p.place, kos: p.kos, falls: p.falls,
       damage_dealt: p.damageDealt, damage_taken: p.damageTaken,
     }))),

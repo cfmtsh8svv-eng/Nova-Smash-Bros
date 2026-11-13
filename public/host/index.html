@@ -28,6 +28,8 @@
         <p class="codeline">Room <b id="roomCode">----</b></p>
         <p class="small" id="joinUrl"></p>
         <p class="small warn" id="netNote" hidden></p>
+        <!-- Shown only while demo mode is on (Shift+D in the lobby, docs/DEMO.md), centred under the QR code (D-208). -->
+        <p id="demoLine" class="demoLine" hidden><span class="demoTitle">DEMO MODE</span> <span class="demoQuit">(to quit press Shift + D)</span></p>
       </div>
 
       <div class="col players">
@@ -55,8 +57,6 @@
         <h2>Leaderboard</h2>
         <ol id="board" class="board"></ol>
       </div>
-      <!-- Shown only while demo mode is on (Shift+D in the lobby, docs/DEMO.md). -->
-      <p id="demoLine" class="demoLine" hidden><span class="demoTitle">DEMO MODE</span> <span class="demoQuit">(to quit press Shift + D)</span></p>
     </section>
 
     <section id="vote" class="screen" hidden>

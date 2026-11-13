@@ -114,10 +114,10 @@ test('pause hint: "Press P or Esc to pause" under the main ground during the cou
 test('demo clock: m:ss of the fighting time left under the main ground; no pause hint in a demo match', async () => {
   const { CLOCK, matchClock, pauseHint } = await import('../../src/game/view.js');
   const { demoMatchSettings, SCREEN } = await import('../../src/game/config.js');
-  // D-209: the clock fills 80 % of the strip between the main ground and the bottom edge.
+  // D-209: the clock fills 56 % of the strip between the main ground and the bottom edge.
   for (const stage of STAGES) assert.equal(stage.platforms.find((p) => p.solid).y, CLOCK.top, `${stage.id}: the strip starts at the main ground`);
-  assert.deepEqual([CLOCK.top, CLOCK.bottom, CLOCK.fill], [600, SCREEN.h, 0.8]);
-  assert.equal(CLOCK.height, 96, '80 % of the 120 px strip');
+  assert.deepEqual([CLOCK.top, CLOCK.bottom, CLOCK.fill], [600, SCREEN.h, 0.56]);
+  assert.equal(CLOCK.height, 67, '56 % of the 120 px strip');
   assert.equal(CLOCK.y, 660, 'centred in the strip');
   const normal = fight();
   assert.equal(matchClock(normal), null, 'no clock in a normal match');

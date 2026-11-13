@@ -1,4 +1,4 @@
-// Browser test: demo mode (docs/DEMO.md). Shift+D in the lobby, the line in the bottom left,
+// Browser test: demo mode (docs/DEMO.md). Shift+D in the lobby, the line under the QR code,
 // the locked lives, four fighters on the phone, a phone moved off another fighter, a demo
 // match with one phone and one bot that ends at the time cap, the result that is not saved,
 // and Shift+D again back in the lobby.
@@ -88,9 +88,11 @@ test('demo mode: Shift+D, four fighters, a match that ends at the cap, not saved
     }).map((e) => e.id || e.className || e.tagName);
     const size = (sel) => parseFloat(getComputedStyle(document.querySelector(sel)).fontSize);
     const top = (sel) => document.querySelector(sel).getBoundingClientRect().top;
-    return { left: box.left - frame.left, bottom: frame.bottom - box.bottom, width: box.width, frameW: frame.width, size: size('#demoLine .demoQuit'), title: size('#demoLine .demoTitle'), twoLines: top('#demoLine .demoQuit') > top('#demoLine .demoTitle'), overlaps };
+    const qr = document.getElementById('qr').getBoundingClientRect();
+    return { centre: (box.left + box.right) / 2 - (qr.left + qr.right) / 2, below: box.top - qr.bottom, align: getComputedStyle(document.getElementById('demoLine')).textAlign, bottom: frame.bottom - box.bottom, width: box.width, frameW: frame.width, size: size('#demoLine .demoQuit'), title: size('#demoLine .demoTitle'), twoLines: top('#demoLine .demoQuit') > top('#demoLine .demoTitle'), overlaps };
   });
-  assert.ok(line.left < line.frameW * 0.05 && line.bottom >= 0 && line.bottom < 30, `bottom left (D-208): ${JSON.stringify(line)}`);
+  assert.ok(Math.abs(line.centre) < 2 && line.below > 0 && line.align === 'center', `centred under the QR code (D-208): ${JSON.stringify(line)}`);
+  assert.ok(line.bottom > line.frameW * 0.015 && line.bottom < line.frameW * 0.05, `a little above the bottom edge: ${JSON.stringify(line)}`);
   assert.ok(line.twoLines && line.title > line.size, `DEMO MODE larger on the first line, the rest smaller on a second: ${JSON.stringify(line)}`);
   assert.ok(line.size >= 14, `readable: ${line.size}px`);
   assert.deepEqual(line.overlaps, [], 'covers nothing');

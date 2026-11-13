@@ -111,7 +111,7 @@ Editing `Code.gs` in the editor does **not** change the deployed web app. After 
 
 The script now writes a 14th column, `last_won`, in the `players` tab: 1 when the player's last saved match was a win, 0 otherwise. A sheet created before this change has no header for it. After deploying the new `Code.gs`, type `last_won` into cell **N1** of the `players` tab. Empty cells below it count as 0 (no crown) until that player's next saved match.
 
-### Bots that win (bug-fixes-2, D-182)
+### Bots that win (D-182)
 
 A script deployed before this fix refuses every match that a bot won, so those results never reach the sheet. Check the deployed script in the Apps Script editor: if it contains `'(keyboard player)'`, it is the old one. Either paste the whole new `Code.gs` (steps 3 and "If you change the script later"), or make these two changes by hand:
 

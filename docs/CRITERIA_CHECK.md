@@ -1,6 +1,6 @@
 # Grading criteria check
 
-Written at the end of the build, updated after the merge into `main` and again on 2026-11-13 (after bug-fixes-2). The table of runs below keeps the older runs as they were reported; the newest are at the top. For each of the six criteria: what in the repository answers it, the evidence, and what is still missing. Nothing is claimed here that was not run.
+Written at the end of the build, updated after the merge into `main` and again on 2026-11-13 (after `fix/sheet-bot-winner`, PR #9). The table of runs below keeps the older runs as they were reported; the newest are at the top. For each of the six criteria: what in the repository answers it, the evidence, and what is still missing. Nothing is claimed here that was not run.
 
 ## What was run, and what was not
 
@@ -8,15 +8,15 @@ Run on the build machine (macOS, Node 26.13.0; the unit and server tests also un
 
 | Command | Result |
 |---|---|
-| `npm test` on the branch `bug-fixes-2` (2026-11-13, Node 22) | 536 tests, 536 pass, 0 fail |
-| GitHub Actions on pull request #9 (`bug-fixes-2`, commit `dcd1616`), push and pull request runs | Both succeeded: `npm test`, `npm audit --audit-level=high` and `npm run test:browser` (four browser tests) |
+| `npm test` on the branch `fix/sheet-bot-winner` (2026-11-13, Node 22) | 536 tests, 536 pass, 0 fail |
+| GitHub Actions on pull request #9 (`fix/sheet-bot-winner`, commit `dcd1616`), push and pull request runs | Both succeeded: `npm test`, `npm audit --audit-level=high` and `npm run test:browser` (four browser tests) |
 | `npm test` | 474 tests, 474 pass, 0 fail (round 2 branch, Node 22.23.4, about 11 seconds) |
 | `npm run test:browser` | 3 tests, 3 pass, 0 fail (Chromium through Playwright, about 30 seconds) |
 | `npm audit --audit-level=high` | `found 0 vulnerabilities` |
 | GitHub Actions on the pushed branch (commit `1c6eac0`, Ubuntu, Node 22), for the push and for the pull request | Both runs succeeded: `npm test` 410 of 410, `npm audit --audit-level=high` 0 vulnerabilities, `npm run test:browser` 3 of 3 |
 | GitHub Actions on `main` after the merge (commit `0d7bcaa`) | Succeeded: `npm test` 410 of 410, `npm audit --audit-level=high` 0 vulnerabilities, `npm run test:browser` 3 of 3 |
 | The deployed app after the merge: Render follows `main`, commit `0d7bcaa` is live | `/healthz` shows `"store":"sheets"` and `"storeReachable":true`; 8 of 8 WebSocket connections answered |
-| The deployed app at <https://nova-brawl.onrender.com> before the merge (Render, Frankfurt, then on the branch `build`, with the real Google Sheet): opened a room, registered two test players from an emulated iPhone and an emulated Android phone, started a match, landed a hit, reloaded a phone. Run twice | `/healthz` shows `"store":"sheets"` and `"storeReachable":true`; the QR image loads; both phones join; the hit shows as 8 % on the victim's phone only; the reloaded phone gets its pad back; 60 pictures a second. From a button press on the phone to the fighter moving on the big screen: median 52 and 55 ms (measured from Lisbon). The first run logged two failed WebSocket handshakes on the host page right after the service had started; the page reconnected by itself, and 27 further connections and the second run had none |
+| The deployed app at <https://nova-brawl.onrender.com> before the merge (Render, Frankfurt, then on the branch `build`, now `feature/round-1-first-build`, with the real Google Sheet): opened a room, registered two test players from an emulated iPhone and an emulated Android phone, started a match, landed a hit, reloaded a phone. Run twice | `/healthz` shows `"store":"sheets"` and `"storeReachable":true`; the QR image loads; both phones join; the hit shows as 8 % on the victim's phone only; the reloaded phone gets its pad back; 60 pictures a second. From a button press on the phone to the fighter moving on the big screen: median 52 and 55 ms (measured from Lisbon). The first run logged two failed WebSocket handshakes on the host page right after the service had started; the page reconnected by itself, and 27 further connections and the second run had none |
 | The real Google Sheet, with the server running locally: two test players registered, wrong and right PIN, one match result sent, server restarted, login again | Registration takes 3 to 5 seconds (the sheet is slow); the result was stored after 2.5 seconds with the right points and achievements; after the restart the login was answered from the sheet; the sheet holds a salt and a hash, no PIN. The match came from a script acting as host and phones over WebSocket, not from a played match |
 | `PORT=3987 node server/index.js`, then played with two emulated phones | A match from the title screen to the results, 60 pictures a second, no console errors |
 

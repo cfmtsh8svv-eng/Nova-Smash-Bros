@@ -24,7 +24,6 @@ Node 22 or newer. No build step: the browser loads the ES modules as they are.
 | `public/host/`, `public/play/`, `public/shared/` | Big screen, phone, shared art/sound/connection. |
 | `tests/game/`, `tests/server/`, `tests/browser/` | Tests per package. Shared helpers in `tests/helpers/`. |
 | `docs/` | The spec (`GAME_SPEC.md`), the decision log, the walkthrough, setup and deploy guides. `docs/archive/` holds the build prompts and the first brainstorm: history, not rules. |
-| `design/` | Art reference (`final/`), the option rounds the team chose from (`options/`) and the first mock-up (`mockup/`). Not served and not used by the game. |
 
 ## Rules
 

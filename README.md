@@ -82,7 +82,6 @@ Each stage has three **hazards**: the Cascais Line train (sometimes late!), Bad 
 | [`docs/DEMO.md`](docs/DEMO.md) | Demo mode for the presentation: how to switch it on, what changes, where the values are |
 | [`docs/SPECS.md`](docs/SPECS.md), [`docs/CONCEPT.md`](docs/CONCEPT.md) | Technical overview, brand and voice |
 | [`docs/archive/`](docs/archive/) | History: the build prompts of each round and the first brainstorm (ideas that were not built) |
-| [`design/`](design/) | The final art reference, the option rounds the team chose from and the first mock-up |
 | [`CREDITS.md`](CREDITS.md) | Logo, fonts and software credits |
 
 ## Tech

@@ -1,4 +1,5 @@
-// Fighter art, ported from design/final/characters.js and extended with poses.
+// Fighter art, ported from the team's final art reference (the design/ folder, removed
+// on 2026-11-13; it is in the git history) and extended with poses.
 //
 // buildSvg(cfg, mainColour, pose) draws a fighter as SVG. The original design is
 // one standing pose; here the arm and leg angles, the body lean and the held

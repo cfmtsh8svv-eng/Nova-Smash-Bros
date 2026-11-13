@@ -4,7 +4,7 @@
 
 Sound: music per stage and effects are synthesised in the browser, with separate volume controls on the host. There are no keyboard players (D-132). Every human plays from a phone; the host can fill free places with **bots** (§5a, D-156 onwards).
 
-Final art reference: [`design/final/`](../design/final/) (`reference.html`, `characters.js`, `stages.js`). The game itself draws with `public/shared/art/` (ported from there and extended with poses), and the platforms it uses are in `src/game/stages.js`.
+Art: the game draws everything with `public/shared/art/`, and the platforms it uses are in `src/game/stages.js`. The art reference and the option rounds the team chose from (the `design/` folder) were removed on 2026-11-13; they are in the git history.
 
 ---
 
@@ -156,8 +156,6 @@ The joystick produces the input state `left, right, up, down, attack, jump, spec
 
 **Attack in the air** (D-137): **Up + Attack** is the normal upward attack. **Attack without Up is the stomp**: the fighter stops moving sideways and drops straight down fast (18 px per frame); on landing a ring-shaped **shockwave** hits every opponent within **130 px** (centre to centre): 9 %, base_kb 6, kb_growth 9, 45° away from the stomper. Then the fighter needs **14 frames** to recover. It is a normal attack, not a special, so it has no cooldown; the recovery is its cost. If the fighter has not landed after **60 frames** (they fell past the stage), the stomp ends without a shockwave. Items: a held Book is still thrown in the air (no stomp); a held Sardine powers the stomp (it uses one swing, and the Sardine's damage and knockback apply). Attack on the ground is unchanged.
 
-Reference: `design/options/round9-phone-final.html`.
-
 There is no shield.
 
 The phone header shows the player's **name tag in their player colour**, damage % and lives. Player colours: P1 red `#e63946`, P2 blue `#2f7fe0`, P3 green `#22a36b`, P4 yellow `#f6c343`, always with the "P1" to "P4" label.
@@ -211,11 +209,11 @@ Pixel sprites, 81 px tall, three tones per colour, dark outline (style "HD pixel
 | Lisboa OG | 115 | 2 | Sardine Slap | **Ding-Ding** | A mini Tram 28 rolls along the ground: 12 %, sideways knockback | "Run over by the 28!" |
 | Carcavelos Gang Member | 100 | 3 | Pizza Throw | **Spaghetti Lasso** | 380 px forward: pulls the first opponent hit to him, 6 %, 0.7 s stun | "Caught in the pasta!" |
 
-Special cooldown: 6 to 8 s. Looks and colours are defined in `public/shared/art/characters.js` (from the reference `design/final/characters.js`).
+Special cooldown: 6 to 8 s. Looks and colours are defined in `public/shared/art/characters.js`.
 
 ### 7.2 Stages (3)
 
-Detailed illustration, drawn in code, true to the real places. Platforms are **part of the scenery** (roofs, canopies, balconies, a lifeguard tower) and every playable surface carries the stage's striped trim. The platform layouts are in `src/game/stages.js` (the rules and the art both read them); the art reference is `design/final/stages.js`.
+Detailed illustration, drawn in code, true to the real places. Platforms are **part of the scenery** (roofs, canopies, balconies, a lifeguard tower) and every playable surface carries the stage's striped trim. The platform layouts are in `src/game/stages.js` (the rules and the art both read them).
 
 | Stage | Time | Platforms | Hazards |
 |---|---|---|---|
@@ -307,7 +305,7 @@ Every error is shown in plain words next to where it happened ("That gamertag is
 
 **Lobby.** When a player joins, their slot appears on the big screen with a short entrance effect (flash and pop in the player colour, with a sound). Until that player has picked a fighter, the slot shows a **grey silhouette**; picking a fighter reveals the sprite. A bot's card shows its fighter, its nickname and the BOT tag at once, and its level with ◀ ▶ arrows (§5a); it plays the same entrance effect when it is added or comes back from the bench.
 
-**End sequence and results screen** (D-155, mockup `design/options/round11-podium.html`). It is drawn on the game canvas, on the stage of the match, right after the final-KO slow motion:
+**End sequence and results screen** (D-155). It is drawn on the game canvas, on the stage of the match, right after the final-KO slow motion:
 
 1. **0 to 1.8 s.** The camera zooms on the winner, who hops. "{NAME} WINS!" slams in with a screen shake and a burst of confetti.
 2. **1.8 to 2.6 s.** The camera goes back, the stage dims, and the name moves to the top with "graduates with honours" under it.

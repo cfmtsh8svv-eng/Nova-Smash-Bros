@@ -8,6 +8,7 @@ import { matchPoints } from '../src/game/scoring.js';
 import { STAGE_IDS } from '../src/game/stages.js';
 import { FIGHTER_IDS } from '../src/game/fighters.js';
 import { isInt, isPlainObject } from './validate.js';
+import { demoMatchSettings } from '../src/game/config.js';
 
 export const ACHIEVEMENTS = [
   { id: 'first_win', name: 'First Win', text: 'Win a match.' },
@@ -29,9 +30,13 @@ const MAX_DURATION_S = 6 * 60 * 60;
 const COUNTDOWN_S = 3;
 const RESPAWN_S = 2;
 const MAX_DAMAGE_PER_SECOND = 80; // far above what one fighter can deal, even hitting three opponents // there is no time limit; this only stops absurd numbers
+// A demo match (docs/DEMO.md) ends at its time cap. The duration is rounded to whole seconds,
+// so it may come out a little above the cap; anything beyond this margin is refused.
+const DEMO_CAP_MARGIN_S = 2;
 
 // Check a result the host sent against what the server knows about the match.
-// match: { id, stage, lives, slots: [..] (humans), bots: [{ slot, name, fighter }], startedAt }
+// match: { id, stage, lives, slots: [..] (humans), bots: [{ slot, name, fighter }], startedAt, demo? }
+// Only a match started with demo: true may end by the time cap (byTimeCap: true).
 // A bot's line is checked like any other; its fighter must be the one it started with.
 // Returns { ok: true, players } with cleaned numbers, or { ok: false, reason }.
 export function checkResult(match, result, now) {
@@ -39,8 +44,13 @@ export function checkResult(match, result, now) {
   if (!isPlainObject(result)) return bad('The result is not an object.');
   if (result.stage !== match.stage || !STAGE_IDS.includes(result.stage)) return bad('The stage does not match the match that was started.');
   if (result.lives !== match.lives) return bad('The lives do not match the match that was started.');
-  if (result.byTimeCap) return bad('This build has no time limit.');
+  const capS = match.demo ? demoMatchSettings().timeCapS : 0;
+  if (result.byTimeCap !== undefined && typeof result.byTimeCap !== 'boolean') return bad('The end of the match is malformed.');
+  const byCap = result.byTimeCap === true;
+  if (byCap && !capS) return bad('This build has no time limit.');
   if (!isInt(result.durationS, 1, MAX_DURATION_S)) return bad('The duration is not plausible.');
+  if (capS && result.durationS > capS + DEMO_CAP_MARGIN_S) return bad('A demo match cannot last longer than its time limit.');
+  if (byCap && result.durationS < capS - DEMO_CAP_MARGIN_S) return bad('The match ended at the time limit before the time was up.');
   // Time: the countdown alone takes 3 s, so a match cannot have lasted longer than the
   // time since it started minus that; and a player who lost several lives needed
   // 2 s to come back each time.
@@ -75,7 +85,14 @@ export function checkResult(match, result, now) {
   const winner = players.find((p) => p.place === 1);
   if (result.winner !== winner.slot) return bad('The winner does not match the places.');
   if (winner.endLives < 1) return bad('The winner has no life left.');
-  if (players.some((p) => p !== winner && p.endLives !== 0)) return bad('The match can only end when one player is left.');
+  if (byCap) {
+    // At the cap several players may still be in the match; all of them place above those who are out.
+    const still = players.filter((p) => p.endLives > 0);
+    if (still.some((p) => p.place > still.length)) return bad('A player who was out places above one still in the match.');
+    // ... and more lives left always places higher (the first rule of the cap).
+    const byPlace = [...still].sort((a, b) => a.place - b.place);
+    if (byPlace.some((p, i) => i > 0 && p.endLives > byPlace[i - 1].endLives)) return bad('At the time limit more lives left must place higher.');
+  } else if (players.some((p) => p !== winner && p.endLives !== 0)) return bad('The match can only end when one player is left.');
 
   const sum = (key) => players.reduce((total, p) => total + p[key], 0);
   if (sum('kos') > sum('falls')) return bad('More KOs than falls.');

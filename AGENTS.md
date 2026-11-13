@@ -28,7 +28,7 @@ Node 22 or newer. No build step: the browser loads the ES modules as they are.
 
 ## Rules
 
-1. **Branches.** Never commit to `main` directly. Work on a branch and open a pull request. Only a team member merges, because `main` is what gets graded and deployed.
+1. **Branches.** Never commit to `main` directly. Work on a branch named `type/topic` (`feature/`, `fix/`, `docs/` or `chore/`, then a few words in lower case with hyphens, for example `fix/sheet-bot-winner`) and open a pull request. Only a team member merges, because `main` is what gets graded and deployed.
 2. **Secrets.** Never commit a secret. Real values live only in `.env` (git-ignored) and on the host. `.env.example` lists names only. Do not print secrets in logs or tests.
 3. **Never edit a test to make it pass.** If a test fails, the code is wrong or the rule changed. If the rule changed, change `docs/GAME_SPEC.md` and `docs/DECISIONS.md` first, then the test, and say so in the commit.
 4. **Dependencies.** Runtime dependencies are `ws` and `qrcode`, pinned to exact versions. Do not add one without a decision in `docs/DECISIONS.md`.

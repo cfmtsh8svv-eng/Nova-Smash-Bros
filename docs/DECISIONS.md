@@ -225,7 +225,7 @@ Decided in a question round on 2026-11-12 before the build ([`BUILD_PROMPT_ROUND
 
 ### Round 4, part 2: bot levels (2026-11-12)
 
-Decided by Bastian on 2026-11-12, after the bots of round 4 were built. Still on `build_v4`, because it belongs to the bot update. The build prompt is [`BUILD_PROMPT_ROUND4_LEVELS.md`](archive/BUILD_PROMPT_ROUND4_LEVELS.md).
+Decided by Bastian on 2026-11-12, after the bots of round 4 were built. Still on `build_v4` (now `feature/round-4-bots`), because it belongs to the bot update. The build prompt is [`BUILD_PROMPT_ROUND4_LEVELS.md`](archive/BUILD_PROMPT_ROUND4_LEVELS.md).
 
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|
@@ -239,7 +239,7 @@ Decided by Bastian on 2026-11-12, after the bots of round 4 were built. Still on
 
 ### Bug fixes 2 (2026-11-13)
 
-Found in a review of the whole repository on 2026-11-13, fixed on the branch `bug-fixes-2`.
+Found in a review of the whole repository on 2026-11-13, fixed on the branch `bug-fixes-2` (now `fix/sheet-bot-winner`).
 
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|

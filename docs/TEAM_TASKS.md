@@ -6,11 +6,11 @@ How to work on one:
 
 ```bash
 git checkout main && git pull
-git checkout -b my-task-name
+git checkout -b feature/my-task-name   # or fix/..., docs/..., chore/... (AGENTS.md rule 1)
 # ... edit, then:
 npm test
 git add -A && git commit -m "What I changed and why"
-git push -u origin my-task-name      # then open a pull request on GitHub
+git push -u origin feature/my-task-name      # then open a pull request on GitHub
 ```
 
 Rule from [`AGENTS.md`](../AGENTS.md): never change a test just to make it pass. If you change a rule on purpose, first change `docs/GAME_SPEC.md` and `docs/DECISIONS.md`, then the test for that rule, and say so in the commit.

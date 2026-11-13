@@ -146,8 +146,8 @@ button.plain { background: transparent; box-shadow: none; color: var(--mute); }
 .voteBottom { display: flex; align-items: center; gap: 2cqw; }
 .voteTimer { font-family: var(--display); font-weight: 400; font-size: 5cqw; line-height: 1; color: #fff; min-width: 6cqw; }
 
-/* demo mode: one line in the lobby's bottom left corner, under the join column */
-.demoLine { position: absolute; left: 1.2cqw; bottom: 0.8cqw; font-family: var(--display); font-size: 1.25cqw; color: var(--yellow); background: rgba(22, 18, 42, 0.86); border: 0.18cqw solid var(--yellow); border-radius: 0.6cqw; padding: 0.3cqw 0.8cqw; pointer-events: none; }
+/* demo mode: one line in the lobby's bottom right corner, under the settings panel (D-207) */
+.demoLine { position: absolute; right: 2.5cqw; bottom: 0.35cqw; font-family: var(--display); font-size: 1.1cqw; line-height: 1; color: var(--yellow); background: rgba(22, 18, 42, 0.86); border: 0.15cqw solid var(--yellow); border-radius: 0.5cqw; padding: 0.25cqw 0.7cqw; pointer-events: none; }
 #toast, #offline { position: absolute; left: 50%; bottom: 3cqw; transform: translateX(-50%); background: var(--dark); border: 0.25cqw solid var(--yellow); border-radius: 0.9cqw; padding: 0.6cqw 1.4cqw; font-size: 1.3cqw; max-width: 80%; }
 #offline { bottom: auto; top: 1.2cqw; border-color: var(--red); }
 

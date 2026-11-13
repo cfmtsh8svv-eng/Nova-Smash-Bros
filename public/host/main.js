@@ -68,11 +68,11 @@ function show(name) {
 }
 
 let toastTimer = null;
-function toast(text, ms = 4500) {
+function toast(text) {
   $('toast').textContent = text;
   $('toast').hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { $('toast').hidden = true; }, ms);
+  toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4500);
 }
 
 const phase = (msg, slot = 'all') => link.send({ t: 'to', slot, msg: { t: 'phase', ...msg } });
@@ -866,7 +866,9 @@ function toggleDemo() {
     demo.livesBefore = null;
   }
   audio.play('click');
-  toast(demo.on ? 'Demo mode on' : 'Demo mode off', 2000);
+  // No toast (D-207): the line in the lobby's bottom right corner is the only sign, and
+  // switching off leaves nothing on the screen.
+  if (/^Demo mode/.test($('toast').textContent)) $('toast').hidden = true;
   lobbyPhase();
   renderLobby();
 }

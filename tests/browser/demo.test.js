@@ -1,4 +1,4 @@
-// Browser test: demo mode (docs/DEMO.md). Shift+D in the lobby, the line in the bottom left,
+// Browser test: demo mode (docs/DEMO.md). Shift+D in the lobby, the line in the bottom right,
 // the locked lives, four fighters on the phone, a phone moved off another fighter, a demo
 // match with one phone and one bot that ends at the time cap, the result that is not saved,
 // and Shift+D again back in the lobby.
@@ -76,7 +76,7 @@ test('demo mode: Shift+D, four fighters, a match that ends at the cap, not saved
   await host.waitForFunction(() => window.novaBrawl.demo === true);
   assert.equal(await text(host, '#demoLine'), 'DEMO MODE (to quit press Shift + D)');
   assert.equal(await host.isVisible('#demoLine'), true);
-  assert.equal(await text(host, '#toast'), 'Demo mode on');
+  assert.equal(await host.isVisible('#toast'), false, 'no toast in the middle (D-207)');
   // Bottom left, readable, and covering nothing of the lobby.
   const line = await host.evaluate(() => {
     const frame = document.getElementById('frame').getBoundingClientRect();
@@ -86,9 +86,9 @@ test('demo mode: Shift+D, four fighters, a match that ends at the cap, not saved
       const r = e.getBoundingClientRect();
       return r.width && r.height && r.left < box.right && r.right > box.left && r.top < box.bottom && r.bottom > box.top;
     }).map((e) => e.id || e.className || e.tagName);
-    return { left: box.left - frame.left, bottom: frame.bottom - box.bottom, width: box.width, frameW: frame.width, size: parseFloat(getComputedStyle(document.getElementById('demoLine')).fontSize), overlaps };
+    return { right: frame.right - box.right, bottom: frame.bottom - box.bottom, width: box.width, frameW: frame.width, size: parseFloat(getComputedStyle(document.getElementById('demoLine')).fontSize), overlaps };
   });
-  assert.ok(line.left < line.frameW * 0.05 && line.bottom >= 0 && line.bottom < 30, `bottom left: ${JSON.stringify(line)}`);
+  assert.ok(line.right < line.frameW * 0.05 && line.bottom >= 0 && line.bottom < 30, `bottom right: ${JSON.stringify(line)}`);
   assert.ok(line.size >= 14, `readable: ${line.size}px`);
   assert.deepEqual(line.overlaps, [], 'covers nothing');
   if (process.env.DEMO_SHOT) await host.screenshot({ path: process.env.DEMO_SHOT });
@@ -173,7 +173,7 @@ test('demo mode: Shift+D, four fighters, a match that ends at the cap, not saved
   await host.keyboard.press('Shift+KeyD');
   await host.waitForFunction(() => window.novaBrawl.demo === false);
   assert.equal(await host.isVisible('#demoLine'), false);
-  assert.equal(await text(host, '#toast'), 'Demo mode off');
+  assert.equal(await host.isVisible('#toast'), false, 'switching off shows nothing');
   const after = await host.evaluate(() => [...document.querySelectorAll('#lifeButtons button')].map((b) => [b.disabled, b.getAttribute('aria-pressed')]));
   assert.deepEqual(after, [[false, 'false'], [false, 'true'], [false, 'false']], 'the earlier choice (2 lives) is back');
   await ana.waitForFunction(() => [...document.querySelectorAll('#carousel .card')].filter((c) => !c.hidden).length === 8);

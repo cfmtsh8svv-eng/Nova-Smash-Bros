@@ -40,7 +40,7 @@ Then open **http://localhost:3000** on the laptop and click **Open a room**.
 ```bash
 npm test                          # game rules and server (about 530 tests, a few seconds)
 npx playwright install chromium   # once, for the browser test
-npm run test:browser              # host page + emulated iPhone + emulated Android phone
+npm run test:browser              # four browser tests: host page + emulated iPhone and Android phones
 npm audit --audit-level=high      # dependency check
 ```
 
@@ -80,8 +80,9 @@ Each stage has three **hazards**: the Cascais Line train (sometimes late!), Bad 
 | [`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/SETUP_SHEETS.md`](docs/SETUP_SHEETS.md) | Deploying, and connecting the Google Sheet |
 | [`docs/TEAM_TASKS.md`](docs/TEAM_TASKS.md) | Small follow-up tasks for each member |
 | [`docs/DEMO.md`](docs/DEMO.md) | Demo mode: planned, not built |
-| [`docs/SPECS.md`](docs/SPECS.md), [`docs/CONCEPT.md`](docs/CONCEPT.md), [`docs/BRAINSTORM.md`](docs/BRAINSTORM.md) | Technical overview, brand and voice, ideas that were not built |
-| [`design/`](design/) | The final art reference and the option rounds the team chose from |
+| [`docs/SPECS.md`](docs/SPECS.md), [`docs/CONCEPT.md`](docs/CONCEPT.md) | Technical overview, brand and voice |
+| [`docs/archive/`](docs/archive/) | History: the build prompts of each round and the first brainstorm (ideas that were not built) |
+| [`design/`](design/) | The final art reference, the option rounds the team chose from and the first mock-up |
 | [`CREDITS.md`](CREDITS.md) | Logo, fonts and software credits |
 
 ## Tech

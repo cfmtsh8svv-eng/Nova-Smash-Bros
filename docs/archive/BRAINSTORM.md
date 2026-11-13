@@ -1,8 +1,8 @@
 # NOVA Brawl: Brainstorm
 
-> **Historical (2026-11-03).** Ideas from the first concept phase. What was built is in [`GAME_SPEC.md`](GAME_SPEC.md) and the decisions are in [`DECISIONS.md`](DECISIONS.md): accounts, leaderboard, achievements and pause rules were decided there (D-054, D-067, D-069, D-070). References below to requirement numbers and open questions point to an older plan that no longer exists.
+> **Historical (2026-11-03).** Ideas from the first concept phase. What was built is in [`GAME_SPEC.md`](../GAME_SPEC.md) and the decisions are in [`DECISIONS.md`](../DECISIONS.md): accounts, leaderboard, achievements and pause rules were decided there (D-054, D-067, D-069, D-070). References below to requirement numbers and open questions point to an older plan that no longer exists.
 
-Ideas we want to remember but have **not committed to yet**. Nothing in this file is in scope until it has a decision in [`DECISIONS.md`](DECISIONS.md) and a requirement in [`SPECS.md`](SPECS.md). Several ideas are shown visually in the [mock-up](../mockup/index.html).
+Ideas we want to remember but have **not committed to yet**. Nothing in this file is in scope until it has a decision in [`DECISIONS.md`](../DECISIONS.md) and a requirement in [`SPECS.md`](../SPECS.md). Several ideas are shown visually in the [mock-up](../../design/mockup/index.html).
 
 **Status tags:** `idea` · `open decision O-xx` (waiting for a team decision) · `in specs F-xx` (already planned) · `dropped`
 **Effort:** **S** = under a day · **M** = 1–3 days · **L** = more than 3 days (for 2–3 people with AI assistance)
@@ -246,7 +246,7 @@ More student archetypes for later or to swap in:
 ## 3. How an idea becomes a feature
 
 1. Discuss it in the team (or with Claude).
-2. Add an open decision `O-xx` to [`DECISIONS.md`](DECISIONS.md) if it needs one.
+2. Add an open decision `O-xx` to [`DECISIONS.md`](../DECISIONS.md) if it needs one.
 3. Decide → new `D-0xx` row.
-4. Add requirements with a MoSCoW priority to [`SPECS.md`](SPECS.md).
+4. Add requirements with a MoSCoW priority to [`SPECS.md`](../SPECS.md).
 5. Change the tag here to `in specs F-xx`.

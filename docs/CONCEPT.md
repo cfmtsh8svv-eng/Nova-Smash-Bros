@@ -9,7 +9,7 @@
 | | |
 |---|---|
 | **Document** | Game & brand concept (the *what* and *why*) |
-| **Related** | [`GAME_SPEC.md`](GAME_SPEC.md) (the spec) · [`WALKTHROUGH.md`](WALKTHROUGH.md) (how it is built) · [`DECISIONS.md`](DECISIONS.md) (every decision) · [`BRAINSTORM.md`](BRAINSTORM.md) (ideas not built) |
+| **Related** | [`GAME_SPEC.md`](GAME_SPEC.md) (the spec) · [`WALKTHROUGH.md`](WALKTHROUGH.md) (how it is built) · [`DECISIONS.md`](DECISIONS.md) (every decision) · [`BRAINSTORM.md`](archive/BRAINSTORM.md) (ideas not built) |
 | **Version** | 1.0 |
 | **Status** | Built |
 | **Course** | Introduction to Programming, group project |
@@ -127,7 +127,7 @@ All text in the game is **English only**, with no Portuguese words or slang, so 
 
 - **Original IP only.** NOVA Brawl is *inspired by the platform-fighter genre* (damage %, knockback, stocks). We use **no** Nintendo characters, names, sprites, music, sounds or logos. Everything is our own or properly licensed.
 - **Nova SBE is the setting, not the publisher.** The campus roof carries the Nova SBE logo, redrawn from the official mark (decision D-063). It is credited in [`CREDITS.md`](../CREDITS.md) and remains the school's trademark; nothing else of the school's branding is used.
-- **No real people without consent.** Professors and students in the game are fictional archetypes. A real person (e.g. a celebrity skin, see [BRAINSTORM.md](BRAINSTORM.md)) needs permission for anything public.
+- **No real people without consent.** Professors and students in the game are fictional archetypes. A real person (e.g. a celebrity skin, see [BRAINSTORM.md](archive/BRAINSTORM.md)) needs permission for anything public.
 - **Drinks stay cartoonish.** Effects are short, silly and never "rewarding". The phone always adds "Drink water!".
 
 ---

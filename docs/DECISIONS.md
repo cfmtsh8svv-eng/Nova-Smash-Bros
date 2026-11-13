@@ -51,7 +51,7 @@ The **single source of truth** for every decision about NOVA Brawl. [`GAME_SPEC.
 | D-023 | Language rule | **English only. No Portuguese slang or words** in the game or the docs | English with Portuguese slang ("Bora!", "Fixe!"; this was in concept v0.1) | Team request | Team | Decided |
 | D-024 | Item & place names | Translated to English: **Custard Tart** (was Pastel de Nata), **Espresso** (was Bica / Galão), **Beer** (was Imperial), **Cherry Shot** (was Ginjinha), **Carcavelos Beach** (was Praia de Carcavelos), **Cascais Line** (was Linha de Cascais). **Bairro Alto** keeps its name because it's the stage name the team chose. | Keep the Portuguese food names | Follows from D-023 | Claude | Proposal (follows D-023, easy to revert) |
 | D-025 | Fighter 6 | **Busker Bruno** (student musician with cape and guitar) replaces "Tuna Tomás" | Keep Tuna Tomás ("tuna" is a Portuguese student music group) | Follows from D-023 | Claude | Proposal |
-| D-026 | Documentation set | `CONCEPT.md` (what & why), `SPECS.md` (how), `DECISIONS.md` (this file), `BRAINSTORM.md` (ideas not yet decided), `mockup/index.html` (visual mock-up) | Everything in one file | Clear roles, decisions in one place | Team | Decided |
+| D-026 | Documentation set | `CONCEPT.md` (what & why), `SPECS.md` (how), `DECISIONS.md` (this file), `BRAINSTORM.md` (ideas not yet decided), `mockup/index.html` (visual mock-up; now `design/mockup/index.html`) | Everything in one file | Clear roles, decisions in one place | Team | Decided |
 | D-027 | Brainstorm ideas | Login, gamification, leaderboard, stats, achievements, skins and pause ideas are **collected in `BRAINSTORM.md`** and are **not in scope yet** | Put them straight into the specs | They need a scope decision first (O-08, O-09) | Team | Decided |
 
 ### Build-prep session (2026-11-11)
@@ -159,7 +159,7 @@ Made by Claude while building, wherever the spec left something open. **The team
 
 ### Round 2: gameplay and UI (2026-11-12)
 
-The team agreed the changes in [`BUILD_PROMPT_ROUND2.md`](BUILD_PROMPT_ROUND2.md) point by point. Rows marked "Team" record those decisions; rows marked "Claude (round 2)" are details the build prompt left open. The team confirmed all of them on 2026-11-12.
+The team agreed the changes in [`BUILD_PROMPT_ROUND2.md`](archive/BUILD_PROMPT_ROUND2.md) point by point. Rows marked "Team" record those decisions; rows marked "Claude (round 2)" are details the build prompt left open. The team confirmed all of them on 2026-11-12.
 
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|
@@ -197,7 +197,7 @@ The team agreed these changes on 2026-11-12 after checking the mockups `design/o
 
 ### Round 4: bots (2026-11-12)
 
-Decided in a question round on 2026-11-12 before the build ([`BUILD_PROMPT_ROUND4.md`](BUILD_PROMPT_ROUND4.md)). Rows marked "Claude (round 4)" fill in details the answers left open; the rest of the team still has to confirm the whole round. GAME_SPEC §5a has the rules.
+Decided in a question round on 2026-11-12 before the build ([`BUILD_PROMPT_ROUND4.md`](archive/BUILD_PROMPT_ROUND4.md)). Rows marked "Claude (round 4)" fill in details the answers left open; the rest of the team still has to confirm the whole round. GAME_SPEC §5a has the rules.
 
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|
@@ -223,7 +223,7 @@ Decided in a question round on 2026-11-12 before the build ([`BUILD_PROMPT_ROUND
 
 ### Round 4, part 2: bot levels (2026-11-12)
 
-Decided by Bastian on 2026-11-12, after the bots of round 4 were built. Still on `build_v4`, because it belongs to the bot update. The build prompt is [`BUILD_PROMPT_ROUND4_LEVELS.md`](BUILD_PROMPT_ROUND4_LEVELS.md).
+Decided by Bastian on 2026-11-12, after the bots of round 4 were built. Still on `build_v4`, because it belongs to the bot update. The build prompt is [`BUILD_PROMPT_ROUND4_LEVELS.md`](archive/BUILD_PROMPT_ROUND4_LEVELS.md).
 
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|

@@ -41,7 +41,7 @@ The code is in three packages that match this split:
 | Folder | What is in it |
 |---|---|
 | `src/game/` | **The rules.** Everything that decides what happens in a match. Pure code: no screen, no network. |
-| `server/` and `apps-script/` | **The server** and the small script inside the Google Sheet |
+| `server/` and `google-sheet/` | **The server** and the small script inside the Google Sheet |
 | `public/` | **The client:** `host/` (big screen), `play/` (phone), `shared/` (art, sound, connection) |
 
 The most important design idea is the first row: **the rules do not know that there is a screen or a network.** They are a function: "here is the match, here is what everyone is pressing, give me the match one step later". The host page calls that function 60 times a second and draws the result. The tests call the same function without any browser. That is why nearly everything can be tested.
@@ -57,7 +57,7 @@ In a **Google Sheet** with two tabs:
 - `players`: one row per player. Gamertag, a salt and a hash for the PIN (never the PIN itself), and the totals: matches, wins, points, KOs, falls, damage dealt and taken, achievements.
 - `matches`: one row per finished match. Id, time, stage, lives, duration, winner, and a short list of the players' numbers.
 
-Only the server reaches the sheet, through a small script that lives inside the sheet (`apps-script/Code.gs`). Browsers never talk to the sheet.
+Only the server reaches the sheet, through a small script that lives inside the sheet (`google-sheet/Code.gs`). Browsers never talk to the sheet.
 
 A few more things are stored, in other places:
 
@@ -289,7 +289,7 @@ Every human fighter belongs to a logged-in phone (keyboard players were removed 
 
 **A demo match** (started with `demo: true`) is checked the same way, with two differences: it may end by the time cap (`byTimeCap: true`, only for a demo match; a normal match with it is refused with "This build has no time limit."), and then several players may still have lives, as long as the winner is in place 1, everyone still in places above everyone who is out and more lives never places lower. Its duration may not exceed `DEMO_SETTINGS.timeCapS` plus 2 s. However many logged-in players took part, a demo match is never stored and never counted for the hourly limit: the answer is `result_saved` with `stored: false`, no points or achievements and the note "Demo match: not saved.", so the host page's end sequence runs as usual.
 
-### The store (`store/`, `data.js`, `apps-script/Code.gs`)
+### The store (`store/`, `data.js`, `google-sheet/Code.gs`)
 
 All access to stored data goes through one small interface with four operations: get a player, create a player, record a match, list players. There are two implementations:
 
@@ -391,7 +391,7 @@ What is enforced, and where:
 | Four secrets, read only from the environment: sheet URL, shared secret, PIN pepper, session secret | `server/config.js` |
 | Every HTTP body and every WebSocket message is validated: type, size, fields, allowed characters | `server/app.js`, `server/rooms.js`, `server/validate.js` |
 | Rate limits: per address for the API, for logins and for new rooms; per connection for messages | `server/security.js`, `server/config.js` |
-| Gamertags cannot start a formula or contain HTML | `server/validate.js`, checked again in `apps-script/Code.gs` |
+| Gamertags cannot start a formula or contain HTML | `server/validate.js`, checked again in `google-sheet/Code.gs` |
 | Only the host may start a match, submit or cancel a result, or talk to the phones | The role tables in `server/rooms.js` |
 | One result per match, and only a possible one; not sooner than the match could have been played; at most 120 counted matches per player per hour | `server/rooms.js`, `server/results.js` |
 | What the host passes on to phones is checked field by field | `relayProblem` in `server/rooms.js` |
@@ -403,7 +403,7 @@ What is enforced, and where:
 | A WebSocket is only accepted from our own pages (Origin check) | `server/app.js` |
 | Files outside the public folders cannot be requested | `server/static.js` |
 | Text from other players is always inserted as text, never as HTML | `public/**/main.js` (`textContent`) |
-| The sheet script checks the shared secret, validates again, uses a lock | `apps-script/Code.gs` |
+| The sheet script checks the shared secret, validates again, uses a lock | `google-sheet/Code.gs` |
 | Two runtime dependencies, exact versions, lockfile committed, `npm audit` in CI | `package.json`, `.github/workflows/ci.yml` |
 
 What is deliberately **not** protected, and why: see the next section.
@@ -425,7 +425,7 @@ How the tests are organised:
 - `rules`, `movement`, `ledge`, `stomp`, `hand`, `specials`, `items`, `hazards`, `input`, `view`: one file per area of the rules.
 - `exact.test.js` (rules) and `strict.test.js` (server): tests that use the **literal numbers from the spec** instead of reading them from the code, so changing a rule by accident fails a test.
 - `regressions.test.js` (rules, server, browser): tests for the defects the reviewers found. In the rules and the server there is one for each defect, and each failed before its fix. In the client, the defects a browser test can reach are covered (connection drops, a held button through a KO); the rest was checked by hand.
-- `accounts`, `rooms`, `reconnect`, `results`, `outage`, `http`, `e2e`, `bots`, `vote`, `intro`, `crown`: the server by topic. `sheets-script` runs `apps-script/Code.gs` in Node against a stand-in spreadsheet.
+- `accounts`, `rooms`, `reconnect`, `results`, `outage`, `http`, `e2e`, `bots`, `vote`, `intro`, `crown`: the server by topic. `sheets-script` runs `google-sheet/Code.gs` in Node against a stand-in spreadsheet.
 - `tests/helpers/`: `server.js` starts a real server on a random port, `game.js` sets up matches, `scripted-player.js` is a simple scripted player for whole matches, and `bots.js` holds the bot-tuning helpers (`botMatch`, `simpleHuman`).
 - `bot.test.js` (rules): the bots play with the real rules. It checks that a match with bots replays exactly, that a bot does not fall off by itself, gets back to the stage, gets from every platform to every other one on each stage (and from a standing start on one Bairro Alto balcony to the other, D-181), beats a standing opponent, ends a match against another bot, reacts no sooner than its reaction delay, ignores a hazard until it is announced and then leaves its level, never changes the state and presses like a thumb, and that a scripted simple human wins some but not all matches against it (`tests/helpers/bots.js`). The stage, recovery, standing-opponent, two-bot and reaction tests run again for each level (Easy gets 60 s and 4 minutes), every level must have the keys of Medium and the human limits, and the simple human must win at least 11 of 15 against Easy, 3 to 13 against Medium and 1 to 8 against Hard, strictly fewer from level to level.
 
@@ -497,7 +497,7 @@ In `src/game/config.js`. Every number is there: the special's damage, range, coo
 **6. How does a bot play, and how do you know it does not cheat?**
 `src/game/bot.js` is a pure function that returns the same buttons a phone sends, so the rules treat it like a player. It sees the others 0.2 s late, misjudges distances a little and presses no faster than a thumb. It never reads hidden timers: a test runs a match with and without a queued hazard and checks the bot presses the same buttons until the warning appears. Its numbers are in `config.js` under `bots.easy`, `bots.medium` and `bots.hard`; Hard is quicker and more accurate, but keeps the same limits (at least 0.1 s late, no faster presses).
 
-### For the owner of the server (`server/`, `apps-script/`, `tests/server/`)
+### For the owner of the server (`server/`, `google-sheet/`, `tests/server/`)
 
 **1. What does the server do, and what does it not do?**
 It serves the pages, keeps the rooms, passes messages between phones and the host page, checks logins and saves results. It does **not** run the match: that happens in the host page. The server only sees buttons going one way and status messages going the other, and the result at the end.

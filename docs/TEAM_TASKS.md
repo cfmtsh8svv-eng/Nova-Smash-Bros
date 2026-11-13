@@ -22,7 +22,7 @@ Rule from [`AGENTS.md`](../AGENTS.md): never change a test just to make it pass.
 | G1 | **Tune one fighter.** After playtesting, change one number of one special (for example Bass Drop's radius or Wave Rider's cooldown) and write down why in `docs/DECISIONS.md`. | `SPECIAL_TUNING` in `src/game/config.js` | The matching "reach of ..." case in `tests/game/exact.test.js` (the inside and outside distances) |
 | G2 | **A new KO text.** Add one more line to the launch texts or the burnout texts, in the game's voice (`docs/CONCEPT.md` §3.4). | `LAUNCH_TEXTS` / `BURNOUT_TEXTS` in `src/game/combat.js` | A test in `tests/game/rules.test.js` that over many seeds every text in the list shows up at least once |
 
-## Owner of the server (`server/`, `apps-script/`, `tests/server/`)
+## Owner of the server (`server/`, `google-sheet/`, `tests/server/`)
 
 | # | Task | Where | Test to add or change |
 |---|---|---|---|

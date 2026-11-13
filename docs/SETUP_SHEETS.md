@@ -7,7 +7,7 @@ Without this setup the game still works: it then keeps everything in memory unti
 ## What you need
 
 - A Google account (any member's; the sheet can be shared with the others afterwards)
-- The file [`apps-script/Code.gs`](../apps-script/Code.gs) from this repository
+- The file [`google-sheet/Code.gs`](../google-sheet/Code.gs) from this repository
 - A terminal with Node.js, to make three random secrets
 
 ## 1. Make the secrets
@@ -37,7 +37,7 @@ You do not need to create tabs or columns. The script does that.
 
 1. In the sheet's menu click **Extensions → Apps Script**. A new browser tab opens with an editor and a file called `Code.gs`.
 2. Select everything in the editor and delete it.
-3. Open [`apps-script/Code.gs`](../apps-script/Code.gs) from the repository, copy **all** of it and paste it into the editor.
+3. Open [`google-sheet/Code.gs`](../google-sheet/Code.gs) from the repository, copy **all** of it and paste it into the editor.
 4. Click the **disk icon** (Save project).
 
 ## 4. Give the script its secret

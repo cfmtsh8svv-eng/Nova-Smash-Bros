@@ -1,4 +1,4 @@
-// The Google Sheet script (apps-script/Code.gs) against what the server really sends.
+// The Google Sheet script (google-sheet/Code.gs) against what the server really sends.
 //
 // Code.gs runs inside Google, so it is loaded here into a Node sandbox with a small
 // stand-in for the spreadsheet. That is enough to catch the script refusing data the
@@ -15,7 +15,7 @@ import { MemoryStore, StoreError } from '../../server/store/memory.js';
 import { startServer } from '../helpers/server.js';
 
 const SECRET = 'test-shared-secret-0123456789';
-const CODE = readFileSync(new URL('../../apps-script/Code.gs', import.meta.url), 'utf8');
+const CODE = readFileSync(new URL('../../google-sheet/Code.gs', import.meta.url), 'utf8');
 
 // A spreadsheet tab: a grid of cells, with the few calls Code.gs uses.
 function fakeSheet() {

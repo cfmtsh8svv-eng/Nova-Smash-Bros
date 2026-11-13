@@ -112,7 +112,7 @@ Coordinates are a 1280×720 space at 60 Hz. Gravity 0.6 px/f². A single jump re
 
 ## 5a. Bots
 
-Bots fill places so that one or two people can still play a full match (D-156). Each bot has its own **level: Easy, Medium or Hard** (D-175). The three levels are three number sets in `config.js` (`bots.easy`, `bots.medium`, `bots.hard`) for the same code; they differ only in their numbers, never in what the bot knows or how fast a thumb could press (D-176). A "God" level is a possible later feature, not part of this build (O-13).
+Bots fill places so that one or two people can still play a full match (D-156). Each bot has its own **level: Easy, Medium or Hard** (D-175). The three levels are three number sets in `config.js` (`bots.easy`, `bots.medium`, `bots.hard`) for the same code; they differ only in their numbers, never in what the bot knows or how fast a thumb could press (D-176). A "God" level is not part of this build; the question was dropped for now (D-183).
 
 **Lobby (host page).** Under the player cards: **Add bot** and **Remove bot**. Add bot works only while a place is free (humans plus bots fewer than 4); Remove bot removes the bot added last. A bot gets a **random fighter**, if possible one that no human has picked; a click on the bot's card switches to the next fighter (D-159). A bot is always Ready. Bots can be added and removed only in the lobby, also while the room is closed.
 

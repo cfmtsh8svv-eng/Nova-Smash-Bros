@@ -108,8 +108,7 @@ export const CONFIG = {
   },
   // Height bands used by hazards: a fighter is "on the ground level" when the feet are below this line.
   levels: { groundAbove: 520, roofBelow: 400 },
-  // Bots (GAME_SPEC §5a, D-157, D-163). One number set per strength; only `medium` is used now.
-  // Easy and hard are meant to be other sets with the same keys (no new code paths).
+  // Bots (GAME_SPEC §5a, D-163, D-175). One number set per level, read by the same code.
   bots: {
     // Three levels with the same keys for the same code (D-176). Every level keeps the
     // human limits: reactionFrames at least 6, pressHold 2, pressGap 8.

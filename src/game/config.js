@@ -126,6 +126,10 @@ export const CONFIG = {
       pressHold: 2,
       pressGap: 8,
       climbDelay: 20,
+      tipsyAdaptFrames: 60, // tipsy: steers the wrong way this long before it notices (D-184) ...
+      tipsySlipChance: 0.02, // ... then, per frame, the chance to get it wrong again ...
+      tipsySlipFrames: 15, // ... for this long
+      hazardMissChance: 0.3, // chance to miss a hazard warning and react only once it is active (D-184)
     },
     medium: {
       reactionFrames: 12, // acts on what it saw this many frames ago (0.2 s)
@@ -141,6 +145,10 @@ export const CONFIG = {
       pressHold: 2, // a press is held at least this many frames ...
       pressGap: 8, // ... and the same button is pressed again only this many frames after it was let go
       climbDelay: 12, // frames hanging at the ledge before Jump climbs up
+      tipsyAdaptFrames: 40, // tipsy: steers the wrong way this long before it notices (D-184) ...
+      tipsySlipChance: 0.01, // ... then, per frame, the chance to get it wrong again ...
+      tipsySlipFrames: 15, // ... for this long
+      hazardMissChance: 0.15, // chance to miss a hazard warning and react only once it is active (D-184)
     },
     hard: { // reacts sooner, misjudges less, attacks more (D-179)
       reactionFrames: 8,
@@ -156,6 +164,10 @@ export const CONFIG = {
       pressHold: 2,
       pressGap: 8,
       climbDelay: 8,
+      tipsyAdaptFrames: 20,
+      tipsySlipChance: 0.005,
+      tipsySlipFrames: 15,
+      hazardMissChance: 0.05,
     },
   },
 };
@@ -176,13 +188,13 @@ export const FIGHTER_STATS = {
 // `total` the frame on which the fighter can act again.
 export const SPECIAL_TUNING = {
   cash_rain: { cooldown: seconds(7), radius: 220, damage: 6, slipFrames: seconds(1.5), push: 9, at: 10, total: 36 },
-  padel_smash: { cooldown: seconds(7), range: 510, speed: 17, size: 18, damage: 18, baseKb: 6, kbGrowth: 9, angleDeg: 32, at: 8, total: 30 },
-  rounds_on_me: { cooldown: seconds(8), radius: 200, damage: 4, tipsyFrames: seconds(4), at: 10, total: 36 },
+  padel_smash: { cooldown: seconds(7), range: 510, speed: 17, size: 18, damage: 14, baseKb: 6, kbGrowth: 9, angleDeg: 32, at: 8, total: 30 },
+  rounds_on_me: { cooldown: seconds(8), radius: 200, damage: 7, tipsyFrames: seconds(3), at: 10, total: 36 },
   wave_rider: { cooldown: seconds(6), range: 360, speed: 12, damage: 10, reach: 22, endStun: 16, keepSpeed: 0.1, at: 4, total: 40 },
   ring_light_flash: { cooldown: seconds(7), radius: 320, damage: 5, stunFrames: seconds(1), at: 8, total: 30 },
-  bass_drop: { cooldown: seconds(8), radius: 180, damage: 12, baseKb: 7, kbGrowth: 9, angleDeg: 80, hop: 11, hopKeepSpeed: 0.3, slam: 18, slamAt: 12, maxAir: 50, recovery: 14 },
+  bass_drop: { cooldown: seconds(8), radius: 230, damage: 12, baseKb: 7, kbGrowth: 9, angleDeg: 60, hop: 11, hopKeepSpeed: 0.3, slam: 18, slamAt: 12, maxAir: 50, recovery: 14 },
   ding_ding: { cooldown: seconds(7), range: 600, speed: 8, w: 70, h: 44, damage: 12, baseKb: 6, kbGrowth: 9, angleDeg: 15, toss: 15, at: 10, total: 30 },
-  spaghetti_lasso: { cooldown: seconds(6), range: 380, thickness: 64, damage: 6, stunFrames: seconds(0.4), pullFrames: 10, pullGap: 56, freeAt: 26, at: 8, total: 34 },
+  spaghetti_lasso: { cooldown: seconds(6), range: 380, thickness: 64, damage: 6, stunFrames: seconds(0.7), pullFrames: 10, pullGap: 56, freeAt: 26, at: 8, total: 34 },
 };
 
 // Match settings chosen in the lobby. Everything a later "demo mode" needs to

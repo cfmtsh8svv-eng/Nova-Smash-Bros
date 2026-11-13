@@ -50,15 +50,15 @@ test('Cash Rain: slipping lasts 1.5 s and leaves almost no grip', () => {
   assert.equal(foe.slip, 0);
 });
 
-test('Padel Smash: 18 % on the first opponent in the line only', () => {
+test('Padel Smash: 14 % on the first opponent in the line only', () => {
   const { foes, told, events } = cast('maastricht_blondie', [{ dx: 200 }, { dx: 400 }]);
   const [first, second] = foes;
-  assert.equal(first.percent, 18);
+  assert.equal(first.percent, 14);
   assert.equal(second.percent, 0, 'the ball stops at the first opponent');
   assert.deepEqual(told.map((e) => e.slot), [first.slot]);
   assert.equal(told[0].text, 'Smashed!');
   // "strong knockback": clearly more than a normal attack would give at the same damage (weight 100)
-  const normal = CONFIG.attack.baseKb + CONFIG.attack.kbGrowth * 0.18;
+  const normal = CONFIG.attack.baseKb + CONFIG.attack.kbGrowth * 0.14;
   assert.ok(of(events, 'hit')[0].speed > normal * 1.3, `strong knockback (${of(events, 'hit')[0].speed} against ${normal})`);
 });
 
@@ -73,16 +73,16 @@ test('Padel Smash: misses beyond its range and above its line', () => {
 
 test('Padel Smash goes up while Up is held', () => {
   const { foes } = cast('maastricht_blondie', [{ dx: 0, y: 336 }, { dx: 200 }], { input: { up: true }, casterX: 640 });
-  assert.equal(foes[0].percent, 18, 'the opponent on the roof above is hit');
+  assert.equal(foes[0].percent, 14, 'the opponent on the roof above is hit');
   assert.equal(foes[1].percent, 0, 'the opponent beside is not');
 });
 
-test("Round's On Me: 4 % and tipsy for 4 s inside 200 px, nothing outside", () => {
+test("Round's On Me: 7 % and tipsy for 3 s inside 200 px, nothing outside", () => {
   const { state, foes, told, S } = cast('bairro_chad', [{ dx: 150 }, { dx: 260 }], { frames: 14 });
   const [inside, outside] = foes;
-  assert.equal(inside.percent, 4);
+  assert.equal(inside.percent, 7);
   assert.ok(inside.tipsy > 0 && inside.tipsy <= S.tipsyFrames);
-  assert.equal(S.tipsyFrames, 240);
+  assert.equal(S.tipsyFrames, 180);
   assert.equal(outside.percent, 0);
   assert.equal(outside.tipsy, 0);
   assert.deepEqual(told.map((e) => e.slot), [inside.slot]);
@@ -156,7 +156,7 @@ test('Ring Light Flash skips an invincible opponent and takes the next nearest',
   assert.equal(far.percent, 5);
 });
 
-test('Bass Drop: 12 % and an upward launch inside 180 px, nothing outside', () => {
+test('Bass Drop: 12 % and an upward launch inside 230 px, nothing outside', () => {
   const { foes, told, events } = cast('house_dj', [{ dx: 100 }, { dx: 300 }], { frames: 23 });
   const [inside, outside] = foes;
   assert.equal(inside.percent, 12);
@@ -212,7 +212,7 @@ test('Spaghetti Lasso: pulls the first opponent within 380 px to the caster, 6 %
   const [first, second] = foes;
   assert.equal(first.percent, 6);
   assert.ok(Math.abs(first.x - (caster.x + S.pullGap)) < 2, `pulled to ${first.x}`);
-  assert.equal(S.stunFrames, 24);
+  assert.equal(S.stunFrames, 42);
   assert.equal(second.percent, 0, 'only the first opponent');
   assert.equal(second.x, 660);
   assert.deepEqual(told.map((e) => e.slot), [first.slot]);

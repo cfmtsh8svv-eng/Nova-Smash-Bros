@@ -100,7 +100,7 @@ Open point, stated in [`WALKTHROUGH.md`](WALKTHROUGH.md) section 8: the host pag
 This criterion is about the people, so the repository can only prepare them.
 
 - [`WALKTHROUGH.md`](WALKTHROUGH.md): the big picture, five questions every member should be able to answer, one part per package with "what it does", "why it was built this way" and "limits", then security, tests, known limits, how it could change, and five likely questions for each package owner.
-- [`DECISIONS.md`](DECISIONS.md): every decision with the alternative that was not taken and the reason. Rows marked "team to confirm" (most of D-098 to D-131, D-156 to D-165) and the proposals D-181 and D-182 still wait for the team.
+- [`DECISIONS.md`](DECISIONS.md): every decision with the alternative that was not taken and the reason. The team confirmed the build decisions (D-098 to D-131), the bot round (D-156 to D-165) and D-181 and D-182 on 2026-11-13; only D-125 still waits for the team.
 - [`TEAM_TASKS.md`](TEAM_TASKS.md): one small change for each member in their own package, with the test to write for it, so that each member has changed and tested the code they explain.
 - The commit history is split by package, so each member can follow their own part with `git log`.
 

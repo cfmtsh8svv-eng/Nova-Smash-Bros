@@ -76,6 +76,12 @@ function supportIndex(stage, x, y) {
   return best;
 }
 
+// How far to the side a platform may be for the routes that go round (D-181): a jump at an
+// angle to a higher one, and walking off an edge onto a lower one.
+const UP_REACH = 120;
+const UP_RISE = 170;
+const WALK_OFF_REACH = 80;
+
 // Which platform can be reached from which, and how many hops apart they are.
 function buildGraph(stage) {
   const P = stage.platforms;
@@ -88,9 +94,14 @@ function buildGraph(stage) {
       const b = P[j];
       const gap = Math.max(a.x, b.x) - Math.min(a.x + a.w, b.x + b.w); // < 0: they overlap by that much
       if (b.y < a.y) {
-        if (!b.solid && a.y - b.y <= 280 && gap <= 40) next[i].push(j); // up: jump (and double jump)
+        const rise = a.y - b.y;
+        // up: a jump (and the double jump) straight up, or at an angle from the edge to a
+        // platform beside this one. A jump reaches about 160 px, both together about 290 px;
+        // at an angle only as high as one jump, the double jump is the reserve for the side.
+        if (!b.solid && ((rise <= 280 && gap <= 40) || (rise <= UP_RISE && gap <= UP_REACH))) next[i].push(j);
       } else if (b.y > a.y) {
         if (!a.solid && -gap >= 60) next[i].push(j); // down: drop through
+        else if (gap <= WALK_OFF_REACH) next[i].push(j); // down: walk off the edge onto the one beside
       } else if (gap <= 160) {
         next[i].push(j); // across a gap at the same height
       }
@@ -98,21 +109,22 @@ function buildGraph(stage) {
   }
   // Hops between every pair (breadth-first), and the first hop of a shortest way.
   const hop = [...Array(n)].map(() => Array(n).fill(-1));
+  const dist = [];
   for (let from = 0; from < n; from++) {
-    const dist = Array(n).fill(Infinity);
-    dist[from] = 0;
+    dist[from] = Array(n).fill(Infinity);
+    dist[from][from] = 0;
     const queue = [from];
     while (queue.length) {
       const i = queue.shift();
       for (const j of next[i]) {
-        if (dist[j] !== Infinity) continue;
-        dist[j] = dist[i] + 1;
+        if (dist[from][j] !== Infinity) continue;
+        dist[from][j] = dist[from][i] + 1;
         hop[from][j] = i === from ? j : hop[from][i];
         queue.push(j);
       }
     }
   }
-  return { hop };
+  return { hop, dist };
 }
 
 // ---- the press manager: a thumb, not a machine ----
@@ -297,14 +309,29 @@ function decide(bot, state, me, seen) {
   if (goalPlatform === mine || bot.graph.hop[mine][goalPlatform] < 0) {
     if (Math.abs(goalX - me.x) > stopAt) intent.dir = sign(goalX - me.x);
   } else {
-    const nextIndex = bot.graph.hop[mine][goalPlatform];
+    let nextIndex = bot.graph.hop[mine][goalPlatform];
+    if (platformDanger(hz, stage, nextIndex) && !inDanger) {
+      // The shortest way leads through a hazard zone: take a safe neighbouring platform from
+      // which the goal can still be reached, if there is one (on Bairro Alto the roofs go round
+      // the street). Without it two bots on safe levels waited out the whole hazard.
+      const { hop, dist } = bot.graph;
+      let best = Infinity;
+      P.forEach((_, j) => {
+        if (j === mine || hop[mine][j] !== j || platformDanger(hz, stage, j)) return;
+        if (dist[j][goalPlatform] < best) {
+          best = dist[j][goalPlatform];
+          nextIndex = j;
+        }
+      });
+    }
     const next = P[nextIndex];
     if (platformDanger(hz, stage, nextIndex) && !inDanger) {
       if (Math.abs(goalX - me.x) > stopAt) intent.dir = sign(clamp(goalX, myPlatform.x + 24, myPlatform.x + myPlatform.w - 24) - me.x);
     } else if (next.y < myPlatform.y) {
       const landX = clamp(goalX, next.x + 30, next.x + next.w - 30);
       if (me.onGround) {
-        const takeoff = clamp(me.x, next.x + 20, next.x + next.w - 20);
+        // Under the platform, or at the edge of this one nearest to it (a jump at an angle).
+        const takeoff = clamp(clamp(me.x, next.x + 20, next.x + next.w - 20), myPlatform.x + 14, myPlatform.x + myPlatform.w - 14);
         if (Math.abs(takeoff - me.x) < 24) {
           intent.jump = true;
           intent.dir = sign(landX - me.x);
@@ -313,15 +340,26 @@ function decide(bot, state, me, seen) {
         }
       } else {
         intent.dir = Math.abs(landX - me.x) > 10 ? sign(landX - me.x) : 0;
-        // The double jump at the top of the first one, if the platform is still above the feet.
-        if (me.jumpsLeft > 0 && me.vy > -1.5 && me.y > next.y - 4) intent.jump = true;
+        // The double jump at the top of the first one, if the platform is still above the feet
+        // and the bot is under it. Without the second check a bot that has just dropped off a
+        // platform (and so counts as on the one below) jumped straight back up at once, towards
+        // a platform far to the side, and landed where it started, again and again.
+        const under = me.x >= next.x - UP_REACH - 10 && me.x <= next.x + next.w + UP_REACH + 10;
+        if (under && me.jumpsLeft > 0 && me.vy > -1.5 && me.y > next.y - 4) intent.jump = true;
       }
     } else if (next.y > myPlatform.y) {
       const lo = Math.max(myPlatform.x, next.x) + 24;
       const hi = Math.min(myPlatform.x + myPlatform.w, next.x + next.w) - 24;
-      const dropX = clamp(goalX, lo, hi);
-      if (me.onGround && Math.abs(dropX - me.x) < 18) intent.down = true;
-      else intent.dir = sign(dropX - me.x);
+      if (!myPlatform.solid && hi - lo >= 12) {
+        // Drop through where the two overlap.
+        const dropX = clamp(goalX, lo, hi);
+        if (me.onGround && Math.abs(dropX - me.x) < 18) intent.down = true;
+        else intent.dir = sign(dropX - me.x);
+      } else {
+        // The platform below is beside this one: walk off the edge towards it.
+        const landX = clamp(goalX, next.x + 30, next.x + next.w - 30);
+        intent.dir = sign(landX - me.x);
+      }
     } else {
       // The same height across a gap: run and jump at the edge.
       const towards = sign(next.x - myPlatform.x);

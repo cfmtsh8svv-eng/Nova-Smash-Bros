@@ -8,7 +8,7 @@ import { createBot, botInput, BOT_NAMES, BOT_LEVELS } from '../../src/game/bot.j
 import { CONFIG } from '../../src/game/config.js';
 import { neutralInput } from '../../src/game/input.js';
 import { beginWarning, WARN_FRAMES } from '../../src/game/hazards.js';
-import { STAGE_IDS } from '../../src/game/stages.js';
+import { STAGE_IDS, getStage } from '../../src/game/stages.js';
 import { botMatch, simpleHuman } from '../helpers/bots.js';
 
 const M = CONFIG.bots.medium;
@@ -90,6 +90,46 @@ test('two medium bots, 1 life, items and hazards on, end the match within 3 minu
   for (const stage of STAGE_IDS) {
     const state = botMatch({ stage, fighters: ['finance_bro', 'wannabe_influencer'], bots: [0, 1], seed: 8, settings: { lives: 1, items: true, hazards: true }, frames: 180 * SECOND });
     assert.ok(state.phase === 'finalKo' || state.phase === 'ended', `${stage}: still running after 3 minutes`);
+  }
+});
+
+// A bot standing on platform `from` (at x, or its middle) and a standing opponent on platform
+// `to`. Returns the frame the bot first stands on `to`, or -1 if it does not within `seconds`.
+function reachPlatform({ stage, from, to, x = null, level = 'medium', seconds = 8 }) {
+  const state = fresh({ stage, seed: 4 });
+  const P = state.stage.platforms;
+  const place = (f, i, at) => Object.assign(f, { x: at ?? P[i].x + P[i].w / 2, y: P[i].y, vx: 0, vy: 0, onGround: true, groundId: i, invincible: 0 });
+  place(state.fighters[0], from, x);
+  place(state.fighters[1], to, null);
+  const bot = createBot({ slot: 0, level, seed: 4 });
+  for (let i = 0; i < seconds * SECOND; i++) {
+    step(state, { 0: botInput(bot, state), 1: neutralInput() });
+    const me = state.fighters[0];
+    if (me.state !== 'alive') return -1;
+    if (me.onGround && me.groundId === to) return i;
+  }
+  return -1;
+}
+
+test('ways: on each stage a bot gets from every platform to every other one within 8 s', () => {
+  for (const stage of STAGE_IDS) {
+    const n = getStage(stage).platforms.length;
+    for (let from = 0; from < n; from++) {
+      for (let to = 0; to < n; to++) {
+        if (from !== to) assert.ok(reachPlatform({ stage, from, to }) >= 0, `${stage}: platform ${from} to ${to}`);
+      }
+    }
+  }
+});
+
+test('ways (D-181): a bot standing still at the drop point of a balcony gets to the other balcony', () => {
+  // It used to drop, count as on the street at once and double-jump straight back up towards
+  // the far balcony, landing where it started, again and again.
+  const P = getStage('bairro').platforms;
+  const from = P.findIndex((p) => p.id === 'balcony-left');
+  const to = P.findIndex((p) => p.id === 'balcony-right');
+  for (const level of BOT_LEVELS) {
+    assert.ok(reachPlatform({ stage: 'bairro', from, to, x: 350, level, seconds: 5 }) >= 0, level);
   }
 });
 

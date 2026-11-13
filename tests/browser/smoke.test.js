@@ -192,7 +192,9 @@ test('host page, an iPhone and an Android phone: register, pick, ready, start, p
   await android.waitForFunction(() => document.querySelector('#carousel .card.current h3').textContent === 'Surfer Girl');
   await android.click('#ready');
   await host.waitForFunction(() => !document.getElementById('startMatch').disabled);
-  await android.click('#ready'); // "Ready! Tap to change"
+  assert.equal(await android.textContent('#ready'), 'Switch character', 'once ready, the button switches the character');
+  await android.click('#ready');
+  assert.equal(await android.textContent('#ready'), 'Ready!');
   await host.waitForFunction(() => document.querySelector('.slot.p2 .state').textContent === 'Not ready yet');
   assert.equal(await host.isDisabled('#startMatch'), true, 'un-readying counts');
   await android.click('#ready');

@@ -442,7 +442,7 @@ function showSelect() {
   show('select');
   markCurrent();
   scrollToFighter();
-  $('ready').textContent = me.ready ? 'Ready! Tap to change' : 'Ready!';
+  $('ready').textContent = me.ready ? 'Switch character' : 'Ready!';
   $('ready').classList.toggle('on', me.ready);
   $('carousel').style.overflowX = me.ready ? 'hidden' : 'auto';
   $('selectHint').textContent = me.ready ? `${FIGHTERS[me.fighter].name} is in. Waiting for the host to start…` : 'Swipe to choose your fighter';

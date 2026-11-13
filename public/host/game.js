@@ -17,6 +17,10 @@ import { createCeremony } from './ceremony.js';
 const STALE_MS = 600; // a phone that sent nothing for this long (six missed heartbeats) is treated as "let go of everything"
 const ITEM_SOUND = { bifana: 'munch', rooster: 'crow', project: 'project', cork: 'block', megaphone: 'blast' };
 const CEREMONY_SOUND = { slam: 'go', rise: 'land', pop: 'click', crown: 'ready', firework: 'firework' };
+// A match that ends by the time cap (demo mode) has no final KO: "TIME!" stands this long
+// before the end sequence, the moment the final-KO slow motion gives otherwise (D-196).
+export const TIME_UP_TEXT = 'TIME!';
+const TIME_UP_MS = 1800;
 const HAZARD_SOUND = { train: 'train', wave: 'wave', gulls: 'gulls', crowd: 'crowd', drinks: 'drinks', wifi: 'wifi', rain: 'rain', sun: 'sun', fireworks: 'fireworksLaunch' };
 
 export function createGame({ canvas, audio, sendTo, onEnd }) {
@@ -35,6 +39,7 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
   let held = false; // set up, but waiting for the intro to end
   let ceremony = null; // the end sequence after the match (ceremony.js)
   let ceremonyAt = 0;
+  let timeUp = null; // the timer of the "TIME!" moment
 
   // ---- inputs ----
 
@@ -180,6 +185,21 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
     // The end sequence with the podium takes over the canvas (D-155); the results screen
     // (main.js) shows the stat cards over it.
     matchEnd(e) {
+      if (e.result.byTimeCap && !e.timeShown) {
+        // Time is up: the fighters freeze where they are and TIME! stands alone, like FINAL KO!.
+        audio.play('finalKo');
+        audio.setMusic(null);
+        fx.banners = [];
+        fx.addFlash(0.7);
+        fx.addShake(12);
+        fx.banner(TIME_UP_TEXT, { size: 140, color: '#f6c343', y: 300, life: 150 });
+        const finished = state;
+        timeUp = setTimeout(() => {
+          timeUp = null;
+          if (state === finished) HANDLERS.matchEnd({ ...e, timeShown: true });
+        }, TIME_UP_MS);
+        return;
+      }
       const result = e.result;
       const finished = state;
       fx.clear();
@@ -312,6 +332,8 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
   }
 
   function stop() {
+    clearTimeout(timeUp);
+    timeUp = null;
     held = false;
     ceremony = null;
     loop = null;

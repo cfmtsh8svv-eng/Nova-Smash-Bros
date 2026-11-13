@@ -1,7 +1,7 @@
 // The host page (the big screen): title -> lobby -> match -> results -> lobby.
 // It talks to the server over one WebSocket, owns the lobby settings and starts
 // and ends matches. The match itself runs in game.js.
-import { PLAYER_COLORS } from '/game/config.js';
+import { PLAYER_COLORS, demoFighters, demoMatchSettings } from '/game/config.js';
 import { FIGHTERS, getFighter } from '/game/fighters.js';
 import { BOT_LEVELS } from '/game/bot.js';
 import { HAZARDS, STAGES, STAGE_IDS, tallyVote } from '/game/stages.js';
@@ -34,6 +34,11 @@ const lobby = {
   hazards: true,
   seen: new Set(), // gamertags already shown, to play the entrance only once
 };
+// Demo mode (docs/DEMO.md): switched with Shift+D in the lobby, kept in memory only, so a
+// reload of this page switches it off. livesBefore is the lobby's choice to go back to.
+const demo = { on: false, livesBefore: null };
+// The fighters that can be picked right now: the demo fighters, or all of them.
+const pickable = () => (demo.on ? demoFighters() : FIGHTERS.map((f) => f.id));
 let screen = 'title';
 let match = null; // { id, players, stageId } while a match is running or its results are shown
 let wantRoom = false;
@@ -63,17 +68,18 @@ function show(name) {
 }
 
 let toastTimer = null;
-function toast(text) {
+function toast(text, ms = 4500) {
   $('toast').textContent = text;
   $('toast').hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4500);
+  toastTimer = setTimeout(() => { $('toast').hidden = true; }, ms);
 }
 
 const phase = (msg, slot = 'all') => link.send({ t: 'to', slot, msg: { t: 'phase', ...msg } });
 
-function lobbyPhase() {
-  phase({ name: 'lobby' });
+// In demo mode the lobby phase tells the phones which fighters they may pick.
+function lobbyPhase(slot = 'all') {
+  phase(demo.on ? { name: 'lobby', fighters: demoFighters() } : { name: 'lobby' }, slot);
 }
 
 // ---- the server connection ----
@@ -192,6 +198,8 @@ const MESSAGES = {
         audio.play('ready');
       }
       if (old && old.connected !== p.connected) game.setConnected(p.slot);
+      // Demo mode: a phone that joined or came back learns the demo fighters at once.
+      if (demo.on && !p.bot && p.connected && (!old || !old.connected || old.gamertag !== p.gamertag) && inLobby()) lobbyPhase(p.slot);
     }
     if (intro) {
       // A player who lost the connection no longer holds up the intro.
@@ -299,8 +307,11 @@ function lineup() {
 // Ready, and at least 2 fighters with the bots.
 function canStart() {
   const ready = lineup();
-  return ready.length >= 1 && ready.length === lobby.roster.length && ready.length + lobby.bots.length >= 2;
+  return ready.length >= 1 && ready.length === lobby.roster.length && ready.length + lobby.bots.length >= 2 && !demoWaiting();
 }
+
+// Demo mode: a human whose fighter is not a demo fighter holds up the start (D-193).
+const demoWaiting = () => demo.on && lobby.roster.some((p) => !demoFighters().includes(p.fighter));
 
 // ---- bots in the lobby (GAME_SPEC §5a) ----
 
@@ -314,7 +325,7 @@ function freshBotFighter() {
   const humans = new Set(lobby.roster.map((p) => p.fighter).filter(Boolean));
   const bots = new Set(lobby.bots.map((b) => b.fighter));
   const pickFrom = (list) => list[Math.floor(Math.random() * list.length)];
-  const all = FIGHTERS.map((f) => f.id);
+  const all = pickable();
   const free = all.filter((id) => !humans.has(id) && !bots.has(id));
   const notHuman = all.filter((id) => !humans.has(id));
   return pickFrom(free.length ? free : notHuman.length ? notHuman : all).toString();
@@ -339,11 +350,15 @@ function removeBot() {
   if (inLobby() && lobby.bots.length) sendBots(lobby.bots.slice(0, -1));
 }
 
-// A click on a bot's card switches it to the next fighter (D-159).
+// A click on a bot's card switches it to the next fighter (D-159); in demo mode only
+// through the demo fighters, in their usual order.
 function cycleBot(index) {
   const list = lobby.bots.map((b) => ({ ...b }));
+  const order = FIGHTERS.map((f) => f.id).filter((id) => pickable().includes(id));
   const at = FIGHTERS.findIndex((f) => f.id === list[index].fighter);
-  list[index].fighter = FIGHTERS[(at + 1) % FIGHTERS.length].id;
+  // The next fighter after the current one in the full order that may be picked.
+  const next = order.find((id) => FIGHTERS.findIndex((f) => f.id === id) > at) || order[0];
+  list[index].fighter = next;
   sendBots(list);
 }
 
@@ -486,6 +501,7 @@ function renderLobby() {
   const fighters = all.length + lobby.bots.length;
   $('startMatch').disabled = !canStart();
   $('startHint').textContent = !lobby.roster.length ? 'Waiting for players…'
+    : demoWaiting() ? 'Waiting for everyone to pick one of the demo fighters'
     : waiting > 0 ? `Waiting for ${waiting} ${waiting === 1 ? 'player' : 'players'} to pick a fighter and tap Ready.`
       : fighters < 2 ? 'Add a bot or wait for another player.'
         : `${all.length} ${all.length === 1 ? 'player' : 'players'}${lobby.bots.length ? ` and ${lobby.bots.length} ${lobby.bots.length === 1 ? 'bot' : 'bots'}` : ''} ${fighters === 1 ? 'is' : 'are'} ready.`;
@@ -494,7 +510,11 @@ function renderLobby() {
 
   for (const button of $('stageButtons').children) button.setAttribute('aria-pressed', String(lobby.stage === button.dataset.value));
   $('startMatch').textContent = lobby.stage === 'vote' ? 'Start the vote' : 'Start match';
-  for (const button of $('lifeButtons').children) button.setAttribute('aria-pressed', String(Number(button.dataset.value) === lobby.lives));
+  for (const button of $('lifeButtons').children) {
+    button.setAttribute('aria-pressed', String(Number(button.dataset.value) === lobby.lives));
+    button.disabled = demo.on; // locked to the demo value (D-188)
+  }
+  $('demoLine').hidden = !demo.on;
   const toggle = (id, on, yes, no) => { $(id).setAttribute('aria-pressed', String(on)); $(id).textContent = on ? yes : no; };
   toggle('toggleItems', lobby.items, 'Items on', 'Items off');
   toggle('toggleHazards', lobby.hazards, 'Hazards on', 'Hazards off');
@@ -517,7 +537,12 @@ function buildLobbyControls() {
   for (const lives of [1, 2, 3]) {
     const button = el('button', '', `${lives} ${lives === 1 ? 'life' : 'lives'}`);
     button.dataset.value = String(lives);
-    button.addEventListener('click', () => { lobby.lives = lives; audio.play('click'); renderLobby(); });
+    button.addEventListener('click', () => {
+      if (demo.on) return;
+      lobby.lives = lives;
+      audio.play('click');
+      renderLobby();
+    });
     $('lifeButtons').append(button);
   }
   $('toggleItems').addEventListener('click', () => { lobby.items = !lobby.items; audio.play('click'); renderLobby(); });
@@ -573,8 +598,11 @@ function requestStart() {
 }
 
 function startMatchOn(stageId, all) {
-  pendingStart = { stageId, players: all, settings: { lives: lobby.lives, items: lobby.items, hazards: lobby.hazards } };
-  const sent = link.send({ t: 'match_start', stage: stageId, lives: lobby.lives, slots: all.map((p) => p.slot) });
+  // A demo match takes its values from DEMO_SETTINGS, with the lobby's items and hazards switches.
+  const settings = demo.on ? demoMatchSettings({ items: lobby.items, hazards: lobby.hazards }) : { lives: lobby.lives, items: lobby.items, hazards: lobby.hazards };
+  pendingStart = { stageId, players: all, settings, demo: demo.on };
+  const start = { t: 'match_start', stage: stageId, lives: settings.lives, slots: all.map((p) => p.slot) };
+  const sent = link.send(demo.on ? { ...start, demo: true } : start);
   if (!sent) {
     pendingStart = null;
     toast('No connection to the server right now. Try again in a moment.');
@@ -607,7 +635,7 @@ const counts = (slot) => lobby.roster.some((p) => p.slot === slot && p.connected
 
 function requestVote(all) {
   voting = { slots: all.map((p) => p.slot), players: all, votes: new Map(), endsAt: 0, winner: null, timer: null, ticker: null };
-  if (!link.send({ t: 'vote_start', slots: voting.slots })) {
+  if (!link.send(demo.on ? { t: 'vote_start', slots: voting.slots, demo: true } : { t: 'vote_start', slots: voting.slots })) {
     voting = null;
     toast('No connection to the server right now. Try again in a moment.');
     return;
@@ -808,7 +836,40 @@ window.addEventListener('keydown', (event) => {
     if (screen === 'match') setPaused(true);
     else if (screen === 'pause') setPaused(false);
   }
+  // The hidden demo switch: Shift+D, only in the lobby, not while typing (docs/DEMO.md, D-187).
+  if (event.code === 'KeyD' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey && !event.repeat && !typing(event.target)) {
+    if (inLobby()) toggleDemo();
+  }
 });
+
+const typing = (target) => Boolean(target && target.closest && target.closest('textarea, select, [contenteditable], input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=button])'));
+
+// ---- demo mode (docs/DEMO.md) ----
+
+function toggleDemo() {
+  demo.on = !demo.on;
+  if (demo.on) {
+    demo.livesBefore = lobby.lives;
+    lobby.lives = demoMatchSettings().lives;
+    // A bot on another fighter moves to a demo fighter, if possible one nobody else plays.
+    if (lobby.bots.some((b) => !pickable().includes(b.fighter))) {
+      const list = lobby.bots.map((b) => ({ ...b }));
+      for (const bot of list) {
+        if (pickable().includes(bot.fighter)) continue;
+        const taken = new Set([...lobby.roster.map((p) => p.fighter), ...list.map((b) => b.fighter)]);
+        bot.fighter = pickable().find((id) => !taken.has(id)) || pickable()[0];
+      }
+      sendBots(list);
+    }
+  } else if (demo.livesBefore !== null) {
+    lobby.lives = demo.livesBefore;
+    demo.livesBefore = null;
+  }
+  audio.play('click');
+  toast(demo.on ? 'Demo mode on' : 'Demo mode off', 2000);
+  lobbyPhase();
+  renderLobby();
+}
 // A hidden tab stops drawing, so the match pauses instead of running blind.
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && screen === 'match') setPaused(true);
@@ -885,7 +946,8 @@ function sendResultPhases(result, saved) {
     phase({
       name: 'results', place: p.place, of: result.players.length, won: p.place === 1, winner: winner.name, winnerBot: Boolean(winner.bot),
       stats: { dealt: p.damageDealt, taken: p.damageTaken, kos: p.kos, falls: p.falls },
-      points: line ? line.points : null, total: line ? line.totalPoints ?? null : null,
+      // A demo match is never saved (D-195): no points line, only the note.
+      points: line && !match.demo ? line.points : null, total: line && !match.demo ? line.totalPoints ?? null : null,
       achievements: line ? line.achievements.map((a) => ({ name: a.name, text: a.text })) : [],
       note: saved ? saved.note : '',
     }, p.slot);
@@ -897,7 +959,7 @@ function renderResultExtras(saved) {
   for (const line of saved.players) {
     const box = $('resultCards').querySelector(`[data-slot="${line.slot}"]`);
     if (!box || line.bot) continue; // a bot's card shows no points
-    box.querySelector('.pts').textContent = line.unsaved ? 'Not saved: no points' : `+${line.points} points`;
+    box.querySelector('.pts').textContent = match && match.demo ? '' : line.unsaved ? 'Not saved: no points' : `+${line.points} points`;
     box.querySelector('.ach').textContent = line.achievements.length ? `New: ${line.achievements.map((a) => a.name).join(', ')}` : '';
   }
   fillBoard($('board'), (saved.leaderboard || []).slice(0, 8), saved.stale);
@@ -962,5 +1024,6 @@ window.novaBrawl = {
   get roster() { return lobby.roster; },
   get bots() { return lobby.bots; },
   get botLevels() { return game.botLevels(); },
+  get demo() { return demo.on; }, // read-only: Shift+D in the lobby is the only switch
   takesInput: (slot) => game.takesInput(slot),
 };

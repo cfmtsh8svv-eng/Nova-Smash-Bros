@@ -15,7 +15,7 @@
 | Package | Folder | What it does | Tests |
 |---|---|---|---|
 | Game rules | `src/game/` | The whole match as pure logic: movement, attacks, the eight specials, items, hazards, KOs, the result. No screen, no network, no clock. | `tests/game/` |
-| Server | `server/`, `apps-script/` | Serves the pages, keeps rooms, passes messages between phones and the host page, accounts, results, leaderboard, Google Sheet. | `tests/server/` (also `Code.gs`, in `sheets-script.test.js`) |
+| Server | `server/`, `google-sheet/` | Serves the pages, keeps rooms, passes messages between phones and the host page, accounts, results, leaderboard, Google Sheet. | `tests/server/` (also `Code.gs`, in `sheets-script.test.js`) |
 | Client | `public/` | `host/` is the big screen (lobby, match, results), `play/` is the phone (accounts, fighter select, gamepad), `shared/` is art, sound and the connection. | `tests/browser/` |
 
 ## How the parts talk

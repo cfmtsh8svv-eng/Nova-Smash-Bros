@@ -41,7 +41,7 @@ The code is in three packages that match this split:
 | Folder | What is in it |
 |---|---|
 | `src/game/` | **The rules.** Everything that decides what happens in a match. Pure code: no screen, no network. |
-| `server/` and `apps-script/` | **The server** and the small script inside the Google Sheet |
+| `server/` and `google-sheet/` | **The server** and the small script inside the Google Sheet |
 | `public/` | **The client:** `host/` (big screen), `play/` (phone), `shared/` (art, sound, connection) |
 
 The most important design idea is the first row: **the rules do not know that there is a screen or a network.** They are a function: "here is the match, here is what everyone is pressing, give me the match one step later". The host page calls that function 60 times a second and draws the result. The tests call the same function without any browser. That is why nearly everything can be tested.
@@ -54,10 +54,10 @@ The most important design idea is the first row: **the rules do not know that th
 
 In a **Google Sheet** with two tabs:
 
-- `players`: one row per player. Gamertag, a salt and a hash for the PIN (never the PIN itself), and the totals: matches, wins, points, KOs, falls, damage dealt and taken, achievements.
+- `players`: one row per player. Gamertag, a salt and a hash for the PIN (never the PIN itself), and the totals: matches, wins, points, KOs, falls, damage dealt and taken, achievements, and whether their last saved match was a win (the crown, `last_won`).
 - `matches`: one row per finished match. Id, time, stage, lives, duration, winner, and a short list of the players' numbers.
 
-Only the server reaches the sheet, through a small script that lives inside the sheet (`apps-script/Code.gs`). Browsers never talk to the sheet.
+Only the server reaches the sheet, through a small script that lives inside the sheet (`google-sheet/Code.gs`). Browsers never talk to the sheet.
 
 A few more things are stored, in other places:
 
@@ -70,12 +70,12 @@ There is no database. That was a team decision: a sheet is something everyone ca
 
 ### What do the tests cover, and what not?
 
-**Covered** (about 530 tests, `npm test`, a few seconds):
+**Covered** (about 560 tests, `npm test`, a few seconds):
 
 - **The rules:** knockback, the 200 % burnout, every blast zone, respawn and invincibility, lives, how a match ends, jumping, aiming, each of the eight specials inside and outside its range, each item, each hazard with its safe platform, the vote, and that slow motion never changes a result.
 - **The server:** every way a registration or login is refused, the lockout, tampered and expired tokens, who may start a match and submit a result, implausible results, malformed, oversized and unknown messages, reconnects, and what happens when the sheet is down.
 - **End to end:** a real server, one host and four controllers over real WebSockets play a whole match with the real rules; the result arrives in the store and on the leaderboard.
-- **In a real browser** (`npm run test:browser`): the host page plus an emulated iPhone and an emulated Android phone register, pick, ready up, start and play; the fighters on the big screen follow the phones and no page logs an error. A second test plays a whole evening (stage vote, three phones, a hazard announcement, an elimination with the hazard vote, results, a second match, removing a player, logging out). A third cuts the host's connection at the worst moments (around Start, in mid-match, when the match ends).
+- **In a real browser** (`npm run test:browser`): the host page plus an emulated iPhone and an emulated Android phone register, pick, ready up, start and play; the fighters on the big screen follow the phones and no page logs an error. A second test plays a whole evening (stage vote, three phones, a hazard announcement, an elimination with the hazard vote, results, a second match, removing a player, logging out). A third cuts the host's connection at the worst moments (around Start, in mid-match, when the match ends). A fourth plays one phone against bots (the level arrows, the bench), and a fifth plays a demo match to the time cap.
 
 **Not covered:**
 
@@ -223,7 +223,7 @@ Demo mode (GAME_SPEC §6b, [`DEMO.md`](DEMO.md)) changes only settings, never a 
 - Fighters are boxes. Hits are "does this rectangle touch that rectangle". That is simple and fair, but an attack can hit a little outside the drawn sprite.
 - No shield, no grabs, no combos: decided by the team to keep it understandable in ten seconds.
 - The numbers are a first tuning. A scripted test player finishes matches quickly; real players will show what needs changing. The same goes for the bots' numbers.
-- The bot is a set of rules of thumb, not a planner: it does not dodge attacks, does not read the opponent's special cooldown and does not edge-guard. That fits "a first-time player" (D-157). Hard is the same rules with quicker numbers; a bot that plays smarter would need new behaviour (the God level, O-13, not built).
+- The bot is a set of rules of thumb, not a planner: it does not dodge attacks, does not read the opponent's special cooldown and does not edge-guard. That fits "a first-time player" (D-157). Hard is the same rules with quicker numbers; a bot that plays smarter would need new behaviour (a God level was discussed as O-13 and dropped for now, D-183).
 - With no time limit, a match between players who never fight never ends. The host can end it from the pause screen.
 
 ---
@@ -289,7 +289,7 @@ Every human fighter belongs to a logged-in phone (keyboard players were removed 
 
 **A demo match** (started with `demo: true`) is checked the same way, with two differences: it may end by the time cap (`byTimeCap: true`, only for a demo match; a normal match with it is refused with "This build has no time limit."), and then several players may still have lives, as long as the winner is in place 1, everyone still in places above everyone who is out and more lives never places lower. Its duration may not exceed `DEMO_SETTINGS.timeCapS` plus 2 s. However many logged-in players took part, a demo match is never stored and never counted for the hourly limit: the answer is `result_saved` with `stored: false`, no points or achievements and the note "Demo match: not saved.", so the host page's end sequence runs as usual.
 
-### The store (`store/`, `data.js`, `apps-script/Code.gs`)
+### The store (`store/`, `data.js`, `google-sheet/Code.gs`)
 
 All access to stored data goes through one small interface with four operations: get a player, create a player, record a match, list players. There are two implementations:
 
@@ -391,7 +391,7 @@ What is enforced, and where:
 | Four secrets, read only from the environment: sheet URL, shared secret, PIN pepper, session secret | `server/config.js` |
 | Every HTTP body and every WebSocket message is validated: type, size, fields, allowed characters | `server/app.js`, `server/rooms.js`, `server/validate.js` |
 | Rate limits: per address for the API, for logins and for new rooms; per connection for messages | `server/security.js`, `server/config.js` |
-| Gamertags cannot start a formula or contain HTML | `server/validate.js`, checked again in `apps-script/Code.gs` |
+| Gamertags cannot start a formula or contain HTML | `server/validate.js`, checked again in `google-sheet/Code.gs` |
 | Only the host may start a match, submit or cancel a result, or talk to the phones | The role tables in `server/rooms.js` |
 | One result per match, and only a possible one; not sooner than the match could have been played; at most 120 counted matches per player per hour | `server/rooms.js`, `server/results.js` |
 | What the host passes on to phones is checked field by field | `relayProblem` in `server/rooms.js` |
@@ -403,7 +403,7 @@ What is enforced, and where:
 | A WebSocket is only accepted from our own pages (Origin check) | `server/app.js` |
 | Files outside the public folders cannot be requested | `server/static.js` |
 | Text from other players is always inserted as text, never as HTML | `public/**/main.js` (`textContent`) |
-| The sheet script checks the shared secret, validates again, uses a lock | `apps-script/Code.gs` |
+| The sheet script checks the shared secret, validates again, uses a lock | `google-sheet/Code.gs` |
 | Two runtime dependencies, exact versions, lockfile committed, `npm audit` in CI | `package.json`, `.github/workflows/ci.yml` |
 
 What is deliberately **not** protected, and why: see the next section.
@@ -425,7 +425,7 @@ How the tests are organised:
 - `rules`, `movement`, `ledge`, `stomp`, `hand`, `specials`, `items`, `hazards`, `input`, `view`: one file per area of the rules.
 - `exact.test.js` (rules) and `strict.test.js` (server): tests that use the **literal numbers from the spec** instead of reading them from the code, so changing a rule by accident fails a test.
 - `regressions.test.js` (rules, server, browser): tests for the defects the reviewers found. In the rules and the server there is one for each defect, and each failed before its fix. In the client, the defects a browser test can reach are covered (connection drops, a held button through a KO); the rest was checked by hand.
-- `accounts`, `rooms`, `reconnect`, `results`, `outage`, `http`, `e2e`, `bots`, `vote`, `intro`, `crown`: the server by topic. `sheets-script` runs `apps-script/Code.gs` in Node against a stand-in spreadsheet.
+- `accounts`, `rooms`, `reconnect`, `results`, `outage`, `http`, `e2e`, `bots`, `vote`, `intro`, `crown`: the server by topic. `sheets-script` runs `google-sheet/Code.gs` in Node against a stand-in spreadsheet.
 - `tests/helpers/`: `server.js` starts a real server on a random port, `game.js` sets up matches, `scripted-player.js` is a simple scripted player for whole matches, and `bots.js` holds the bot-tuning helpers (`botMatch`, `simpleHuman`).
 - `bot.test.js` (rules): the bots play with the real rules. It checks that a match with bots replays exactly, that a bot does not fall off by itself, gets back to the stage, gets from every platform to every other one on each stage (and from a standing start on one Bairro Alto balcony to the other, D-181), beats a standing opponent, ends a match against another bot, reacts no sooner than its reaction delay, ignores a hazard until it is announced and then leaves its level, never changes the state and presses like a thumb, and that a scripted simple human wins some but not all matches against it (`tests/helpers/bots.js`). The stage, recovery, standing-opponent, two-bot and reaction tests run again for each level (Easy gets 60 s and 4 minutes), every level must have the keys of Medium and the human limits, and the simple human must win at least 11 of 15 against Easy, 3 to 13 against Medium and 1 to 8 against Hard, strictly fewer from level to level.
 
@@ -497,7 +497,7 @@ In `src/game/config.js`. Every number is there: the special's damage, range, coo
 **6. How does a bot play, and how do you know it does not cheat?**
 `src/game/bot.js` is a pure function that returns the same buttons a phone sends, so the rules treat it like a player. It sees the others 0.2 s late, misjudges distances a little and presses no faster than a thumb. It never reads hidden timers: a test runs a match with and without a queued hazard and checks the bot presses the same buttons until the warning appears. Its numbers are in `config.js` under `bots.easy`, `bots.medium` and `bots.hard`; Hard is quicker and more accurate, but keeps the same limits (at least 0.1 s late, no faster presses).
 
-### For the owner of the server (`server/`, `apps-script/`, `tests/server/`)
+### For the owner of the server (`server/`, `google-sheet/`, `tests/server/`)
 
 **1. What does the server do, and what does it not do?**
 It serves the pages, keeps the rooms, passes messages between phones and the host page, checks logins and saves results. It does **not** run the match: that happens in the host page. The server only sees buttons going one way and status messages going the other, and the result at the end.
@@ -535,6 +535,6 @@ The fighter stands still and can still be hit. The phone reconnects by itself, s
 
 ## 11. How it was built
 
-The team decided the game in a planning session (the option rounds are in `design/options/`, the decisions in `DECISIONS.md`, the result in `GAME_SPEC.md`). The code was then written with Claude in one session, in three packages: rules, server, client. After each package, independent reviewer agents that had not written the code checked it against the spec, hunted for bugs, checked security, and tried to break the tests. Every finding was reproduced before it was fixed. Each fixed defect in the rules and the server has a regression test; the client fixes are covered where a browser test can reach them. Decisions made along the way are listed in `DECISIONS.md` (D-098 onwards); the team confirmed them on 2026-11-13, except D-125.
+The team decided the game in a planning session (the team chose art, HUD, phone and podium from generated visual options, kept in the git history; the decisions are in `DECISIONS.md`, the result in `GAME_SPEC.md`). The code was then written with Claude in one session, in three packages: rules, server, client. After each package, independent reviewer agents that had not written the code checked it against the spec, hunted for bugs, checked security, and tried to break the tests. Every finding was reproduced before it was fixed. Each fixed defect in the rules and the server has a regression test; the client fixes are covered where a browser test can reach them. Decisions made along the way are listed in `DECISIONS.md` (D-098 onwards); the team confirmed them on 2026-11-13, all except D-125.
 
-Every commit of the build names Claude as co-author, so the history is honest about how the code was written. The tasks in `TEAM_TASKS.md` are there so that each member changes and explains their own part.
+Claude wrote most of the code. The commits of the first build and many later ones are authored by Claude or carry a `Co-Authored-By: Claude` line. The later build rounds (for example the bots, the bot levels and demo mode) were also written in Claude sessions, but committed under Bastian Volkery's name without that line, because their build prompts asked for it; those prompts are in `docs/archive/`, and the decisions Claude made in them are marked "Claude" in `DECISIONS.md`. The tasks in `TEAM_TASKS.md` are there so that each member changes and explains their own part.

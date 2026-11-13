@@ -89,7 +89,7 @@ test('files outside the public folders cannot be read', async (t) => {
   for (const route of [
     '/../package.json', '/game/../../package.json', '/game/../../.env', '/%2e%2e/package.json', '/game/%2e%2e/%2e%2e/server/index.js',
     '/..%2f..%2fpackage.json', '/host/..\\..\\package.json', '/game/%00.js', '/server/index.js', '/.env', '/.env.example', '/package.json',
-    '/tests/helpers/server.js', '/apps-script/Code.gs', '/.git/config', '/%', '/game/', '/host/.hidden.js',
+    '/tests/helpers/server.js', '/google-sheet/Code.gs', '/.git/config', '/%', '/game/', '/host/.hidden.js',
     '/game/..%2f..%2fpackage.json', '/host/..%2f..%2fserver%2findex.js', '/game/%2e%2e%2f%2e%2e%2fpackage.json', '/shared/..%2f..%2f.env.example',
   ]) {
     assert.equal(await raw(route), 404, route);

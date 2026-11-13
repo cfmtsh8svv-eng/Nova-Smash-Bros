@@ -22,7 +22,7 @@ Rule from [`AGENTS.md`](../AGENTS.md): never change a test just to make it pass.
 | G1 | **Tune one fighter.** After playtesting, change one number of one special (for example Bass Drop's radius or Wave Rider's cooldown) and write down why in `docs/DECISIONS.md`. | `SPECIAL_TUNING` in `src/game/config.js` | The matching "reach of ..." case in `tests/game/exact.test.js` (the inside and outside distances) |
 | G2 | **A new KO text.** Add one more line to the launch texts or the burnout texts, in the game's voice (`docs/CONCEPT.md` §3.4). | `LAUNCH_TEXTS` / `BURNOUT_TEXTS` in `src/game/combat.js` | A test in `tests/game/rules.test.js` that over many seeds every text in the list shows up at least once |
 
-## Owner of the server (`server/`, `apps-script/`, `tests/server/`)
+## Owner of the server (`server/`, `google-sheet/`, `tests/server/`)
 
 | # | Task | Where | Test to add or change |
 |---|---|---|---|
@@ -40,7 +40,6 @@ Rule from [`AGENTS.md`](../AGENTS.md): never change a test just to make it pass.
 ## For everyone
 
 - The team tested the deployed app with iPhones in Safari after the deployment and it works (the build itself only used Chromium). Still worth doing before the demo: the same on one Android phone, and in the demo room on its Wi-Fi and projector.
-- Things the game-feel review noticed that were left for you to judge on real phones: every hit freezes the whole game for a moment (`hitPauseMs` in `src/game/config.js`), which is a lot with four players; getting back to the stage after being launched is hard with one air jump (`doubleJumpSpeed`); Bass Drop and the up-attack launch too steeply to ever knock anyone out (`upAngleDeg`).
+- Things the game-feel review noticed that were left for you to judge on real phones: every hit freezes the whole game for a moment (`hitPauseMs` in `src/game/config.js`), which is a lot with four players; getting back to the stage after being launched is hard with one air jump (`doubleJumpSpeed`); the up-attack launches too steeply to ever knock anyone out (`upAngleDeg`; Bass Drop already got a flatter angle in D-184).
 - Play five matches on real phones and write down what felt wrong. Each note is either a tuning value (see G1, C2) or a row for `docs/DECISIONS.md`.
 - Read your section of [`WALKTHROUGH.md`](WALKTHROUGH.md) out loud once. If a sentence is hard to say, rewrite it in your own words and commit that.
-- Demo mode is described in [`DEMO.md`](DEMO.md). It is a good bigger task if there is time: the settings and the time-cap rule already exist; the lobby toggle, sending the cap to the server and letting the server accept a time-capped result are what is left.

@@ -1,5 +1,5 @@
 // The Google Sheet store: every call is one HTTPS request to the Apps Script
-// web app in apps-script/Code.gs, which reads and writes the sheet.
+// web app in google-sheet/Code.gs, which reads and writes the sheet.
 // The shared secret proves to the script that the request comes from our server.
 import { StoreError } from './memory.js';
 

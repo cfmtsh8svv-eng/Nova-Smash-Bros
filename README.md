@@ -38,7 +38,7 @@ Then open **http://localhost:3000** on the laptop and click **Open a room**.
 ## Run the tests
 
 ```bash
-npm test                          # game rules and server (about 530 tests, a few seconds)
+npm test                          # game rules and server (about 560 tests, a few seconds)
 npx playwright install chromium   # once, for the browser test
 npm run test:browser              # five browser tests: host page + emulated iPhone and Android phones
 npm audit --audit-level=high      # dependency check
@@ -82,7 +82,6 @@ Each stage has three **hazards**: the Cascais Line train (sometimes late!), Bad 
 | [`docs/DEMO.md`](docs/DEMO.md) | Demo mode for the presentation: how to switch it on, what changes, where the values are |
 | [`docs/SPECS.md`](docs/SPECS.md), [`docs/CONCEPT.md`](docs/CONCEPT.md) | Technical overview, brand and voice |
 | [`docs/archive/`](docs/archive/) | History: the build prompts of each round and the first brainstorm (ideas that were not built) |
-| [`design/`](design/) | The final art reference, the option rounds the team chose from and the first mock-up |
 | [`CREDITS.md`](CREDITS.md) | Logo, fonts and software credits |
 
 ## Tech

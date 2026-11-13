@@ -7,7 +7,7 @@ Without this setup the game still works: it then keeps everything in memory unti
 ## What you need
 
 - A Google account (any member's; the sheet can be shared with the others afterwards)
-- The file [`apps-script/Code.gs`](../apps-script/Code.gs) from this repository
+- The file [`google-sheet/Code.gs`](../google-sheet/Code.gs) from this repository
 - A terminal with Node.js, to make three random secrets
 
 ## 1. Make the secrets
@@ -37,7 +37,7 @@ You do not need to create tabs or columns. The script does that.
 
 1. In the sheet's menu click **Extensions → Apps Script**. A new browser tab opens with an editor and a file called `Code.gs`.
 2. Select everything in the editor and delete it.
-3. Open [`apps-script/Code.gs`](../apps-script/Code.gs) from the repository, copy **all** of it and paste it into the editor.
+3. Open [`google-sheet/Code.gs`](../google-sheet/Code.gs) from the repository, copy **all** of it and paste it into the editor.
 4. Click the **disk icon** (Save project).
 
 ## 4. Give the script its secret
@@ -107,7 +107,7 @@ With a wrong secret the answer is `{"ok":false,"error":"forbidden",...}`.
 
 Editing `Code.gs` in the editor does **not** change the deployed web app. After pasting a new version: **Deploy → Manage deployments → pencil icon → Version: New version → Deploy**. The URL stays the same.
 
-### Adding the crown column (build_v3, D-154)
+### Adding the crown column (round 3, D-154)
 
 The script now writes a 14th column, `last_won`, in the `players` tab: 1 when the player's last saved match was a win, 0 otherwise. A sheet created before this change has no header for it. After deploying the new `Code.gs`, type `last_won` into cell **N1** of the `players` tab. Empty cells below it count as 0 (no crown) until that player's next saved match.
 

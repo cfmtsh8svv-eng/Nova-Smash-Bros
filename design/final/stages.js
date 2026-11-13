@@ -1,5 +1,7 @@
 // NOVA Brawl: final stage art + platform layouts (reference for the build).
-// Coordinates are in a 1280x720 space. `platforms` is the single source of truth for physics:
+// Reference only: the game draws with public/shared/art/stages.js and takes its platforms from
+// src/game/stages.js, which is the source of truth for physics now.
+// Coordinates are in a 1280x720 space. `platforms` here was the first layout for the physics:
 // solid = cannot be passed through; all others are pass-through (jump up through, land on top).
 // Every playable surface gets the stage's "trim" so players can read where they can stand.
 (function () {

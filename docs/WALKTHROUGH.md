@@ -81,7 +81,7 @@ There is no database. That was a team decision: a sheet is something everyone ca
 
 - **How it looks and sounds.** No test checks that a sprite is drawn in the right place or that a sound plays. That was checked by eye, with screenshots of every screen.
 - **Real phones.** The browser test emulates phones in Chromium. Real iPhone Safari (vibration missing, audio rules, touch quirks) has to be tried by hand.
-- **The real Google Sheet.** Tests use an in-memory copy with the same interface, and a fake network for the sheet client. The script in the sheet itself (`Code.gs`) cannot run outside Google and was checked by reading and by hand.
+- **The real Google Sheet.** Tests use an in-memory copy with the same interface, and a fake network for the sheet client. The script in the sheet itself (`Code.gs`) is loaded into Node with a stand-in spreadsheet (`tests/server/sheets-script.test.js`) and fed the results the server really produces; how it behaves inside Google (the lock, the speed, the limits) was only tried by hand.
 - **The network outside.** Slow Wi-Fi, a sleeping free host, many rooms at once: reasoned about and tried by hand, not automated.
 - **Whether it is fun or fair.** Tuning values are a first guess.
 
@@ -256,11 +256,11 @@ Every page has one **WebSocket** to the server: a connection that stays open so 
 
 **Who may do what** is one table per role. A phone's table simply has no "start a match" entry. If a phone sends `match_start`, the answer is "Only the host screen can do that" and nothing else happens. The slot number of an input is taken from the connection, never from the message, so a phone cannot press another player's buttons.
 
-**The map vote** (round 2, D-135, D-136) is a room phase of its own: `lobby` → `vote` → `match` → `lobby`. The host's `vote_start` is checked like a match start (at least two ready players). In the `vote` phase the server accepts a stage vote only from a player in the vote and keeps the latest vote of each; a player who leaves or loses the connection loses their vote. The `match_start` that follows must name one of the stages with the most votes, so a host page cannot quietly ignore the vote.
+**The map vote** (round 2, D-135, D-136) is a room phase of its own: `lobby` → `vote` → `match` → `lobby`. The host's `vote_start` is checked like a match start (every human in the lobby Ready, at least one of them, and at least two fighters with the bots). In the `vote` phase the server accepts a stage vote only from a player in the vote and keeps the latest vote of each; a player who leaves or loses the connection loses their vote. The `match_start` that follows must name one of the stages with the most votes, so a host page cannot quietly ignore the vote.
 
 **Bots in the room** (round 4, D-156 to D-165). The room keeps the bots, so a reload of the host page does not lose them and the start and result checks can count them. They are an ordered list `room.bots` (named Freshman, Intern, Erasmus by their place in it); the first `room.botsActive` of them play, the rest wait on a **bench**. Bots have no phone and no entry in `room.slots`. Every time the roster goes out in the lobby, `settleBots` makes sure humans plus active bots never exceed four: a human who joins sends the last active bot to the bench, and when a human leaves, the bot that went there last comes back. Outside the lobby nothing moves; the bench is settled when the room is back there. The host's `bots` message (`{ t: 'bots', bots: [{ fighter, level }, ...] }`, D-178) sets the fighters and levels of the active bots: the same length changes them and keeps the bench, a shorter list removes bots and empties the bench. A malformed message (an unknown fighter or level, a missing or extra field, the old `fighters` form) is a strike. Each bot keeps its level, also on the bench. The roster lists the active bots with `bot: true`, their `level` and the slot each would get. **Starting** needs at least one Ready human, every human in the lobby Ready and at least two fighters with the bots; at the start the bots get the slots the humans of the match do not use, in ascending order, and the server keeps them with their levels with the match (`room.match.bots`) and sends them in `match_started` (and in the `room` message after a host reconnect). The level is not part of a result. A phone that joins during the match may get the slot number of a bot of that match: the server passes its input on as usual, and the host page ignores input for any slot that has no phone in the match.
 
-**Reconnecting.** A phone that drops keeps its slot: for 30 seconds in the lobby, and until the end of the match during a match. When it comes back with its token it gets the same slot, and the server replays the last screen and status so it is up to date at once. The host page can also reconnect: when it created the room it got a secret key, and with that key it takes the room back.
+**Reconnecting.** A phone that drops keeps its slot: for 30 seconds in the lobby and the map vote, and until the end of the match during a match. When it comes back with its token it gets the same slot, and the server replays the last screen and status so it is up to date at once. The host page can also reconnect: when it created the room it got a secret key, and with that key it takes the room back.
 
 ### Accounts (`accounts.js`, `app.js`)
 
@@ -290,7 +290,7 @@ All access to stored data goes through one small interface with four operations:
 
 Because both have the same interface, the rest of the server does not know which one it is using. That is why the game is fully playable without any setup, and why the tests never touch the real sheet.
 
-On top sits `data.js`, which makes the slow sheet bearable: it remembers players it has read, queues results and retries them, and reads the leaderboard at most once a minute.
+On top sits `data.js`, which makes the slow sheet bearable: it remembers players it has read, queues results and retries them, and reads the leaderboard at most once a minute. A result the script refuses as invalid is not retried (it would be refused again); it is dropped, logged and counted as `droppedResults` at `/healthz` (D-182).
 
 The script in the sheet (`Code.gs`) is the last guard before a cell is written. It checks the shared secret, **validates everything again**, and does every read-then-write inside a **lock**, so two requests at the same moment cannot both take the same gamertag or lose each other's points. It writes the match row first; that row is the marker that makes a repeated request change nothing.
 
@@ -337,7 +337,7 @@ The script in the sheet (`Code.gs`) is the last guard before a cell is written. 
 
 | File | What it does |
 |---|---|
-| `main.js` | The screens: log in → fighter select → map vote → gamepad → results. Which one is shown is decided by `phase` messages from the host. |
+| `main.js` | The screens: log in → fighter select → map vote → intro (Skip) → gamepad → results. Which one is shown is decided by `phase` messages from the host. |
 | `controls.js` | The joystick and the three buttons |
 | `feedback.js` | Vibration, flash and sound |
 
@@ -412,10 +412,11 @@ All three run in GitHub Actions on every push and pull request.
 
 How the tests are organised:
 
-- `rules`, `movement`, `specials`, `items`, `hazards`, `input`, `view`: one file per area of the rules.
+- `rules`, `movement`, `ledge`, `stomp`, `hand`, `specials`, `items`, `hazards`, `input`, `view`: one file per area of the rules.
 - `exact.test.js` (rules) and `strict.test.js` (server): tests that use the **literal numbers from the spec** instead of reading them from the code, so changing a rule by accident fails a test.
 - `regressions.test.js` (rules, server, browser): tests for the defects the reviewers found. In the rules and the server there is one for each defect, and each failed before its fix. In the client, the defects a browser test can reach are covered (connection drops, a held button through a KO); the rest was checked by hand.
-- `accounts`, `rooms`, `reconnect`, `results`, `outage`, `http`, `e2e`, `bots`: the server by topic.
+- `accounts`, `rooms`, `reconnect`, `results`, `outage`, `http`, `e2e`, `bots`, `vote`, `intro`, `crown`: the server by topic. `sheets-script` runs `apps-script/Code.gs` in Node against a stand-in spreadsheet.
+- `tests/helpers/`: `server.js` starts a real server on a random port, `game.js` sets up matches, `scripted-player.js` is a simple scripted player for whole matches, and `bots.js` holds the bot-tuning helpers (`botMatch`, `simpleHuman`).
 - `bot.test.js` (rules): the bots play with the real rules. It checks that a match with bots replays exactly, that a bot does not fall off by itself, gets back to the stage, gets from every platform to every other one on each stage (and from a standing start on one Bairro Alto balcony to the other, D-181), beats a standing opponent, ends a match against another bot, reacts no sooner than its reaction delay, ignores a hazard until it is announced and then leaves its level, never changes the state and presses like a thumb, and that a scripted simple human wins some but not all matches against it (`tests/helpers/bots.js`). The stage, recovery, standing-opponent, two-bot and reaction tests run again for each level (Easy gets 60 s and 4 minutes), every level must have the keys of Medium and the human limits, and the simple human must win at least 11 of 15 against Easy, 3 to 13 against Medium and 1 to 8 against Hard, strictly fewer from level to level.
 
 Tests use Node's built-in test runner. There is no test framework to learn.

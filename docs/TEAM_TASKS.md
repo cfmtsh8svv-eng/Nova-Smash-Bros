@@ -1,6 +1,6 @@
 # Team tasks after the build
 
-The course asks that every member commits code and can explain every part. These are small, real tasks, three per package owner. Each one touches a few lines, comes with a test, and makes the owner read the part they will explain. Do them on a branch, run `npm test`, open a pull request.
+The course asks that every member commits code and can explain every part. These are small, real tasks, two or three per package owner (G3 and C1 were dropped when the item weights and the joystick-only decision made them obsolete; the other numbers stay). Each one touches a few lines, comes with a test, and makes the owner read the part they will explain. Do them on a branch, run `npm test`, open a pull request.
 
 How to work on one:
 
@@ -13,7 +13,7 @@ git add -A && git commit -m "What I changed and why"
 git push -u origin my-task-name      # then open a pull request on GitHub
 ```
 
-Rule from [`AGENTS.md`](../AGENTS.md): never change a test just to make it pass. If you change a rule on purpose, change the test for that rule in the same commit and say so.
+Rule from [`AGENTS.md`](../AGENTS.md): never change a test just to make it pass. If you change a rule on purpose, first change `docs/GAME_SPEC.md` and `docs/DECISIONS.md`, then the test for that rule, and say so in the commit.
 
 ## Owner of the game rules (`src/game/`, `tests/game/`)
 

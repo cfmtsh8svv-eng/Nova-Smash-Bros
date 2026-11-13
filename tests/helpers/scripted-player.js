@@ -1,9 +1,10 @@
-// A very simple scripted player, used only by the tests to play whole matches.
-// It is not the game's own bot (that is src/game/bot.js). Its choices depend only on
+// A very simple scripted player, used only by the tests to play whole matches
+// (tests/server/e2e.test.js, strict.test.js, tests/game/exact.test.js). It is not the game's
+// own bot (src/game/bot.js, whose test helpers are in bots.js). Its choices depend only on
 // the match state, so a match it plays is fully repeatable.
 import { neutralInput } from '../../src/game/input.js';
 
-export function botInput(state, slot) {
+export function scriptedInput(state, slot) {
   const me = state.fighters.find((f) => f.slot === slot);
   const inp = neutralInput();
   if (!me || me.state !== 'alive') return inp;
@@ -41,8 +42,8 @@ export function botInput(state, slot) {
   return inp;
 }
 
-export function botInputs(state) {
+export function scriptedInputs(state) {
   const inputs = {};
-  for (const f of state.fighters) inputs[f.slot] = botInput(state, f.slot);
+  for (const f of state.fighters) inputs[f.slot] = scriptedInput(state, f.slot);
   return inputs;
 }

@@ -494,14 +494,14 @@ test('honest results that look unusual are accepted: hazards and self-destructs'
 
 test('real matches of every size, stage and number of lives pass the result check', async () => {
   const { createMatch, step, buildResult } = await import('../../src/game/match.js');
-  const { botInputs } = await import('../helpers/bot.js');
+  const { scriptedInputs } = await import('../helpers/scripted-player.js');
   const { FIGHTER_IDS } = await import('../../src/game/fighters.js');
   let checked = 0;
   for (const [stage, n, lives, seed] of [['campus', 2, 1, 3], ['beach', 3, 2, 5], ['bairro', 4, 3, 8], ['campus', 4, 1, 13], ['beach', 2, 3, 21], ['bairro', 3, 2, 1]]) {
     const players = [...Array(n)].map((_, i) => ({ slot: i, name: `P${i}`, fighterId: FIGHTER_IDS[(seed + i * 3) % 8] }));
     const state = createMatch({ stageId: stage, players, settings: { lives, hazardMinS: 5, hazardMaxS: 8 }, seed });
     let guard = 0;
-    while (state.phase !== 'ended' && guard++ < 60 * 60 * 10) step(state, botInputs(state));
+    while (state.phase !== 'ended' && guard++ < 60 * 60 * 10) step(state, scriptedInputs(state));
     if (state.phase !== 'ended') continue; // the scripted players got stuck: not a result
     const result = buildResult(state);
     const m = match({ stage, lives, slots: players.map((p) => p.slot), startedAt: NOW - (result.durationS + 10) * 1000 });

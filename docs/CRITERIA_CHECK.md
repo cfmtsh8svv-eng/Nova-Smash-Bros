@@ -1,6 +1,6 @@
 # Grading criteria check
 
-Written at the end of the build and updated after the merge into `main`. For each of the six criteria: what in the repository answers it, the evidence, and what is still missing. Nothing is claimed here that was not run.
+Written at the end of the build, updated after the merge into `main` and again on 2026-11-13 (after bug-fixes-2). The table of runs below keeps the older runs as they were reported; the newest are at the top. For each of the six criteria: what in the repository answers it, the evidence, and what is still missing. Nothing is claimed here that was not run.
 
 ## What was run, and what was not
 
@@ -8,6 +8,8 @@ Run on the build machine (macOS, Node 26.13.0; the unit and server tests also un
 
 | Command | Result |
 |---|---|
+| `npm test` on the branch `bug-fixes-2` (2026-11-13, Node 22) | 536 tests, 536 pass, 0 fail |
+| GitHub Actions on pull request #9 (`bug-fixes-2`, commit `dcd1616`), push and pull request runs | Both succeeded: `npm test`, `npm audit --audit-level=high` and `npm run test:browser` (four browser tests) |
 | `npm test` | 474 tests, 474 pass, 0 fail (round 2 branch, Node 22.23.4, about 11 seconds) |
 | `npm run test:browser` | 3 tests, 3 pass, 0 fail (Chromium through Playwright, about 30 seconds) |
 | `npm audit --audit-level=high` | `found 0 vulnerabilities` |
@@ -46,7 +48,7 @@ Missing for the top level: one pass through every workflow on a real phone, a re
 
 - **The interface fits the problem.** The laptop shows the game, each phone is a gamepad. Joining is one QR scan (`public/host/main.js`, `/api/qr` in `server/app.js`), then gamertag and PIN, pick a fighter, Ready. The host page needs the mouse only for Start.
 - **A floating joystick** that appears where the thumb lands, with a dead zone and a centre that follows the thumb (`public/play/controls.js`).
-- **Results are shown where the player looks.** Damage, lives, held item and the special's cooldown are on the player's own phone (`status` in `public/play/main.js`); every hit and KO gives a vibration, a flash and a sound together, because iPhones cannot vibrate in the browser (`public/play/feedback.js`). The big screen shows the damage cards, the final-KO slow motion and the results with points, new achievements and the all-time leaderboard.
+- **Results are shown where the player looks.** Damage, lives, held item and the special's cooldown are on the player's own phone (`status` in `public/play/main.js`); every hit and KO gives a vibration, a flash and a sound together, because iPhones cannot vibrate in the browser (`public/play/feedback.js`). The big screen shows the damage cards, the final-KO slow motion and the end sequence on the podium with points and new achievements; the all-time leaderboard is in the lobby (D-155).
 - **Errors say what to do.** Messages are written for the player ("That gamertag is taken. Log in with 'I have an account'.", "Wrong PIN, 4 tries left.", "The host closed the room.") and are checked word for word in `tests/browser/smoke.test.js`. Connection trouble is always visible: "Weak connection", "Connection lost, reconnecting…", "The big screen lost its connection…".
 - **Checked by looking.** Every screen of the host page and the phone page was captured at laptop size and at iPhone and Android sizes and reviewed; long names, the landscape fighter select and overlapping banners were fixed after that.
 
@@ -68,24 +70,24 @@ Left out on purpose: demo mode ([`DEMO.md`](DEMO.md) describes what is prepared 
 
 > "Tests cover accepted and rejected actions and edge cases, and all pass on `main`."
 
-- **477 automated tests**: 474 with `node:test` for the rules and the server, 3 browser tests. All pass on `main` (see the table at the top).
+- **540 automated tests**: 536 with `node:test` for the rules, the server and the sheet script, 4 browser tests. All pass in CI (see the table at the top).
 - **Accepted actions**: each rule (`tests/game/rules.test.js`, `movement.test.js`), each of the eight specials inside its range (`specials.test.js`), each item (`items.test.js`), each hazard with its safe platform (`hazards.test.js`), registration, login, rooms, a full match (`tests/server/`).
 - **Rejected actions**: specials and items out of range, votes from the wrong player or for the wrong stage, wrong PINs and the lockout, tampered and expired tokens, a player trying host actions, a host touching another host's room, forged and implausible results, oversized and malformed messages (`tests/server/rooms.test.js`, `strict.test.js`, `results.test.js`, `accounts.test.js`).
 - **Edge cases**: a tap shorter than one frame, presses bunched by a network hiccup, simultaneous hits, the last player standing, a KO in the same step as a burnout, exact boundaries of every limit (`tests/game/exact.test.js`, `input.test.js`, `tests/server/strict.test.js`), and a regression test for every defect the reviews found (`tests/*/regressions.test.js`).
 - **Were the tests themselves checked?** Yes. For each package a reviewer agent changed the code on purpose in many small ways and looked at which changes the tests missed; tests were added for those. For the client the last count before the final additions was 57 of 80 breakages caught; the smoke test was then rewritten to catch the remaining kinds that matter to a player (a dead button, an empty canvas, a pause that does not freeze).
 - **CI**: `.github/workflows/ci.yml` runs `npm ci`, `npm test`, `npm audit --audit-level=high` and the browser tests on every push and pull request. It passed on the pushed branch and on `main` after the merge (see the table at the top).
 
-The pull request is merged and the tests pass on `main`. Known gaps in the tests: the Apps Script file, Safari, and parts of the client that only a person can judge (how the game looks and sounds).
+The pull request is merged and the tests pass on `main`. Known gaps in the tests: the Apps Script file inside Google itself (it is tested in Node against a stand-in spreadsheet, `tests/server/sheets-script.test.js`), Safari, and parts of the client that only a person can judge (how the game looks and sounds).
 
 ## 5. Security (10 %)
 
 > "Access control and input validation are enforced; dependencies are minimal, pinned, and without known vulnerabilities."
 
 - **Access control.** Every WebSocket message is handled by a table for the sender's role (new, phone, host), so a phone cannot send a host message at all (`server/rooms.js`; test: "a player cannot start a match, submit a result, close the room or talk to other phones"). A host is tied to its room by a secret key (test: "a host cannot touch another host's room"). Joining needs a signed session token (test: "joining is refused without a token, with a tampered one and with an expired one").
-- **PINs.** Hashed with scrypt, a salt per player and a server-side pepper; the sheet never sees a PIN (test: "the sheet never sees the PIN: only a salt and a hash are stored"). Five wrong PINs within ten minutes lock a gamertag for ten minutes, and there are at most twenty wrong tries per gamertag in 24 hours (`server/security.js`, `tests/server/accounts.test.js`).
+- **PINs.** Hashed with scrypt, a salt per player and a server-side pepper; the sheet never sees a PIN (test: "the sheet never sees the PIN: only a salt and a hash are stored"). Five wrong PINs within ten minutes lock a gamertag for ten minutes, and there are at most twenty wrong tries per gamertag in 24 hours (`server/accounts.js`, `tests/server/accounts.test.js`).
 - **Input validation.** Type, size and every field of every message and API body are checked; anything else is dropped without crashing (`server/validate.js`, `tests/server/strict.test.js`). Match results are checked for plausibility before a point is given (`server/results.js`).
 - **Limits against abuse.** Message rates, sizes, rooms and sockets per address, join-code guessing, registrations, results per hour (`LIMITS` in `server/config.js`).
-- **Browser side.** A strict Content-Security-Policy and HSTS on every response (`server/app.js`); the pages never build HTML from player text.
+- **Browser side.** A strict Content-Security-Policy on every response, HSTS where the request came over https (`server/security.js`); the pages never build HTML from player text.
 - **Secrets.** Only in environment variables; `.env` is ignored by git and `.env.example` has names only. With a sheet configured, missing or weak secrets stop the server from starting (test: "with a sheet configured, missing or weak secrets stop the server from starting").
 - **Dependencies.** Two at run time, pinned to exact versions with a lock file: `ws` 8.22.2 and `qrcode` 1.5.4. One for development: `playwright` 1.65.0. `npm audit --audit-level=high` reports 0 vulnerabilities, and CI repeats the audit on every push.
 
@@ -98,7 +100,7 @@ Open point, stated in [`WALKTHROUGH.md`](WALKTHROUGH.md) section 8: the host pag
 This criterion is about the people, so the repository can only prepare them.
 
 - [`WALKTHROUGH.md`](WALKTHROUGH.md): the big picture, five questions every member should be able to answer, one part per package with "what it does", "why it was built this way" and "limits", then security, tests, known limits, how it could change, and five likely questions for each package owner.
-- [`DECISIONS.md`](DECISIONS.md): every decision with the alternative that was not taken and the reason. D-098 to D-131 were made during the build and are marked "team to confirm".
+- [`DECISIONS.md`](DECISIONS.md): every decision with the alternative that was not taken and the reason. Rows marked "team to confirm" (most of D-098 to D-131, D-156 to D-165) and the proposals D-181 and D-182 still wait for the team.
 - [`TEAM_TASKS.md`](TEAM_TASKS.md): one small change for each member in their own package, with the test to write for it, so that each member has changed and tested the code they explain.
 - The commit history is split by package, so each member can follow their own part with `git log`.
 

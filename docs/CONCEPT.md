@@ -9,11 +9,11 @@
 | | |
 |---|---|
 | **Document** | Game & brand concept (the *what* and *why*) |
-| **Related** | [`GAME_SPEC.md`](GAME_SPEC.md) (the spec) · [`WALKTHROUGH.md`](WALKTHROUGH.md) (how it is built) · [`DECISIONS.md`](DECISIONS.md) (every decision) · [`BRAINSTORM.md`](BRAINSTORM.md) (ideas not built) |
+| **Related** | [`GAME_SPEC.md`](GAME_SPEC.md) (the spec) · [`WALKTHROUGH.md`](WALKTHROUGH.md) (how it is built) · [`DECISIONS.md`](DECISIONS.md) (every decision) · [`BRAINSTORM.md`](archive/BRAINSTORM.md) (ideas not built) |
 | **Version** | 1.0 |
 | **Status** | Built |
 | **Course** | Introduction to Programming, group project |
-| **Language rule** | **English only.** No Portuguese words or slang in the game or the docs ([D-023](DECISIONS.md)). Place names stay as they are. |
+| **Language rule** | **English only.** No Portuguese words or slang in the game or the docs ([D-023](DECISIONS.md)). Place names stay as they are, and so do the names of the items the team chose in round 2 (Pastel de Nata, Bifana, Azulejo; D-140). |
 
 ---
 
@@ -34,7 +34,7 @@ Hits raise your **damage %**. The higher it climbs, the further you fly. Get kno
  │ 1. SCAN     │ → │ 2. PICK      │ → │ 3. COUNTDOWN  │ → │ 4. BRAWL     │ → │ 5. GRADUATE  │
  │ QR code on  │   │ name and     │   │ "3, 2, 1...   │   │ % climbs,    │   │ winner +     │
  │ big screen  │   │ fighter on   │   │   BRAWL!"     │   │ hazards hit, │   │ points,      │
- │             │   │ your phone   │   │               │   │ last one wins│   │ leaderboard  │
+ │             │   │ your phone   │   │               │   │ last one wins│   │ podium       │
  └─────────────┘   └──────────────┘   └───────────────┘   └──────────────┘   └──────────────┘
 ```
 
@@ -58,8 +58,8 @@ The test for every feature: *can a first-timer at a party understand it in under
 | Pillar | What it means | Example in the game |
 |---|---|---|
 | **Instant party** | Zero friction, phones out, play in under a minute | QR join, no install |
-| **Campus satire** | Student-life pain turned into game mechanics | Bad Wi-Fi = input lag, the train is cancelled by a strike |
-| **Lisbon setting** | Real places around Nova SBE, told in plain English | Custard tarts heal, a mini Tram 28 runs you over |
+| **Campus satire** | Student-life pain turned into game mechanics | Bad Wi-Fi = input lag, the Cascais Line train runs late |
+| **Lisbon setting** | Real places around Nova SBE, told in plain English | A Pastel de Nata heals, a mini Tram 28 runs you over |
 | **Cheeky, not cringe** | Funny enough for a party, clean enough for the professor | Drinks cause a short, silly effect plus "Drink water!" |
 
 ### 3.3 Audience
@@ -89,7 +89,6 @@ All text in the game is **English only**, with no Portuguese words or slang, so 
 | **"Nice hit!"** | When you land a KO |
 | **"Ready!"** | Lobby, when a player is ready |
 | **"Drink water!"** | Phone message when you get tipsy |
-| **"STRIKE! Train cancelled."** | The train didn't come (Campus stage) |
 | **"You're out! Grab a coffee and watch."** | Phones of eliminated players |
 | **"{name} graduates with honours!"** | Winner announcement |
 
@@ -127,10 +126,8 @@ All text in the game is **English only**, with no Portuguese words or slang, so 
 
 - **Original IP only.** NOVA Brawl is *inspired by the platform-fighter genre* (damage %, knockback, stocks). We use **no** Nintendo characters, names, sprites, music, sounds or logos. Everything is our own or properly licensed.
 - **Nova SBE is the setting, not the publisher.** The campus roof carries the Nova SBE logo, redrawn from the official mark (decision D-063). It is credited in [`CREDITS.md`](../CREDITS.md) and remains the school's trademark; nothing else of the school's branding is used.
-- **No real people without consent.** Professors and students in the game are fictional archetypes. A real person (e.g. a celebrity skin, see [BRAINSTORM.md](BRAINSTORM.md)) needs permission for anything public.
+- **No real people without consent.** Professors and students in the game are fictional archetypes. A real person (e.g. a celebrity skin, see [BRAINSTORM.md](archive/BRAINSTORM.md)) needs permission for anything public.
 - **Drinks stay cartoonish.** Effects are short, silly and never "rewarding". The phone always adds "Drink water!".
-
----
 
 ---
 

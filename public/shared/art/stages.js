@@ -1,4 +1,5 @@
-// Stage art: the three stages drawn in code as SVG, ported unchanged from design/final/stages.js.
+// Stage art: the three stages drawn in code as SVG, ported from design/final/stages.js (same
+// drawing, turned into an ES module).
 // The platform positions are imported from the game rules (src/game/stages.js), so the
 // picture and the physics always agree. Every playable surface carries the stage's striped trim.
 import { getStage } from '/game/stages.js';

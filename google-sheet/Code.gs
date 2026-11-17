@@ -8,16 +8,16 @@
  * Request  (POST, JSON):  { secret, action, payload }
  * Response (JSON):        { ok: true, data }  or  { ok: false, error, message }
  *
- * Actions: ping, getPlayer, createPlayer, recordMatch, listPlayers
+ * Actions: ping, getPlayer, createPlayer, recordMatch, completeTutorial, listPlayers
  */
 
 // last_won (column N, D-154): 1 if the player's last saved match was a win (the crown), else 0.
-var PLAYER_COLUMNS = ['gamertag', 'gamertag_lower', 'salt', 'pin_hash', 'created_at', 'matches', 'wins', 'points', 'kos', 'falls', 'damage_dealt', 'damage_taken', 'achievements', 'last_won'];
+var PLAYER_COLUMNS = ['gamertag', 'gamertag_lower', 'salt', 'pin_hash', 'created_at', 'matches', 'wins', 'points', 'kos', 'falls', 'damage_dealt', 'damage_taken', 'achievements', 'last_won', 'tutorial_done'];
 var MATCH_COLUMNS = ['match_id', 'ended_at', 'stage', 'mode', 'lives', 'duration_s', 'winner', 'players_json'];
 var STAT_COLUMNS = ['matches', 'wins', 'points', 'kos', 'falls', 'damage_dealt', 'damage_taken'];
 // Columns stored as whole numbers rather than as plain text.
 function isNumberColumn(c) {
-  return STAT_COLUMNS.indexOf(c) >= 0 || c === 'lives' || c === 'duration_s' || c === 'last_won';
+  return STAT_COLUMNS.indexOf(c) >= 0 || c === 'lives' || c === 'duration_s' || c === 'last_won' || c === 'tutorial_done';
 }
 var GAMERTAG = /^[A-Za-z0-9_]{3,12}$/;
 var HEX = /^[0-9a-f]{16,128}$/;
@@ -40,6 +40,7 @@ function doPost(e) {
       case 'getPlayer': return reply({ ok: true, data: getPlayer(payload) });
       case 'listPlayers': return reply({ ok: true, data: listPlayers() });
       case 'createPlayer': return reply(withLock(function () { return createPlayer(payload); }));
+      case 'completeTutorial': return reply(withLock(function () { return completeTutorial(payload); }));
       case 'recordMatch': return reply(withLock(function () { return recordMatch(payload); }));
       default: return reply({ ok: false, error: 'bad_request', message: 'Unknown action.' });
     }
@@ -134,6 +135,7 @@ function rowToPlayer(values) {
   player.achievements = String(player.achievements || '').split(',').filter(function (a) { return ACHIEVEMENT.test(a); });
   // An empty cell (a sheet from before the column was added) means no crown.
   player.last_won = Number(player.last_won) === 1;
+  player.tutorial_done = player.tutorial_done === true || Number(player.tutorial_done) === 1 || ((player.tutorial_done === '' || player.tutorial_done == null) && player.matches > 0);
   return player;
 }
 
@@ -160,8 +162,19 @@ function createPlayer(payload) {
   }
   var sheet = tab('players', PLAYER_COLUMNS);
   if (findPlayerRow(sheet, lower)) return { ok: false, error: 'duplicate', message: 'That gamertag is taken.' };
-  appendRecord(sheet, PLAYER_COLUMNS, [gamertag, lower, salt, hash, created, 0, 0, 0, 0, 0, 0, 0, '', 0]);
-  return { ok: true, data: { gamertag: gamertag, gamertag_lower: lower, salt: salt, pin_hash: hash, created_at: created, matches: 0, wins: 0, points: 0, kos: 0, falls: 0, damage_dealt: 0, damage_taken: 0, achievements: [], last_won: false } };
+  appendRecord(sheet, PLAYER_COLUMNS, [gamertag, lower, salt, hash, created, 0, 0, 0, 0, 0, 0, 0, '', 0, 0]);
+  return { ok: true, data: { gamertag: gamertag, gamertag_lower: lower, salt: salt, pin_hash: hash, created_at: created, matches: 0, wins: 0, points: 0, kos: 0, falls: 0, damage_dealt: 0, damage_taken: 0, achievements: [], last_won: false, tutorial_done: false } };
+}
+
+// Idempotent and independent of scores: solo practice also completes the tutorial.
+function completeTutorial(payload) {
+  var lower = payload.gamertag_lower;
+  if (typeof lower !== 'string' || !/^[a-z0-9_]{3,12}$/.test(lower)) return { ok: false, error: 'bad_request', message: 'Invalid player.' };
+  var sheet = existingTab('players');
+  var row = sheet && findPlayerRow(sheet, lower);
+  if (!row) return { ok: false, error: 'bad_request', message: 'Unknown player.' };
+  sheet.getRange(row, 15).setNumberFormat('0').setValue(1);
+  return { ok: true, data: { saved: true } };
 }
 
 function isJsonList(text) {
@@ -244,7 +257,11 @@ function listPlayers() {
 /** Run this once from the editor (Run > setup) to create both tabs with their headers. */
 function setup() {
   withLock(function () {
-    tab('players', PLAYER_COLUMNS);
+    var players = tab('players', PLAYER_COLUMNS);
+    // Add column O without changing any existing account or score. Empty legacy cells
+    // inherit experience from matches until the first tutorial completion.
+    players.getRange(1, 15).setValue('tutorial_done').setFontWeight('bold');
+    players.getRange(2, 15, players.getMaxRows() - 1, 1).setNumberFormat('0');
     tab('matches', MATCH_COLUMNS);
     return { ok: true };
   });

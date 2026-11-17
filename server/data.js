@@ -18,7 +18,7 @@ export class DataService {
     this.autoRetry = autoRetry;
     this.log = log;
     this.players = new Map(); // cache: gamertag_lower -> row
-    this.queue = []; // results waiting to be written: { match, updates }
+    this.queue = []; // background writes: { match, updates } or { tutorial: gamertag_lower }
     this.flushing = null;
     this.retryMs = RETRY_MIN_MS;
     this.retryTimer = null;
@@ -85,6 +85,14 @@ export class DataService {
     this.flush().catch(() => {});
   }
 
+  completeTutorial(lower) {
+    const row = this.players.get(lower);
+    if (!row) return;
+    row.tutorial_done = true;
+    if (!this.queue.some((job) => job.tutorial === lower)) this.queue.push({ tutorial: lower });
+    this.flush().catch(() => {});
+  }
+
   get pending() {
     return this.queue.length;
   }
@@ -103,10 +111,10 @@ export class DataService {
     while (this.queue.length) {
       const job = this.queue[0];
       try {
-        await this.watch(this.store.recordMatch(job.match, job.updates));
+        await this.watch(job.tutorial ? this.store.completeTutorial(job.tutorial) : this.store.recordMatch(job.match, job.updates));
       } catch (err) {
         if (err instanceof StoreError && err.code === 'bad_request') {
-          this.log(`Result ${job.match.match_id} was refused by the store and is dropped: ${err.message}`);
+          this.log(`Result ${job.match?.match_id || 'tutorial'} was refused by the store and is dropped: ${err.message}`);
           this.dropped += 1;
           this.queue.shift();
           continue;
@@ -140,6 +148,7 @@ export class DataService {
     if (this.board) {
       rows = new Map(this.board.rows.map((r) => [r.gamertag.toLowerCase(), { ...r }]));
       for (const job of this.queue) {
+        if (job.tutorial) continue;
         for (const u of job.updates) {
           const row = rows.get(u.gamertag_lower);
           if (!row) continue;

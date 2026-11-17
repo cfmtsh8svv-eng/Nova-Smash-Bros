@@ -11,14 +11,14 @@ import assert from 'node:assert/strict';
 import { chromium, devices } from 'playwright';
 import { createApp } from '../../server/app.js';
 import { MemoryStore } from '../../server/store/memory.js';
-import { DEMO_SETTINGS, demoMatchSettings } from '../../src/game/config.js';
+import { DEMO_ENABLED, DEMO_SETTINGS, demoMatchSettings } from '../../src/game/config.js';
 import { FIGHTERS } from '../../src/game/fighters.js';
 
 const CONFIG = { port: 0, trustProxy: false, useSheets: false, pinPepper: 'browser-test-pepper-0123', sessionSecret: 'browser-test-secret-0123', warnings: [] };
 const DEMO = demoMatchSettings();
 const DEMO_NAMES = FIGHTERS.filter((f) => DEMO_SETTINGS.fighters.includes(f.id)).map((f) => f.name);
 
-test('demo mode: Shift+D, four fighters, a match that ends at the cap, not saved, Shift+D again', async (t) => {
+test('demo mode: Shift+D, four fighters, a match that ends at the cap, not saved, Shift+D again', { skip: !DEMO_ENABLED && 'D-210: retained for reactivation; disabled shortcut tested in tutorial.test.js' }, async (t) => {
   const store = new MemoryStore();
   const clock = { offset: 0 };
   const app = createApp({ config: CONFIG, store, now: () => Date.now() + clock.offset });

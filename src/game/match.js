@@ -5,6 +5,7 @@
 // and returns a list of events (hits, KOs, sounds to play, phone messages).
 // The host page draws the state and forwards the events; the tests run the
 // very same code without a browser.
+import { createTutorial, updateTutorial, tutorialSeconds } from './tutorial.js';
 import { CONFIG, FPS, makeSettings } from './config.js';
 import { getFighter } from './fighters.js';
 import { getStage } from './stages.js';
@@ -28,6 +29,7 @@ function createFighter(player, spawn, lives, index, players) {
   return {
     slot: player.slot,
     name: String(player.name),
+    connected: player.connected !== false, tutorialProtected: false,
     bot: Boolean(player.bot), // a bot (GAME_SPEC §5a): only the screens use this, the rules do not
     fighterId: def.id,
     weight: def.weight,
@@ -50,7 +52,7 @@ function createFighter(player, spawn, lives, index, players) {
 }
 
 // players: [{ slot: 0..3, name, fighterId, bot? }], two to four of them.
-export function createMatch({ stageId, players, settings, seed = 1 }) {
+export function createMatch({ stageId, players, settings, seed = 1, tutorial = false }) {
   const stage = getStage(stageId);
   if (!stage) throw new Error(`Unknown stage: ${stageId}`);
   if (!Array.isArray(players) || players.length < 2 || players.length > 4) throw new Error('A match needs 2 to 4 players');
@@ -60,6 +62,7 @@ export function createMatch({ stageId, players, settings, seed = 1 }) {
   }
   const s = makeSettings(settings);
   const state = {
+    tutorial: createTutorial(players, tutorial),
     stage, settings: s, seed: seed | 0, frame: 0, fightFrames: 0, nextId: 0,
     phase: 'countdown', countdown: CONFIG.match.countdownFrames, finalTimer: 0,
     fighters: players.map((p, i) => createFighter(p, stage.spawns[i], s.lives, i, players)),
@@ -67,6 +70,7 @@ export function createMatch({ stageId, players, settings, seed = 1 }) {
     placements: [], // slots, best first; filled from the back as players are eliminated
     winner: null, byTimeCap: false, lastKo: null, hazardVotes: {},
   };
+  for (const f of state.fighters) f.tutorialProtected = Boolean(state.tutorial);
   state.itemTimer = nextItemDelay(state);
   state.hazard = newHazardState(state);
   return state;
@@ -170,10 +174,13 @@ export function step(state, inputs = {}) {
   pushApart(state);
 
   if (fighting) {
-    updateItems(state);
-    updateHazards(state);
+    if (!state.tutorial?.active) {
+      updateItems(state);
+      updateHazards(state);
+    }
     checkBlastZones(state);
     checkEnd(state);
+    updateTutorial(state);
   } else if (state.phase === 'finalKo') {
     state.finalTimer -= 1;
     if (state.finalTimer <= 0) {
@@ -189,7 +196,12 @@ function checkBlastZones(state) {
   const out = state.fighters.filter((f) => f.state === 'alive' && (f.x < B.left || f.x > B.right || f.y - CONFIG.body.h / 2 < B.top || f.y - CONFIG.body.h > B.bottom));
   // If several leave in the same frame, the one with more damage goes first (and so places lower).
   out.sort((a, b) => b.percent - a.percent || b.slot - a.slot);
-  for (const f of out) knockOut(state, f, 'launched');
+  for (const f of out) {
+    if (f.tutorialProtected) {
+      const spawn = state.stage.spawns[state.fighters.indexOf(f)];
+      Object.assign(f, { x: spawn.x, y: spawn.y, vx: 0, vy: 0, onGround: true, groundId: 0, jumpsLeft: 1, attack: null, special: null, pull: null, hang: null, ledgeUsed: false });
+    } else knockOut(state, f, 'launched');
+  }
 }
 
 function checkEnd(state) {
@@ -249,6 +261,7 @@ export function phoneStatus(state, slot) {
   const f = state.fighters.find((x) => x.slot === slot);
   if (!f) return null;
   return {
+    ...(state.tutorial?.active && state.phase === 'fight' ? { tutorialStep: state.tutorial.step, tutorialDone: state.tutorial.step === 4 || Boolean(state.tutorial.progress[slot] & (1 << state.tutorial.step)), tutorialLeft: tutorialSeconds(state.tutorial) } : {}),
     pct: Math.floor(f.percent),
     lives: f.lives,
     state: f.state,

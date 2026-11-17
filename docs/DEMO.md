@@ -1,3 +1,5 @@
+> Temporarily disabled (2026-11-17, D-210): `DEMO_ENABLED = false` in `src/game/config.js`. Shift+D and server demo starts are blocked. The guide below is retained for reactivation.
+
 # NOVA Brawl: Demo Mode
 
 Demo mode is a preset for the course presentation: a match of at most two minutes, one life, faster hazards and four fighters. It is a host's tool. Nothing on the screen offers it, and the phones never mention it. The decisions behind it are D-187 to D-209 in [`DECISIONS.md`](DECISIONS.md).

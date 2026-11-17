@@ -7,9 +7,12 @@ export class StoreError extends Error {
   }
 }
 
-export const emptyStats = () => ({ matches: 0, wins: 0, points: 0, kos: 0, falls: 0, damage_dealt: 0, damage_taken: 0, achievements: [], last_won: false });
+export const emptyStats = () => ({ matches: 0, wins: 0, points: 0, kos: 0, falls: 0, damage_dealt: 0, damage_taken: 0, achievements: [], last_won: false, tutorial_done: false });
 // The crown (D-154): a player whose last saved match was a win. Set by every saved match.
 export const wonLast = (update) => (update.deltas.wins || 0) > 0;
+// Empty legacy cells inherit experience from saved matches; explicit 0 means pending.
+export const tutorialDone = (row) => row?.tutorial_done === true || Number(row?.tutorial_done) === 1
+  || ((row?.tutorial_done === undefined || row?.tutorial_done === null || row?.tutorial_done === '') && row?.matches > 0);
 export const STAT_KEYS = ['matches', 'wins', 'points', 'kos', 'falls', 'damage_dealt', 'damage_taken'];
 
 export class MemoryStore {
@@ -53,6 +56,14 @@ export class MemoryStore {
       row.last_won = wonLast(u);
     }
     return { duplicate: false };
+  }
+
+  async completeTutorial(lower) {
+    this.check();
+    const row = this.players.get(lower);
+    if (!row) throw new StoreError('bad_request', 'Unknown player');
+    row.tutorial_done = true;
+    return { saved: true };
   }
 
   async listPlayers() {

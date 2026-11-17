@@ -300,6 +300,13 @@ Asked for by the team on 2026-11-13 after looking at screenshots of demo mode. B
 | D-208 | Lobby line: under the QR code, two lines | The demo line stands at the bottom of the lobby's left column, **centred under the QR code**, a little above the bottom edge (the column's own margin, 2.5 % of the frame width), with its text centred, in two lines: **DEMO MODE** larger on the first, **(to quit press Shift + D)** smaller on the second. Same yellow on the dark box as before (D-201); still the only sign of demo mode, no toast (D-207). Changes the bottom right corner of D-207 and the one line of D-201. | One line in the bottom right corner (D-207); two lines in the bottom left corner (the first try of this fix) | Team, 2026-11-13, after seeing both | Team | Decided |
 | D-209 | Clock size | The clock fills **56 % of the strip between the main ground and the bottom edge of the screen** (80 %, then 30 % smaller after the team saw it; the ground is at y 600 on every stage, the screen ends at y 720, so the clock is 67 px tall with its outline) and is centred in that strip. The size is worked out from the font when it is drawn, so it stays right if the font or the strip changes. Still white with a dark outline, at the bottom centre, only in a demo match. Changes the 26 px of D-204 and the y 704 of D-192. | 26 px on the pause hint's line (D-204); 80 % of the strip (96 px, too big) | Team, 2026-11-13: the clock was too small to read from the audience | Team | Decided |
 
+### Tutorial and demo pause — 2026-11-17
+
+| ID | Topic | Decision | Reason | Decided by |
+|---|---|---|---|---|
+| D-210 | Disable demo temporarily | Keep all demo code/settings; gate the host shortcut and server demo starts with `DEMO_ENABLED = false`. | Team wants normal play only for now. | Team |
+| D-211 | First-game tutorial | A new participant triggers a full-screen laptop phone guide plus real phone spotlights. Every connected human must try left/right, J, A, S in order. All fighters are protected for at least 15 active seconds and until the steps finish. No hazards, items or life loss during practice. Persist completion per connected participant, including solo practice, with `tutorial_done`; legacy accounts with matches default to experienced. | Team request; the action requirement can extend the 15 seconds. | Team; timing and legacy migration settled in implementation |
+
 ### Proposals made by Claude while writing the docs
 
 **Historical.** These were proposals from the first concept phase. Wherever they conflict with the build-prep decisions (D-042 onwards) they are superseded, and the documents they point to (`CONCEPT` §4, the old `SPECS`) were rewritten after the build. They are kept so the history stays complete.

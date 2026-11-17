@@ -23,7 +23,7 @@ export const rectsOverlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y 
 export const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
 // Only a fighter who is in play and not freshly respawned can be hit.
-export const canBeHit = (f) => f.state === 'alive' && f.invincible <= 0;
+export const canBeHit = (f) => f.state === 'alive' && f.invincible <= 0 && !f.tutorialProtected;
 export const opponentsOf = (state, f) => state.fighters.filter((o) => o.slot !== f.slot);
 
 // Weight for the knockback formula: a Bifana makes a fighter heavier for a while (D-140).
@@ -131,7 +131,7 @@ export function insideGround(state, x, y) {
 
 // Take a life. kind is 'launched' (left the screen) or 'burnout' (reached 200 %).
 export function knockOut(state, f, kind) {
-  if (f.state !== 'alive' || state.phase !== 'fight') return;
+  if (f.state !== 'alive' || state.phase !== 'fight' || f.tutorialProtected) return;
   // If everybody else is already out, this fighter has won. That also settles the rare
   // case of the last two being knocked out in the very same frame: one of them stays.
   if (f.lives <= 1 && !state.fighters.some((o) => o !== f && o.state !== 'out')) return;

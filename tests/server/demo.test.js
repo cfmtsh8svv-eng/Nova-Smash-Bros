@@ -1,3 +1,4 @@
+// D-210: these retained demo tests explicitly enable the disabled feature.
 // Demo mode on the server (docs/DEMO.md): the `demo: true` start, its checks against
 // DEMO_SETTINGS, the time-cap result of a demo match, that a demo match is never stored,
 // and the lobby phase's `fighters` field.
@@ -96,7 +97,7 @@ test('checkResult: a normal match with byTimeCap is still refused', () => {
 // ---- starting a demo match ----
 
 test('demo: true is accepted on match_start and vote_start; any other demo value is a strike', async (t) => {
-  const s = await startServer(t);
+  const s = await startServer(t, { config: { demoEnabled: true } });
   const { h } = await demoRoom(s);
   for (const demo of [false, 1, 'true', null, {}, [true]]) {
     h.send({ t: 'match_start', stage: 'campus', lives: DEMO.lives, slots: [0, 1], demo });
@@ -116,7 +117,7 @@ test('demo: true is accepted on match_start and vote_start; any other demo value
 });
 
 test('a demo start with other lives or a fighter outside the list is refused', async (t) => {
-  const s = await startServer(t);
+  const s = await startServer(t, { config: { demoEnabled: true } });
   const { h, a } = await demoRoom(s, [F1, OTHER]);
   const other = [1, 2, 3].find((n) => n !== DEMO.lives);
   h.send({ t: 'match_start', stage: 'campus', lives: other, slots: [0, 1], demo: true });
@@ -139,7 +140,7 @@ test('a demo start with other lives or a fighter outside the list is refused', a
 });
 
 test('a demo start with a bot on another fighter is refused', async (t) => {
-  const s = await startServer(t);
+  const s = await startServer(t, { config: { demoEnabled: true } });
   const h = await s.host();
   await s.player(h, 'Ana', { fighter: F1 });
   h.send({ t: 'bots', bots: [{ fighter: OTHER, level: 'medium' }] });
@@ -158,7 +159,7 @@ for (const [name, result] of [
   ['ended normally (one player left)', () => ({ ...sampleResult({ lives: DEMO.lives, durationS: 40 }), players: sampleResult({ lives: DEMO.lives, durationS: 40 }).players.map((p, i) => ({ ...p, fighterId: [F1, F2][i] })) })],
 ]) {
   test(`a demo match that ${name} is not stored: no points, no crowns, no per-hour count`, async (t) => {
-    const s = await startServer(t);
+    const s = await startServer(t, { config: { demoEnabled: true } });
     const { h } = await demoRoom(s);
     const matchId = await startDemo(s, h);
     let stored = 0;
@@ -188,7 +189,7 @@ for (const [name, result] of [
 }
 
 test('a demo match with four logged-in players is not stored either', async (t) => {
-  const s = await startServer(t);
+  const s = await startServer(t, { config: { demoEnabled: true } });
   const h = await s.host();
   for (const [i, name] of ['Ana', 'Max', 'Zoe', 'Lea'].entries()) await s.player(h, name, { fighter: DEMO_SETTINGS.fighters[i % DEMO_SETTINGS.fighters.length] });
   const matchId = await startDemo(s, h, [0, 1, 2, 3]);
@@ -201,7 +202,7 @@ test('a demo match with four logged-in players is not stored either', async (t) 
 });
 
 test('a normal match that claims the time cap is still refused on the server', async (t) => {
-  const s = await startServer(t);
+  const s = await startServer(t, { config: { demoEnabled: true } });
   const { h } = await demoRoom(s);
   h.send({ t: 'match_start', stage: 'campus', lives: DEMO.lives, slots: [0, 1] });
   const { matchId } = await h.next('match_started');
@@ -215,7 +216,7 @@ test('a normal match that claims the time cap is still refused on the server', a
 // ---- the lobby phase's fighters ----
 
 test('the lobby phase relays a valid fighters list and refuses a bad one', async (t) => {
-  const s = await startServer(t);
+  const s = await startServer(t, { config: { demoEnabled: true } });
   const h = await s.host();
   const a = await s.player(h, 'Ana');
   h.send({ t: 'to', slot: 'all', msg: { t: 'phase', name: 'lobby', fighters: DEMO_SETTINGS.fighters } });
@@ -235,7 +236,7 @@ test('the lobby phase relays a valid fighters list and refuses a bad one', async
 });
 
 test('a phone that joins later gets the demo fighters from the last lobby phase', async (t) => {
-  const s = await startServer(t);
+  const s = await startServer(t, { config: { demoEnabled: true } });
   const h = await s.host();
   h.send({ t: 'to', slot: 'all', msg: { t: 'phase', name: 'lobby', fighters: DEMO_SETTINGS.fighters } });
   await h.settle();

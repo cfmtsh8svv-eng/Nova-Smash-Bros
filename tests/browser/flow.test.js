@@ -10,12 +10,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium, devices } from 'playwright';
 import { createApp } from '../../server/app.js';
-import { MemoryStore } from '../../server/store/memory.js';
+import { ExperiencedStore } from '../helpers/experienced-store.js';
 
 const CONFIG = { port: 0, trustProxy: false, useSheets: false, pinPepper: 'browser-test-pepper-0123', sessionSecret: 'browser-test-secret-0123', warnings: [] };
 
 test('a whole match from the stage vote to the results, a second match, removing a player, logging out', async (t) => {
-  const store = new MemoryStore();
+  const store = new ExperiencedStore();
   const app = createApp({ config: CONFIG, store });
   const port = await app.listen(0, '127.0.0.1');
   const base = `http://127.0.0.1:${port}`;

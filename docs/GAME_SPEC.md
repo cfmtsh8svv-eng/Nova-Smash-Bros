@@ -48,7 +48,7 @@ Laptop (host page, runs game) ───┘    (static files, rooms, relay, accou
 
 **Reconnect.** A phone that locks or drops keeps its slot, for 30 s in the lobby and the map vote and until the end of a running match, and rejoins with its session token.
 
-**Known limits** (to state in the walkthrough): the host page is trusted to report match results, so the server only checks plausibility (see §8). The free host sleeps when idle. Google Sheets is slow and rate-limited, so it is never used during a match.
+**Known limits** (to state in the walkthrough): the host page is trusted to report match results, so the server only checks plausibility (see §8). The free host sleeps when idle. Google Sheets is slow and rate-limited, so simulation never waits for it; tutorial completion uses a queued background write.
 
 ## 4. Accounts and the Google Sheet
 
@@ -60,7 +60,7 @@ Laptop (host page, runs game) ───┘    (static files, rooms, relay, accou
 
 | Sheet tab | Columns |
 |---|---|
-| `players` | gamertag, gamertag_lower, salt, pin_hash, created_at, matches, wins, points, kos, falls, damage_dealt, damage_taken, achievements, last_won |
+| `players` | gamertag, gamertag_lower, salt, pin_hash, created_at, matches, wins, points, kos, falls, damage_dealt, damage_taken, achievements, last_won, tutorial_done |
 | `matches` | match_id, ended_at, stage, mode, lives, duration_s, winner, players_json |
 
 The **leaderboard** ranks players by **points**. Each match gives placement points (1st 100, 2nd 60, 3rd 40, 4th 20) plus 1 point per 10 % damage dealt. The place counts every fighter of the match, bots included. A match is saved only with **at least two humans** in it; with one human (alone against bots) it is a practice match (D-161). Bots never appear in the sheet, the leaderboard or the achievements. It is read from `players`, cached on the server for 60 s, and shown in the host's lobby (not on the results screen, D-155).
@@ -164,6 +164,14 @@ The phone header shows the player's **name tag in their player colour**, damage 
 
 Demo mode (a preset for the presentation) is described in §6b.
 
+## First-game tutorial (D-211)
+
+If any human account has not completed the tutorial, the whole match starts in a shared, interactive tutorial after the countdown. The laptop shows a full-screen guide with a landscape phone diagram; each phone spotlights the real control. Steps: drag the joystick left **and** right, press J (jump), A (attack), then S (special). The next step waits until every connected human has performed the current action; bots do not hold it up. Each selected fighter's special name and effect are explained.
+
+All fighters, including returning players and bots, are protected throughout the tutorial for **at least 15 seconds of simulation time**, extended until the required actions are complete. Pause stops the timer. Inputs still work for practice; hits, hazards, items and life loss cannot interrupt the guide. Leaving the blast zone returns the fighter safely without costing a life. Items and hazards start their usual timers after the guide ends. Disconnected humans do not block a step; reconnects receive the current step. Once all humans disconnect, progress waits for someone to return. A host can abort as usual.
+
+Completion is stored per participating, connected account as `players.tutorial_done` (1/0), independently of scores, including practice matches. Aborting before completion leaves it pending. Existing accounts with saved matches and no flag are treated as experienced; an explicit 0 requests the tutorial. New accounts start at 0. No repeat after login or server restart once saved; a sheet outage queues the write and uses the server cache meanwhile. As with result queues, a restart during an outage can lose pending writes.
+
 ## 6a. What is on the big screen during a match
 
 | Where | What |
@@ -183,6 +191,8 @@ Whether the special is ready is shown **only on the phone** (a ring on the Speci
 **Final KO.** The last KO of the match is the big moment: the game drops to slow motion for **2 s**, the camera zooms in on the hit, the screen flashes and "FINAL KO!" appears. All phones vibrate. Then the end sequence of §10 starts.
 
 ## 6b. Demo mode
+
+**Temporarily disabled (D-210).** `DEMO_ENABLED` is false. Shift+D does nothing and the server rejects demo starts. The implementation and settings below are retained for later reactivation.
 
 A preset for the course presentation (D-187 to D-209; the presenter's guide is [`DEMO.md`](DEMO.md)). The host switches it on and off with **Shift+D in the lobby**; there is no button, Shift+D does nothing outside the lobby, and a reload of the host page switches it off. While it is on, the lobby shows, centred under the QR code, **DEMO MODE** and, smaller on a second line, **(to quit press Shift + D)** (D-208; no toast, and nothing is shown when it is switched off), and the lives selector is locked to the demo value.
 

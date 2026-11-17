@@ -1,3 +1,4 @@
+import { updateTutorialHint as renderTutorialHint } from './tutorial.js';
 // The phone page: register or log in, pick a fighter, then be the controller.
 // Which screen is shown is decided by the "phase" messages of the host
 // (lobby, match, results); this page only reacts to them.
@@ -40,6 +41,7 @@ function show(name) {
   for (const id of SCREENS) $(id).hidden = id !== name;
   if (name !== 'pad') {
     controls.releaseAll();
+    updateTutorialHint(null);
     hideHazard(); // a countdown from the last match must not be there in the next one
   }
   if (name === 'pad') keepAwake();
@@ -194,6 +196,7 @@ const MESSAGES = {
 
   status(msg) {
     me.status = msg;
+    updateTutorialHint(msg);
     $('padPct').textContent = `${Number(msg.pct) || 0}%`;
     $('padPct').style.color = damageColor(msg.pct);
     $('padHearts').textContent = hearts(Number(msg.lives) || 0, me.lives);
@@ -782,3 +785,5 @@ if (me.token && me.room) {
 } else {
   showAuth(me.token ? 'login' : 'register');
 }
+
+function updateTutorialHint(status) { renderTutorialHint($, status, FIGHTERS[me.fighter]); }

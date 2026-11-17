@@ -1,7 +1,7 @@
 // The Google Sheet store: every call is one HTTPS request to the Apps Script
 // web app in google-sheet/Code.gs, which reads and writes the sheet.
 // The shared secret proves to the script that the request comes from our server.
-import { StoreError } from './memory.js';
+import { StoreError, tutorialDone } from './memory.js';
 
 // Longer than the script waits for its lock (6 s) plus the write itself, so the server
 // does not give up on a request that the sheet is still going to carry out.
@@ -59,6 +59,10 @@ export class SheetsStore {
     return this.call('recordMatch', { match, updates });
   }
 
+  async completeTutorial(lower) {
+    return this.call('completeTutorial', { gamertag_lower: lower });
+  }
+
   async listPlayers() {
     const rows = await this.call('listPlayers');
     return Array.isArray(rows) ? rows.map((r) => ({ gamertag: String(r.gamertag), matches: num(r.matches), wins: num(r.wins), points: num(r.points), kos: num(r.kos) })) : [];
@@ -78,7 +82,8 @@ function normalise(row) {
     matches: num(row.matches), wins: num(row.wins), points: num(row.points), kos: num(row.kos), falls: num(row.falls),
     damage_dealt: num(row.damage_dealt), damage_taken: num(row.damage_taken),
     achievements: achievements.filter((a) => /^[a-z_]{1,30}$/.test(a)),
-    // The crown column (D-154). An empty cell, as in a sheet from before the column existed, is no crown.
+    tutorial_done: tutorialDone(row),
+    // The crown column (D-154). An empty legacy cell means no crown.
     last_won: row.last_won === true || Number(row.last_won) === 1,
   };
 }

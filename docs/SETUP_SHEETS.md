@@ -144,3 +144,7 @@ Save, then deploy a new version: **Deploy → Manage deployments → pencil icon
 - **Do not edit the header rows or move columns.** The script finds columns by position. Editing a player's numbers by hand is fine.
 - **To reset everything**, delete the rows below the headers in both tabs.
 - **Sharing:** share the sheet with the other members as *Viewer* or *Editor*. Do not share it publicly: it holds the PIN hashes.
+
+## Updating an existing sheet for the tutorial (2026-11-17)
+
+Replace Apps Script `Code.gs` with the repository version, run `setup()` once (adds `players!O1 = tutorial_done`), then edit the existing web-app deployment and select a **new version**. Keep its URL and all secrets. New accounts use 0; completing the guide writes 1, including practice games. Empty existing cells use `matches > 0` as experience; set 0 explicitly to request the tutorial or 1 to skip it. No changes to `matches`. Restart/deploy the game server with the new code after updating the script.

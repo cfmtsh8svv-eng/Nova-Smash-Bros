@@ -87,7 +87,7 @@ There is no database. That was a team decision: a sheet is something everyone ca
 
 ### What happens if Google Sheets is unavailable?
 
-The game keeps running, because the sheet is never used during a match.
+The game keeps running, because simulation never waits for the sheet. Tutorial completion is queued in the background.
 
 - **Players who logged in since the server started** can still log in and play: the server remembers their row.
 - **New players cannot register.** They get a clear message ("Can't reach the player list right now…"). A registration must be checked against the sheet, because a gamertag has to be unique.
@@ -442,7 +442,7 @@ Say these plainly when asked; they are choices, not accidents.
 1. **The host page is trusted.** It runs the match and reports the result. The server only checks that a result is possible. Whoever controls the laptop could invent a plausible result.
 2. **The free host sleeps** after 15 idle minutes and takes up to a minute to wake. Open the URL before the demo.
 3. **A server restart** closes all rooms and can lose results that were still waiting for the sheet. Wrong-PIN counters start again.
-4. **Google Sheets is slow and rate-limited.** It is never used during a match, but registration needs it.
+4. **Google Sheets is slow and rate-limited.** Simulation never waits for it, but registration needs it; tutorial completion is queued in the background.
 5. **A 4-digit PIN is weak** by nature. Salt, pepper, a slow hash and the lockout make it reasonable for a party game. It is not suitable for anything valuable.
 6. **Anyone can lock a gamertag** by entering wrong PINs for it: ten minutes after five misses, up to a day after twenty. That is the price of a lockout by name. A phone that is still logged in is not affected; only a new login with the PIN is.
 7. **A room code is four letters.** Guessing is slowed down (only logged-in players learn whether a room exists, attempts are limited), and the host can remove a stranger and close the room, but a code is not a password.
@@ -538,3 +538,12 @@ The fighter stands still and can still be hit. The phone reconnects by itself, s
 The team decided the game in a planning session (the team chose art, HUD, phone and podium from generated visual options, kept in the git history; the decisions are in `DECISIONS.md`, the result in `GAME_SPEC.md`). The code was then written with Claude in one session, in three packages: rules, server, client. After each package, independent reviewer agents that had not written the code checked it against the spec, hunted for bugs, checked security, and tried to break the tests. Every finding was reproduced before it was fixed. Each fixed defect in the rules and the server has a regression test; the client fixes are covered where a browser test can reach them. Decisions made along the way are listed in `DECISIONS.md` (D-098 onwards); the team confirmed them on 2026-11-13, all except D-125.
 
 Claude wrote most of the code. The commits of the first build and many later ones are authored by Claude or carry a `Co-Authored-By: Claude` line. The later build rounds (for example the bots, the bot levels and demo mode) were also written in Claude sessions, but committed under Bastian Volkery's name without that line, because their build prompts asked for it; those prompts are in `docs/archive/`, and the decisions Claude made in them are marked "Claude" in `DECISIONS.md`. The tasks in `TEAM_TASKS.md` are there so that each member changes and explains their own part.
+
+
+## First-game guide and disabled demo (2026-11-17)
+
+`src/game/tutorial.js` checks actual controller inputs and owns the shared steps and minimum 15-second protection. `public/host/tutorial.js` draws the full-screen laptop guide with a phone diagram; `public/play/tutorial.js` highlights the matching real control without blocking touch. If any human is new, everyone practises together. Connected humans must each complete a step before it advances; bots never hold it up. `match.js` pauses item/hazard timers and safely resets falls while the guide runs. Pause stops tutorial time too.
+
+The server chooses whether to start the guide from cached account rows. On completion it updates `tutorial_done` immediately and queues an idempotent `completeTutorial` write, independently of points and practice results. This is a background sheet write at the end of the guide; simulation never waits for it. Empty legacy cells use saved matches as experience. `docs/SETUP_SHEETS.md` explains adding column O with the updated script's `setup()` and redeploying that script.
+
+Demo code is retained behind `DEMO_ENABLED = false` in `config.js`. Both Shift+D and direct server demo starts are blocked. Legacy server tests explicitly enable their retained demo fixture; the legacy browser demo test runs again when the shared flag is re-enabled. The new tutorial browser test covers the disabled shortcut and actual phone inputs; the older browser scenarios use already-onboarded account fixtures to keep testing ordinary matches.

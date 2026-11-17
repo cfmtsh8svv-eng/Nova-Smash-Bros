@@ -6,6 +6,8 @@
 
 export const SCREEN = { w: 1280, h: 720 };
 export const FPS = 60;
+// Retained demo implementation; change this flag deliberately to reactivate it.
+export const DEMO_ENABLED = false;
 export const seconds = (s) => Math.round(s * FPS);
 
 // Player colours P1..P4. Always shown together with the "P1".."P4" label.
@@ -42,6 +44,7 @@ export const CONFIG = {
   // Leaving this rectangle is a KO ("LAUNCHED!").
   blast: { left: -170, right: 1450, top: -230, bottom: 900 },
   match: {
+    tutorialMinFrames: seconds(15),
     countdownFrames: seconds(3), // 3, 2, 1 ... then BRAWL!
     respawnFrames: seconds(2),
     invincibleFrames: seconds(2),

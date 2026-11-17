@@ -1,7 +1,7 @@
 // The host page (the big screen): title -> lobby -> match -> results -> lobby.
 // It talks to the server over one WebSocket, owns the lobby settings and starts
 // and ends matches. The match itself runs in game.js.
-import { PLAYER_COLORS, demoFighters, demoMatchSettings } from '/game/config.js';
+import { PLAYER_COLORS, DEMO_ENABLED, demoFighters, demoMatchSettings } from '/game/config.js';
 import { FIGHTERS, getFighter } from '/game/fighters.js';
 import { BOT_LEVELS } from '/game/bot.js';
 import { HAZARDS, STAGES, STAGE_IDS, tallyVote } from '/game/stages.js';
@@ -46,6 +46,7 @@ let creatingRoom = false;
 let roomRetry = null;
 let startTimer = null;
 let voting = null; // the map vote while it runs: { slots, players, votes: Map slot -> stage, endsAt, winner }
+let pendingTutorial = null;
 let intro = null; // the intro before the match while it runs: { skipped: Set of slots, ticker }
 const introScreen = createIntro($);
 
@@ -54,6 +55,12 @@ const game = createGame({
   audio,
   sendTo: (slot, msg) => link.send({ t: 'to', slot, msg }),
   onEnd: showResults,
+  onTutorialDone: (slots) => {
+    if (match) {
+      pendingTutorial = { t: 'tutorial_complete', matchId: match.id, slots };
+      link.send(pendingTutorial);
+    }
+  },
 });
 
 // ---- small helpers ----
@@ -143,7 +150,7 @@ const MESSAGES = {
     } else if (msg.resumed && msg.phase === 'match') {
       if (pendingStart) {
         // The connection dropped just after "Start": the server did start the match. Carry on.
-        beginMatch(msg.matchId, msg.bots);
+        beginMatch(msg.matchId, msg.bots, msg.tutorial);
       } else if (match && match.id === msg.matchId && match.result && !match.saved) {
         // The match ended while we were offline: send the result now.
         submitResult();
@@ -197,7 +204,7 @@ const MESSAGES = {
       } else if (old && !old.ready && p.ready) {
         audio.play('ready');
       }
-      if (old && old.connected !== p.connected) game.setConnected(p.slot);
+      if (old && old.connected !== p.connected) game.setConnected(p.slot, p.connected);
       // Demo mode: a phone that joined or came back learns the demo fighters at once.
       if (demo.on && !p.bot && p.connected && (!old || !old.connected || old.gamertag !== p.gamertag) && inLobby()) lobbyPhase(p.slot);
     }
@@ -240,7 +247,8 @@ const MESSAGES = {
 
   vote_started() { beginVote(); },
 
-  match_started(msg) { beginMatch(msg.matchId, msg.bots); },
+  tutorial_saved(msg) { if (pendingTutorial?.matchId === msg.matchId) pendingTutorial = null; },
+  match_started(msg) { beginMatch(msg.matchId, msg.bots, msg.tutorial); },
 
   result_saved(msg) {
     if (!match || msg.matchId !== match.id) return;
@@ -760,9 +768,9 @@ function matchPhase(paused = false) {
 }
 
 // bots: the bots of this match with their slots, as the server gave them out (D-165).
-async function beginMatch(matchId, bots = []) {
+async function beginMatch(matchId, bots = [], tutorial = false) {
   if (!pendingStart) return;
-  match = { id: matchId, ...pendingStart, bots: Array.isArray(bots) ? bots : [] };
+  match = { id: matchId, ...pendingStart, tutorial, bots: Array.isArray(bots) ? bots : [] };
   pendingStart = null;
   clearTimeout(startTimer);
   if (voting) {
@@ -773,6 +781,8 @@ async function beginMatch(matchId, bots = []) {
   const started = match;
   await game.start(match, { hold: true });
   if (match !== started) return; // the match was ended while it was loading
+  // A phone may have dropped while fighter art was loading. Use the latest roster.
+  for (const p of lobby.roster) if (game.takesInput(p.slot)) game.setConnected(p.slot, p.connected);
   startIntro();
 }
 
@@ -838,7 +848,7 @@ window.addEventListener('keydown', (event) => {
   }
   // The hidden demo switch: Shift+D, only in the lobby, not while typing (docs/DEMO.md, D-187).
   if (event.code === 'KeyD' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey && !event.repeat && !typing(event.target)) {
-    if (inLobby()) toggleDemo();
+    if (DEMO_ENABLED && inLobby()) toggleDemo();
   }
 });
 
@@ -847,6 +857,7 @@ const typing = (target) => Boolean(target && target.closest && target.closest('t
 // ---- demo mode (docs/DEMO.md) ----
 
 function toggleDemo() {
+  if (!DEMO_ENABLED) return;
   demo.on = !demo.on;
   if (demo.on) {
     demo.livesBefore = lobby.lives;
@@ -1029,3 +1040,6 @@ window.novaBrawl = {
   get demo() { return demo.on; }, // read-only: Shift+D in the lobby is the only switch
   takesInput: (slot) => game.takesInput(slot),
 };
+
+// Retry the completion notification after a host connection drop; the server operation is idempotent.
+setInterval(() => { if (pendingTutorial && match?.id === pendingTutorial.matchId) link.send(pendingTutorial); }, 500);

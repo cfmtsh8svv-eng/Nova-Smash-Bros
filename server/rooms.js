@@ -14,6 +14,7 @@
 //
 // Access control in one sentence: the socket that created a room is its host,
 // and only the host can start a match, submit its result or talk to the phones.
+import { tutorialDone } from './store/memory.js';
 import { randomBytes, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
 import { LIMITS } from './config.js';
 import { Bucket } from './security.js';
@@ -22,7 +23,7 @@ import { isInt, isPlainObject, isRoomCode, isSkip } from './validate.js';
 import { checkResult, scoreResult } from './results.js';
 import { isValidMask } from '../src/game/input.js';
 import { FIGHTER_IDS } from '../src/game/fighters.js';
-import { demoFighters, demoMatchSettings } from '../src/game/config.js';
+import { DEMO_ENABLED, demoFighters, demoMatchSettings } from '../src/game/config.js';
 import { HAZARD_IDS, STAGE_IDS } from '../src/game/stages.js';
 import { BOT_NAMES, BOT_LEVELS } from '../src/game/bot.js';
 
@@ -89,8 +90,9 @@ export function relayProblem(m) {
   if (JSON.stringify(m).length > LIMITS.relayBytes[m.t]) return true;
   if (m.t === 'phase') return !(PHASE_NAMES.includes(m.name) && PHASE_FIELDS[m.name](m));
   if (m.t === 'status') {
-    return !(onlyKeys(m, ['t', 'pct', 'lives', 'state', 'cd', 'cdMax', 'held', 'tipsy', 'fuse', 'buff'])
+    return !(onlyKeys(m, ['t', 'pct', 'lives', 'state', 'cd', 'cdMax', 'held', 'tipsy', 'fuse', 'buff', 'tutorialStep', 'tutorialDone', 'tutorialLeft'])
       && isInt(m.pct, 0, 999) && isInt(m.lives, 0, 3) && FIGHTER_STATES.includes(m.state) && isInt(m.cd, 0, 3600) && isInt(m.cdMax, 1, 3600)
+      && optional(m.tutorialStep, (v) => isInt(v, 0, 4)) && optional(m.tutorialDone, bool) && optional(m.tutorialLeft, (v) => isInt(v, 0, 15))
       && optional(m.held, shortText(12)) && optional(m.tipsy, bool)
       // The Group Project's seconds left, and LUCKY or BIFANA for the phone header (D-142).
       && optional(m.fuse, (v) => isInt(v, 0, 9)) && optional(m.buff, (v) => ['lucky', 'bifana'].includes(v)));
@@ -372,7 +374,7 @@ export class Rooms {
   // false (no demo field), true (demo) or null (a malformed value, which is a strike).
   demoFlag(msg) {
     if (!Object.hasOwn(msg, 'demo')) return false;
-    return msg.demo === true ? true : null;
+    return msg.demo === true && (this.config.demoEnabled ?? DEMO_ENABLED) ? true : null;
   }
 
   // In demo mode only the demo fighters may fight: every human of the start list and every
@@ -514,7 +516,7 @@ const NEW_HANDLERS = {
     room.host = conn;
     room.lastActive = this.now();
     Object.assign(conn, { role: 'host', room, bucket: new Bucket(LIMITS.hostMessagesPerSecond, this.now()) });
-    this.send(conn, { t: 'room', code: room.code, hostKey: room.hostKey, resumed: true, phase: room.phase, matchId: room.match ? room.match.id : null, bots: room.match ? room.match.bots : [] });
+    this.send(conn, { t: 'room', code: room.code, hostKey: room.hostKey, resumed: true, phase: room.phase, matchId: room.match ? room.match.id : null, tutorial: Boolean(room.match?.tutorial), bots: room.match ? room.match.bots : [] });
     this.sendRoster(room);
     if (room.lastResult) this.send(conn, room.lastResult);
     room.hostQuiet = false;
@@ -783,8 +785,22 @@ const HOST_HANDLERS = {
     room.match = { id: randomUUID(), stage: msg.stage, lives: msg.lives, slots: [...msg.slots], bots, startedAt: this.now(), demo, players: new Map(msg.slots.map((i) => [i, room.slots[i].lower])) };
     room.phase = 'match';
     room.lastActive = this.now();
-    this.send(conn, { t: 'match_started', matchId: room.match.id, bots });
+    const tutorial = msg.slots.some((i) => !tutorialDone(this.data.players.get(room.slots[i].lower)));
+    room.match.tutorial = tutorial;
+    this.send(conn, { t: 'match_started', matchId: room.match.id, bots, tutorial });
     return this.sendRoster(room);
+  },
+
+  tutorial_complete(conn, msg) {
+    const match = conn.room.match;
+    if (!match || !match.tutorial || msg.matchId !== match.id || !onlyKeys(msg, ['t', 'matchId', 'slots'])
+      || !Array.isArray(msg.slots) || !msg.slots.length || msg.slots.length > 4
+      || msg.slots.some((slot) => !match.slots.includes(slot))) return this.strike(conn);
+    for (const slot of new Set(msg.slots)) {
+      const lower = match.players.get(slot);
+      if (!tutorialDone(this.data.players.get(lower))) this.data.completeTutorial(lower);
+    }
+    return this.send(conn, { t: 'tutorial_saved', matchId: match.id });
   },
 
   async match_result(conn, msg) {

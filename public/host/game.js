@@ -1,5 +1,6 @@
 // Runs one match on the host page: feeds the inputs into the rules, turns what
 // happens into pictures, sounds and phone messages, and reports the result.
+import { createTutorialView } from './tutorial.js';
 import { CONFIG, PLAYER_COLORS, SCREEN } from '/game/config.js';
 import { createMatch, phoneStatus } from '/game/match.js';
 import { createLoop } from '/game/loop.js';
@@ -23,8 +24,9 @@ export const TIME_UP_TEXT = 'TIME!';
 const TIME_UP_MS = 1800;
 const HAZARD_SOUND = { train: 'train', wave: 'wave', gulls: 'gulls', crowd: 'crowd', drinks: 'drinks', wifi: 'wifi', rain: 'rain', sun: 'sun', fireworks: 'fireworksLaunch' };
 
-export function createGame({ canvas, audio, sendTo, onEnd }) {
+export function createGame({ canvas, audio, sendTo, onEnd, onTutorialDone }) {
   const renderer = createRenderer(canvas);
+  const tutorialView = createTutorialView();
   const fx = createFx();
   const view = { camera: { x: 640, y: 360, zoom: 1 }, fx, time: 0, countAt: 0 };
   let cameraGoal = { x: 640, y: 360, zoom: 1 };
@@ -65,7 +67,9 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
   }
 
   // A phone dropped or came back: either way it starts from "nothing pressed".
-  function setConnected(slot) {
+  function setConnected(slot, connected = true) {
+    const fighter = state?.fighters.find((f) => f.slot === slot);
+    if (fighter) fighter.connected = Boolean(connected);
     const phone = phones.get(slot);
     if (phone) phone.buffer.reset();
   }
@@ -77,6 +81,7 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
   const toAllPhones = (msg) => sendTo('all', msg);
 
   const HANDLERS = {
+    tutorialEnd(e) { if (e.slots.length) onTutorialDone?.(e.slots); },
     countdown(e) { fx.banner(String(e.n), { size: 190, y: 330, life: 55 }); audio.play('count'); },
     go() { fx.banner('BRAWL!', { size: 150, color: '#ff7a3d', y: 330, life: 60 }); audio.play('go'); fx.addFlash(0.35); },
     jump(e) { audio.play(e.double ? 'doubleJump' : 'jump'); fx.burst(e.x, e.y, { count: e.double ? 8 : 5, color: '#ffffff', speed: 2.5, size: 5, life: 16, gravity: 0 }); },
@@ -255,6 +260,7 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
       for (const key of ['x', 'y', 'zoom']) view.camera[key] += (cameraGoal[key] - view.camera[key]) * k;
     }
     drawSmooth();
+    tutorialView.render(!held ? state : null, Boolean(loop?.paused));
   }
   requestAnimationFrame(frame);
 
@@ -289,13 +295,13 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
 
   // players: [{ slot, name, fighterId }], one per phone; bots: [{ slot, name, fighter, level }] (from the server).
   // With `hold` the match is set up and drawn but does not run until go() (the intro, D-153).
-  async function start({ stageId, players, bots: botList = [], settings }, { hold = false } = {}) {
+  async function start({ stageId, players, bots: botList = [], settings, tutorial = false }, { hold = false } = {}) {
     stop();
     previewStage = stageId;
     const fromBots = botList.map((b) => ({ slot: b.slot, name: b.name, fighterId: b.fighter, bot: true }));
     const ordered = [...players, ...fromBots].sort((a, b) => a.slot - b.slot);
     const seed = (Math.random() * 2 ** 31) | 0;
-    const next = createMatch({ stageId, players: ordered, settings, seed });
+    const next = createMatch({ stageId, players: ordered, settings, seed, tutorial });
     // Draw every pose of every fighter before the first frame, so nothing pops in mid-fight.
     await Promise.all([
       loadStage(stageId).catch(() => {}),
@@ -334,6 +340,7 @@ export function createGame({ canvas, audio, sendTo, onEnd }) {
   function stop() {
     clearTimeout(timeUp);
     timeUp = null;
+    tutorialView.render(null, false);
     held = false;
     ceremony = null;
     loop = null;

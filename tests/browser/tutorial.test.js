@@ -81,8 +81,6 @@ test('new player triggers full-screen phone guide; everyone performs each step; 
   await host.waitForFunction(() => window.novaBrawl.state.tutorial.step === 1);
   await ana.waitForSelector('[data-b="jump"].tutorialFocus');
   await max.waitForSelector('[data-b="jump"].tutorialFocus');
-  await host.screenshot({ path: '/private/tmp/nova-tutorial-laptop.png' });
-  await ana.screenshot({ path: '/private/tmp/nova-tutorial-phone.png' });
   // Passing 15 seconds alone cannot dismiss the input-gated guide.
   await host.evaluate(() => { window.novaBrawl.state.tutorial.frames = 900; });
   for (const [index, action] of [[1, 'jump'], [2, 'attack'], [3, 'special']]) {

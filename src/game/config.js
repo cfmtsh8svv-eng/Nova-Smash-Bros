@@ -6,8 +6,6 @@
 
 export const SCREEN = { w: 1280, h: 720 };
 export const FPS = 60;
-// Retained demo implementation; change this flag deliberately to reactivate it.
-export const DEMO_ENABLED = false;
 export const seconds = (s) => Math.round(s * FPS);
 
 // Player colours P1..P4. Always shown together with the "P1".."P4" label.
@@ -200,14 +198,13 @@ export const SPECIAL_TUNING = {
   spaghetti_lasso: { cooldown: seconds(6), range: 380, thickness: 64, damage: 6, stunFrames: seconds(0.7), pullFrames: 10, pullGap: 56, freeAt: 26, at: 8, total: 34 },
 };
 
-// Match settings chosen in the lobby. Demo mode (DEMO_SETTINGS below) changes only these.
+// Match settings chosen in the lobby.
 export const DEFAULT_SETTINGS = {
   lives: 3, // 1, 2 or 3
   items: true,
   hazards: true,
   hazardMinS: CONFIG.hazards.minS,
   hazardMaxS: CONFIG.hazards.maxS,
-  timeCapS: 0, // 0 = no time limit (the normal game)
 };
 
 export function makeSettings(overrides = {}) {
@@ -220,41 +217,6 @@ export function makeSettings(overrides = {}) {
   s.hazards = flag(s.hazards);
   s.hazardMinS = seconds(s.hazardMinS, DEFAULT_SETTINGS.hazardMinS);
   s.hazardMaxS = Math.max(s.hazardMinS, seconds(s.hazardMaxS, DEFAULT_SETTINGS.hazardMaxS));
-  s.timeCapS = seconds(s.timeCapS, 0);
   return s;
 }
 
-// DEMO MODE (docs/DEMO.md, switched on with Shift+D in the host's lobby).
-// This object is the one place to change the demo: the server, the host page, the phones
-// and the tests all read it from here. Change a value here and nothing else.
-//   lives: 1, 2 or 3                     timeCapS: seconds of fighting before the match ends
-//   hazardMinS/hazardMaxS: seconds from the end of one hazard to the next warning
-//   fighters: the fighter ids that can be picked (see FIGHTER_STATS below for the ids)
-export const DEMO_SETTINGS = {
-  lives: 1,
-  timeCapS: 120,
-  hazardMinS: 5,
-  hazardMaxS: 8,
-  fighters: ['maastricht_blondie', 'lisboa_og', 'finance_bro', 'surfer_girl'],
-};
-
-// The demo fighters, checked: unknown ids and repeats are dropped, and if nothing is left,
-// every fighter can be picked. (Valid ids are the keys of FIGHTER_STATS.)
-export function demoFighters(list = DEMO_SETTINGS.fighters) {
-  const valid = Object.keys(FIGHTER_STATS);
-  const kept = Array.isArray(list) ? [...new Set(list.filter((id) => typeof id === 'string' && valid.includes(id)))] : [];
-  return kept.length ? kept : valid;
-}
-
-// The match settings of a demo match: the demo values over the lobby's items and hazards
-// switches, run through makeSettings so a bad edit of DEMO_SETTINGS falls back safely.
-export function demoMatchSettings(lobby = {}, demo = DEMO_SETTINGS) {
-  return makeSettings({
-    items: lobby.items ?? DEFAULT_SETTINGS.items,
-    hazards: lobby.hazards ?? DEFAULT_SETTINGS.hazards,
-    lives: demo.lives,
-    timeCapS: demo.timeCapS,
-    hazardMinS: demo.hazardMinS,
-    hazardMaxS: demo.hazardMaxS,
-  });
-}

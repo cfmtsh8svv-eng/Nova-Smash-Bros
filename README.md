@@ -79,7 +79,6 @@ Each stage has three **hazards**: the Cascais Line train (sometimes late!), Bad 
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Every decision in one log |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/SETUP_SHEETS.md`](docs/SETUP_SHEETS.md) | Deploying, and connecting the Google Sheet |
 | [`docs/TEAM_TASKS.md`](docs/TEAM_TASKS.md) | Small follow-up tasks for each member |
-| [`docs/DEMO.md`](docs/DEMO.md) | Demo mode for the presentation: how to switch it on, what changes, where the values are |
 | [`docs/SPECS.md`](docs/SPECS.md), [`docs/CONCEPT.md`](docs/CONCEPT.md) | Technical overview, brand and voice |
 | [`docs/archive/`](docs/archive/) | History: the build prompts of each round and the first brainstorm (ideas that were not built) |
 | [`CREDITS.md`](CREDITS.md) | Logo, fonts and software credits |

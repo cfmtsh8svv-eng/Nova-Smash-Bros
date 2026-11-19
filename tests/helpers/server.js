@@ -125,7 +125,7 @@ export async function startServer(t, { store = new MemoryStore(), config = {}, a
 // A plausible result for a match with the given slots: the first slot wins.
 export function sampleResult({ stage = 'campus', lives = 3, slots = [0, 1], durationS = 60 } = {}) {
   return {
-    stage, lives, durationS, winner: slots[0], byTimeCap: false,
+    stage, lives, durationS, winner: slots[0],
     players: slots.map((slot, i) => ({
       slot, name: `P${slot}`, fighterId: 'finance_bro', place: i + 1,
       damageDealt: i === 0 ? 300 : 40, damageTaken: i === 0 ? 40 * (slots.length - 1) : Math.floor(300 / (slots.length - 1)),

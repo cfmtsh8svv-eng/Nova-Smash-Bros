@@ -36,6 +36,6 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
     process.exit(0);
   });
 }
-// A bug in one request must never take the whole game down mid-demo.
+// A bug in one request must never take the whole game down mid-match.
 process.on('uncaughtException', (err) => console.error(`Unexpected error: ${err.stack || err}`));
 process.on('unhandledRejection', (err) => console.error(`Unexpected rejection: ${err && err.stack ? err.stack : err}`));

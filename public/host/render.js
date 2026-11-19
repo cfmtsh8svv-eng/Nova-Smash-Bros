@@ -5,7 +5,7 @@
 // items - fighters - things that fly - hazards in front - effects - name tags -
 // the HUD (player cards, hazard countdown, big texts).
 import { CONFIG, PLAYER_COLORS, SCREEN } from '/game/config.js';
-import { CLOCK, damageColor, drawnPose, hearts, heldItemAt, matchClock, PAUSE_HINT, pauseHint } from '/game/view.js';
+import { damageColor, drawnPose, hearts, heldItemAt, PAUSE_HINT, pauseHint } from '/game/view.js';
 import { hazardRect } from '/game/hazards.js';
 import { getFighter } from '/game/fighters.js';
 import { duplicateColour, handPoint, SPRITE } from '/shared/art/characters.js';
@@ -895,34 +895,6 @@ export function createRenderer(canvas) {
     ctx.restore();
   }
 
-  // Bottom centre, in the pause hint's place: the clock of a demo match (m:ss), in the
-  // lobby's display font, white with a dark outline like the other canvas text. It fills
-  // CLOCK.height of the strip under the main ground (D-209): the size comes from how tall
-  // the digits really are in the font, measured once at 100 px.
-  let clockGlyph = null; // { asc, desc } of "0:00" at 100 px, once the font has loaded
-  function drawClock(state) {
-    const text = matchClock(state);
-    if (!text) return;
-    if (!clockGlyph) {
-      ctx.font = `100px ${DISPLAY}`;
-      const m = ctx.measureText('0:00');
-      const g = { asc: m.actualBoundingBoxAscent, desc: m.actualBoundingBoxDescent };
-      if (!(g.asc + g.desc > 0)) { g.asc = 74; g.desc = 2; } // a browser without these metrics
-      if (!document.fonts || document.fonts.check(`100px ${DISPLAY}`)) clockGlyph = g;
-      else return drawClockWith(text, g);
-    }
-    drawClockWith(text, clockGlyph);
-  }
-  function drawClockWith(text, g) {
-    const outline = Math.max(6, Math.round(CLOCK.height / 12));
-    const size = Math.max(10, ((CLOCK.height - outline) / (g.asc + g.desc)) * 100);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.font = `${size}px ${DISPLAY}`;
-    const k = size / 100;
-    outlined(ctx, text, SCREEN.w / 2, CLOCK.y + ((g.asc - g.desc) * k) / 2, '#ffffff', outline);
-  }
-
   function drawBanners(fx) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -1027,7 +999,6 @@ export function createRenderer(canvas) {
       drawCards(state);
       drawHazardText(state, view);
       drawPauseHint(state);
-      drawClock(state);
       drawBanners(fx);
     }
     if (fx && fx.flash > 0) {

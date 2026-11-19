@@ -813,14 +813,3 @@ test('every platform of every stage can be reached with one jump from a lower on
     }
   }
 });
-
-test('the time cap ranks more lives above less damage', () => {
-  const state = fight({ settings: { timeCapS: 3, lives: 3 } });
-  const [a, b] = state.fighters;
-  launchOut(state, b); // b has 2 lives and comes back at 0 %
-  a.percent = 150; // a has 3 lives but much more damage
-  let end = null;
-  for (let i = 0; i < 400 && !end; i++) end = of(run(state, 1), 'matchEnd')[0];
-  assert.equal(end.result.winner, a.slot);
-  assert.equal(end.result.byTimeCap, true);
-});

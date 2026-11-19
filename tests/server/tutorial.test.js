@@ -18,16 +18,6 @@ async function readyRoom(t) {
   return { ...s, h, a, b, start };
 }
 
-test('demo is disabled by default, including direct start and vote messages', async (t) => {
-  const s = await readyRoom(t);
-  for (const msg of [{ t: 'vote_start', slots: [0, 1], demo: true }, { t: 'match_start', stage: 'campus', lives: 1, slots: [0, 1], demo: true }]) {
-    s.h.send(msg);
-    assert.equal((await s.h.next('error')).code, 'bad_message');
-    assert.equal(s.app.rooms.rooms.get(s.h.code).phase, 'lobby');
-  }
-  assert.equal((await s.start()).tutorial, true, 'ordinary starts still work');
-});
-
 test('one new account triggers the shared guide; completion survives a new data service with no scored match', async (t) => {
   const s = await readyRoom(t);
   await s.app.data.completeTutorial('max'); await s.app.data.flush();

@@ -290,21 +290,6 @@ test('the phone status reports damage, lives and the special cooldown', () => {
   assert.equal(phoneStatus(state, 3), null);
 });
 
-test('the optional time cap is off by default and ranks by lives, then lowest damage', () => {
-  const normal = fight();
-  run(normal, 60 * 30);
-  assert.equal(normal.phase, 'fight', 'no time limit in the normal game');
-
-  const capped = fight({ settings: { timeCapS: 5 } });
-  capped.fighters[0].percent = 90;
-  capped.fighters[1].percent = 30;
-  const events = run(capped, 60 * 5 + 1);
-  assert.equal(capped.phase, 'ended');
-  const result = of(events, 'matchEnd')[0].result;
-  assert.equal(result.winner, 1);
-  assert.equal(result.byTimeCap, true);
-});
-
 test('the final KO announces "FINAL KO!", names the winner and vibrates every phone', () => {
   const state = fight({ fighters: ['finance_bro', 'house_dj', 'surfer_girl'], settings: { lives: 1 } });
   launchOut(state, state.fighters[2]);

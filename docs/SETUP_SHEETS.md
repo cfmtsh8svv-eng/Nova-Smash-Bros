@@ -105,37 +105,17 @@ With a wrong secret the answer is `{"ok":false,"error":"forbidden",...}`.
 
 ## If you change the script later
 
-Editing `Code.gs` in the editor does **not** change the deployed web app. After pasting a new version: **Deploy → Manage deployments → pencil icon → Version: New version → Deploy**. The URL stays the same.
+Editing `Code.gs` in the editor does **not** change the deployed web app. After pasting a new version: **Deploy → Manage deployments → pencil icon → Version: New version → Deploy**. The URL stays the same. Without this last step the old script keeps answering.
 
-### Adding the crown column (round 3, D-154)
+### A sheet created before 2026-11-17
 
-The script now writes a 14th column, `last_won`, in the `players` tab: 1 when the player's last saved match was a win, 0 otherwise. A sheet created before this change has no header for it. After deploying the new `Code.gs`, type `last_won` into cell **N1** of the `players` tab. Empty cells below it count as 0 (no crown) until that player's next saved match.
+A sheet set up with an older `Code.gs` needs three things, once:
 
-### Bots that win (D-182)
+1. Paste the whole current `Code.gs` into the editor and save (step 3). The old script refuses every match that a bot won (D-182): if the deployed script still contains `'(keyboard player)'`, it is the old one.
+2. Run `setup` once (step 5). It adds the header `tutorial_done` in cell **O1** of the `players` tab and changes no account or score. If cell **N1** is empty, type `last_won` there (the crown, D-154).
+3. Deploy a new version as described above, then redeploy the game server so it runs the matching code.
 
-A script deployed before this fix refuses every match that a bot won, so those results never reach the sheet. Check the deployed script in the Apps Script editor: if it contains `'(keyboard player)'`, it is the old one. Either paste the whole new `Code.gs` (steps 3 and "If you change the script later"), or make these two changes by hand:
-
-1. Below the line `var STAGES = ['campus', 'beach', 'bairro'];` add:
-
-   ```javascript
-   // The winner column holds a gamertag, or one of these when the winner has no account:
-   // a bot won (D-172), or the winner's row could not be read when the result was saved.
-   var WINNER_MARKERS = ['(bot)', '(unknown)'];
-   ```
-
-2. In the function `recordMatch`, replace
-
-   ```javascript
-   !(GAMERTAG.test(String(match.winner)) || match.winner === '(keyboard player)') ||
-   ```
-
-   with
-
-   ```javascript
-   !(GAMERTAG.test(String(match.winner)) || WINNER_MARKERS.indexOf(match.winner) >= 0) ||
-   ```
-
-Save, then deploy a new version: **Deploy → Manage deployments → pencil icon → Version: New version → Deploy**. Without this last step the old script keeps answering. Results refused before the update are not in the sheet and cannot be restored from it; the server logs each one as `Result ... was refused by the store and is dropped`, and `/healthz` counts them as `droppedResults` since the last start.
+Empty cells below the new headers are fine: an empty `last_won` counts as no crown, and an empty `tutorial_done` counts as done for a player who already has saved matches, so only new players see the first-game guide. Set it to 0 to show a player the guide again, or 1 to skip it. Results a bot won that the old script refused are not in the sheet and cannot be restored; the server logged each one as `Result ... was refused by the store and is dropped`, and `/healthz` counts them as `droppedResults` since its last start.
 
 ## Good to know
 
@@ -144,7 +124,3 @@ Save, then deploy a new version: **Deploy → Manage deployments → pencil icon
 - **Do not edit the header rows or move columns.** The script finds columns by position. Editing a player's numbers by hand is fine.
 - **To reset everything**, delete the rows below the headers in both tabs.
 - **Sharing:** share the sheet with the other members as *Viewer* or *Editor*. Do not share it publicly: it holds the PIN hashes.
-
-## Updating an existing sheet for the tutorial (2026-11-17)
-
-Replace Apps Script `Code.gs` with the repository version, run `setup()` once (adds `players!O1 = tutorial_done`), then edit the existing web-app deployment and select a **new version**. Keep its URL and all secrets. New accounts use 0; completing the guide writes 1, including practice games. Empty existing cells use `matches > 0` as experience; set 0 explicitly to request the tutorial or 1 to skip it. No changes to `matches`. Restart/deploy the game server with the new code after updating the script.

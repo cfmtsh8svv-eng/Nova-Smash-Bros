@@ -54,7 +54,7 @@ The most important design idea is the first row: **the rules do not know that th
 
 In a **Google Sheet** with two tabs:
 
-- `players`: one row per player. Gamertag, a salt and a hash for the PIN (never the PIN itself), and the totals: matches, wins, points, KOs, falls, damage dealt and taken, achievements, and whether their last saved match was a win (the crown, `last_won`).
+- `players`: one row per player. Gamertag, a salt and a hash for the PIN (never the PIN itself), and the totals: matches, wins, points, KOs, falls, damage dealt and taken, achievements, whether their last saved match was a win (the crown, `last_won`) and whether they finished the first-game guide (`tutorial_done`).
 - `matches`: one row per finished match. Id, time, stage, lives, duration, winner, and a short list of the players' numbers.
 
 Only the server reaches the sheet, through a small script that lives inside the sheet (`google-sheet/Code.gs`). Browsers never talk to the sheet.
@@ -70,9 +70,9 @@ There is no database. That was a team decision: a sheet is something everyone ca
 
 ### What do the tests cover, and what not?
 
-**Covered** (about 560 tests, `npm test`, a few seconds):
+**Covered** (547 tests with `npm test`, about 20 seconds, plus five browser tests):
 
-- **The rules:** knockback, the 200 % burnout, every blast zone, respawn and invincibility, lives, how a match ends, jumping, aiming, each of the eight specials inside and outside its range, each item, each hazard with its safe platform, the vote, and that slow motion never changes a result.
+- **The rules:** knockback, the 200 % burnout, every blast zone, respawn and invincibility, lives, how a match ends, jumping, aiming, each of the eight specials inside and outside its range, each item, each hazard with its safe platform, the vote, the steps of the first-game guide, and that slow motion never changes a result.
 - **The server:** every way a registration or login is refused, the lockout, tampered and expired tokens, who may start a match and submit a result, implausible results, malformed, oversized and unknown messages, reconnects, and what happens when the sheet is down.
 - **End to end:** a real server, one host and four controllers over real WebSockets play a whole match with the real rules; the result arrives in the store and on the leaderboard.
 - **In a real browser** (`npm run test:browser`): the host page plus an emulated iPhone and an emulated Android phone register, pick, ready up, start and play; the fighters on the big screen follow the phones and no page logs an error. A second test plays a whole evening (stage vote, three phones, a hazard announcement, an elimination with the hazard vote, results, a second match, removing a player, logging out). A third cuts the host's connection at the worst moments (around Start, in mid-match, when the match ends). A fourth plays one phone against bots (the level arrows, the bench), and a fifth runs the first-game guide with two phones.
@@ -130,8 +130,8 @@ Everything that decides the outcome of a match: how fighters move, when an attac
 ### The idea: a function, not a program
 
 ```
-createMatch({ stageId, players, settings, seed })   →  the match state (one plain object)
-step(state, inputs)                            →  advances it by 1/60 second, returns events
+createMatch({ stageId, players, settings, seed, tutorial })  →  the match state (one plain object)
+step(state, inputs)                                      →  advances it by 1/60 second, returns events
 ```
 
 - The **state** is one object with everything in it: where every fighter is, their damage, the items on the stage, what the hazard is doing.
@@ -167,6 +167,7 @@ Nothing in here touches the screen, the network or the clock. Even chance comes 
 | `clock.js`, `loop.js` | Turning real time into steps; slow motion and hit pause |
 | `scoring.js`, `view.js` | Points; damage colour and which pose to show |
 | `bot.js` | The bots (GAME_SPEC §5a, D-163): turns the match state into a phone-style input. See [Bots](#bots-srcgamebotjs) |
+| `tutorial.js` | The first-game guide (D-211): its steps, who has done which one, and the 15 s of protection. See [The first-game guide](#the-first-game-guide-srcgametutorialjs) |
 
 ### Three things worth being able to explain
 
@@ -207,6 +208,10 @@ More damage means a faster launch. A heavier fighter is launched more slowly. Af
 `aimEvery` (40), `leaderBias` (0.25), `itemReach` (200 px), `pressHold` (2) and `pressGap` (8) are the same for all three. **Every level keeps the human limits:** it sees the others at least 6 steps late (0.1 s), presses no faster than `pressHold` 2 and `pressGap` 8 allow and never reads a hidden timer. A test checks this for every level, so a Hard bot is quicker and more accurate than a Medium one, not better informed.
 
 **Tuning.** To make a level harder, lower `reactionFrames` (never below 6), `aimError` and `hesitateChance` and raise `attackChance`; to make it easier, do the opposite. `attackChance` moves the result most, then `hesitateChance` and `reactionFrames`. The targets (D-157, D-176): a first-time player on a phone wins about every second one-on-one against Medium; the scripted "simple human" of `tests/helpers/bots.js` (walks to the bot, attacks in reach, sees everything 0.25 s late, presses with perfect rhythm) wins about 85 to 90 % against Easy, about 63 % against Medium and about 25 to 35 % against Hard. Results jump around a lot between seeds, so tune on many: `botMatch({ level, others: simpleHuman(), ... })` over 60 seeds per stage gave 89 % against Easy, 69 % against Medium and 25 % against Hard (D-179). `tests/game/bot.test.js` plays 15 of those matches per level and checks the order and the rough range; how it feels can only be judged by playing.
+
+### The first-game guide (`src/game/tutorial.js`)
+
+When the server says that a player in the match has never finished the guide (D-211), `createMatch` is called with `tutorial: true`. After the countdown the match then runs as a shared practice: every connected human has to drag the joystick left **and** right, then press Jump, Attack and Special, in that order. `updateTutorial` reads the real inputs each step, keeps one bit per step and player, and moves on only when every connected human has done the current step; bots never hold it up, and a player whose phone dropped does not either. While the guide runs, `match.js` starts no items and no hazards, and a fighter who leaves the blast zone is put back on its start position instead of losing a life (`tutorialProtected`). The protection lasts at least 15 seconds of game time (`tutorialMinFrames` in `config.js`) and longer if the steps are not done yet. Pause stops that time too. When the guide ends, the events carry `tutorialEnd` with the slots that finished it, and the match goes on as a normal match. Tests: `tests/game/tutorial.test.js`.
 
 ### Why it was built this way
 
@@ -249,6 +254,7 @@ Every page has one **WebSocket** to the server: a connection that stays open so 
 | Host | `vote_start`, `vote_cancel` | Open the map vote for the ready players; give it up |
 | Host | `bots` | The lobby's bots as `{ fighter, level }`, in the order they were added (lobby only, at most 3) |
 | Host | `match_start`, `match_result`, `match_abort` | Start, finish, cancel a match |
+| Host | `tutorial_complete` | The players of this match who finished the first-game guide |
 | Host | `to` | "Pass this on to phone 2" or "to all": `phase` (which screen), `status` (damage, lives), `feedback` (vibrate, flash, text) |
 | Server | `roster` | To the host: who is in the room |
 
@@ -259,6 +265,8 @@ Every page has one **WebSocket** to the server: a connection that stays open so 
 **The map vote** (round 2, D-135, D-136) is a room phase of its own: `lobby` → `vote` → `match` → `lobby`. The host's `vote_start` is checked like a match start (every human in the lobby Ready, at least one of them, and at least two fighters with the bots). In the `vote` phase the server accepts a stage vote only from a player in the vote and keeps the latest vote of each; a player who leaves or loses the connection loses their vote. The `match_start` that follows must name one of the stages with the most votes, so a host page cannot quietly ignore the vote.
 
 **Bots in the room** (round 4, D-156 to D-165). The room keeps the bots, so a reload of the host page does not lose them and the start and result checks can count them. They are an ordered list `room.bots` (named Freshman, Intern, Erasmus by their place in it); the first `room.botsActive` of them play, the rest wait on a **bench**. Bots have no phone and no entry in `room.slots`. Every time the roster goes out in the lobby, `settleBots` makes sure humans plus active bots never exceed four: a human who joins sends the last active bot to the bench, and when a human leaves, the bot that went there last comes back. Outside the lobby nothing moves; the bench is settled when the room is back there. The host's `bots` message (`{ t: 'bots', bots: [{ fighter, level }, ...] }`, D-178) sets the fighters and levels of the active bots: the same length changes them and keeps the bench, a shorter list removes bots and empties the bench. A malformed message (an unknown fighter or level, a missing or extra field, the old `fighters` form) is a strike. Each bot keeps its level, also on the bench. The roster lists the active bots with `bot: true`, their `level` and the slot each would get. **Starting** needs at least one Ready human, every human in the lobby Ready and at least two fighters with the bots; at the start the bots get the slots the humans of the match do not use, in ascending order, and the server keeps them with their levels with the match (`room.match.bots`) and sends them in `match_started` (and in the `room` message after a host reconnect). The level is not part of a result. A phone that joins during the match may get the slot number of a bot of that match: the server passes its input on as usual, and the host page ignores input for any slot that has no phone in the match.
+
+**The first-game guide on the server** (D-211). At `match_start` the server looks at the cached rows of the humans in the match: if one of them has `tutorial_done` unset, `match_started` carries `tutorial: true` and the host page starts the match with the guide. When the guide is over, the host sends `tutorial_complete` with the match id and the slots that finished it; the server checks that the slots belong to this match, sets the flag in its cache at once and queues one `completeTutorial` write for the sheet, independently of points (also after a practice match). Writing it twice changes nothing. Old accounts with saved matches and an empty cell count as done, so only new players see the guide. Tests: `tests/server/tutorial.test.js` and `tutorial-sheet.test.js`.
 
 **Reconnecting.** A phone that drops keeps its slot: for 30 seconds in the lobby and the map vote, and until the end of the match during a match. When it comes back with its token it gets the same slot, and the server replays the last screen and status so it is up to date at once. The host page can also reconnect: when it created the room it got a secret key, and with that key it takes the room back.
 
@@ -283,7 +291,7 @@ Every human fighter belongs to a logged-in phone (keyboard players were removed 
 
 ### The store (`store/`, `data.js`, `google-sheet/Code.gs`)
 
-All access to stored data goes through one small interface with four operations: get a player, create a player, record a match, list players. There are two implementations:
+All access to stored data goes through one small interface with five operations: get a player, create a player, record a match, mark the first-game guide as done, list players. There are two implementations:
 
 - `store/sheets.js`: sends each operation as one HTTPS request to the script in the Google Sheet.
 - `store/memory.js`: keeps everything in the server's memory. Used when no sheet is configured, and in every test.
@@ -322,6 +330,7 @@ The script in the sheet (`Code.gs`) is the last guard before a cell is written. 
 | `intro.js` | The 20 s intro before every match: item and hazard cards, timer, Skip pips (GAME_SPEC §10b) |
 | `icons.js` | Item and hazard pictures shared by `render.js` and `intro.js` |
 | `ceremony.js` | The end sequence after the final KO: name slam, podium rising from the stage ground, crowns, fireworks (GAME_SPEC §10) |
+| `tutorial.js` | The full-screen first-game guide on the laptop: a drawing of a phone in landscape with the control of the current step lit up, and each fighter's special explained |
 
 **The loop.** The browser calls our function before every screen refresh (usually 60 times a second). Each time: ask the clock how many rule steps are due, run them, then draw the current state. Drawing never changes the state. If the laptop is slow, fewer pictures are drawn but the rules still take the same steps, so the game does not slow down or speed up.
 
@@ -340,6 +349,7 @@ The script in the sheet (`Code.gs`) is the last guard before a cell is written. 
 | `main.js` | The screens: log in → fighter select → map vote → intro (Skip) → gamepad → results. Which one is shown is decided by `phase` messages from the host. |
 | `controls.js` | The joystick and the three buttons |
 | `feedback.js` | Vibration, flash and sound |
+| `tutorial.js` | During the first-game guide: lights up the real control of the current step on the gamepad, without blocking any touch |
 
 **One control mode.** The floating joystick and the three buttons produce seven buttons (left, right, up, down, attack, jump, special); the game only sees those. There used to be a D-pad as a second mode; round 2 removed it (D-133). Touches are handled with Pointer Events: every finger is tracked separately, which is what makes "hold right and tap Jump" work. The joystick appears where the thumb lands; a small dead zone around that point keeps a resting thumb from moving the fighter, and the centre follows a thumb that drifts past the rim. The numbers are at the top of `controls.js`.
 
@@ -412,10 +422,10 @@ All three run in GitHub Actions on every push and pull request.
 
 How the tests are organised:
 
-- `rules`, `movement`, `ledge`, `stomp`, `hand`, `specials`, `items`, `hazards`, `input`, `view`: one file per area of the rules.
+- `rules`, `movement`, `ledge`, `stomp`, `hand`, `specials`, `items`, `hazards`, `input`, `view`, `tutorial`: one file per area of the rules.
 - `exact.test.js` (rules) and `strict.test.js` (server): tests that use the **literal numbers from the spec** instead of reading them from the code, so changing a rule by accident fails a test.
 - `regressions.test.js` (rules, server, browser): tests for the defects the reviewers found. In the rules and the server there is one for each defect, and each failed before its fix. In the client, the defects a browser test can reach are covered (connection drops, a held button through a KO); the rest was checked by hand.
-- `accounts`, `rooms`, `reconnect`, `results`, `outage`, `http`, `e2e`, `bots`, `vote`, `intro`, `crown`: the server by topic. `sheets-script` runs `google-sheet/Code.gs` in Node against a stand-in spreadsheet.
+- `accounts`, `rooms`, `reconnect`, `results`, `outage`, `http`, `e2e`, `bots`, `vote`, `intro`, `crown`, `tutorial`, `tutorial-sheet`: the server by topic. `sheets-script` runs `google-sheet/Code.gs` in Node against a stand-in spreadsheet.
 - `tests/helpers/`: `server.js` starts a real server on a random port, `game.js` sets up matches, `scripted-player.js` is a simple scripted player for whole matches, and `bots.js` holds the bot-tuning helpers (`botMatch`, `simpleHuman`).
 - `bot.test.js` (rules): the bots play with the real rules. It checks that a match with bots replays exactly, that a bot does not fall off by itself, gets back to the stage, gets from every platform to every other one on each stage (and from a standing start on one Bairro Alto balcony to the other, D-181), beats a standing opponent, ends a match against another bot, reacts no sooner than its reaction delay, ignores a hazard until it is announced and then leaves its level, never changes the state and presses like a thumb, and that a scripted simple human wins some but not all matches against it (`tests/helpers/bots.js`). The stage, recovery, standing-opponent, two-bot and reaction tests run again for each level (Easy gets 60 s and 4 minutes), every level must have the keys of Medium and the human limits, and the simple human must win at least 11 of 15 against Easy, 3 to 13 against Medium and 1 to 8 against Hard, strictly fewer from level to level.
 
@@ -526,11 +536,4 @@ The fighter stands still and can still be hit. The phone reconnects by itself, s
 
 The team decided the game in a planning session (the team chose art, HUD, phone and podium from generated visual options, kept in the git history; the decisions are in `DECISIONS.md`, the result in `GAME_SPEC.md`). The code was then written with Claude in one session, in three packages: rules, server, client. After each package, independent reviewer agents that had not written the code checked it against the spec, hunted for bugs, checked security, and tried to break the tests. Every finding was reproduced before it was fixed. Each fixed defect in the rules and the server has a regression test; the client fixes are covered where a browser test can reach them. Decisions made along the way are listed in `DECISIONS.md` (D-098 onwards); the team confirmed them on 2026-11-13, all except D-125.
 
-Claude wrote most of the code. The commits of the first build and many later ones are authored by Claude or carry a `Co-Authored-By: Claude` line. The later build rounds (for example the bots and the bot levels) were also written in Claude sessions, but committed under Bastian Volkery's name without that line, because their build prompts asked for it; those prompts are in `docs/archive/`, and the decisions Claude made in them are marked "Claude" in `DECISIONS.md`. The tasks in `TEAM_TASKS.md` are there so that each member changes and explains their own part.
-
-
-## First-game guide (2026-11-17)
-
-`src/game/tutorial.js` checks actual controller inputs and owns the shared steps and minimum 15-second protection. `public/host/tutorial.js` draws the full-screen laptop guide with a phone diagram; `public/play/tutorial.js` highlights the matching real control without blocking touch. If any human is new, everyone practises together. Connected humans must each complete a step before it advances; bots never hold it up. `match.js` pauses item/hazard timers and safely resets falls while the guide runs. Pause stops tutorial time too.
-
-The server chooses whether to start the guide from cached account rows. On completion it updates `tutorial_done` immediately and queues an idempotent `completeTutorial` write, independently of points and practice results. This is a background sheet write at the end of the guide; simulation never waits for it. Empty legacy cells use saved matches as experience. `docs/SETUP_SHEETS.md` explains adding column O with the updated script's `setup()` and redeploying that script.
+Claude wrote most of the code. The commits of the first build and many later ones are authored by Claude or carry a `Co-Authored-By: Claude` line. The later build rounds (for example the bots and the bot levels) were also written in Claude sessions, but committed under Bastian Volkery's name without that line, because their build prompts asked for it; those prompts are in `docs/archive/`, and the decisions Claude made in them are marked "Claude" in `DECISIONS.md`. The first-game guide (D-211) came in pull request #18. Demo mode was built on 2026-11-13, switched off on 2026-11-17 (D-210) and removed on 2026-11-19 (D-212).

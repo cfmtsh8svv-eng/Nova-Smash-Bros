@@ -1,38 +1,32 @@
 # Grading criteria check
 
-Written at the end of the build, updated after the merge into `main`, on 2026-11-13 after `fix/sheet-bot-winner` (PR #9), and again on 2026-11-13 after the special balance (PR #14) and demo mode (PR #15). The table of runs below keeps the older runs as they were reported; the newest are at the top. For each of the six criteria: what in the repository answers it, the evidence, and what is still missing. Nothing is claimed here that was not run.
+Updated on 2026-11-19 on the branch `chore/remove-demo-and-refresh-docs`, after demo mode was removed (D-212). For each of the six criteria: what in the repository answers it, the evidence, and what is still missing. Nothing is claimed here that was not run. Older runs (410, 474, 536 and 562 tests on earlier branches) are in the git history of this file.
 
 ## What was run, and what was not
 
-Run on the build machine (macOS, Node 26.13.0; the unit and server tests also under Node 22.23.4, the version the project targets) and by GitHub Actions:
-
-| Command | Result |
+| What | Result |
 |---|---|
-| `npm test` on `main` after demo mode (PR #15, commit `510153e`, 2026-11-13, Node 22) | 562 tests, 562 pass, 0 fail. The browser tests are now five files (`demo` was added); they were not run for this line |
-| `npm test` on the branch `fix/sheet-bot-winner` (2026-11-13, Node 22) | 536 tests, 536 pass, 0 fail |
-| GitHub Actions on pull request #9 (`fix/sheet-bot-winner`, commit `dcd1616`), push and pull request runs | Both succeeded: `npm test`, `npm audit --audit-level=high` and `npm run test:browser` (four browser tests) |
-| `npm test` | 474 tests, 474 pass, 0 fail (round 2 branch, Node 22.23.4, about 11 seconds) |
-| `npm run test:browser` | 3 tests, 3 pass, 0 fail (Chromium through Playwright, about 30 seconds) |
+| `npm test` (Linux, Node 22.23.5) | 547 tests, 547 pass, 0 fail, about 20 seconds |
+| `npm run test:browser` (Chromium through Playwright 1.65.0) | 5 tests, 5 pass, 0 fail, 0 skipped |
 | `npm audit --audit-level=high` | `found 0 vulnerabilities` |
-| GitHub Actions on the pushed branch (commit `1c6eac0`, Ubuntu, Node 22), for the push and for the pull request | Both runs succeeded: `npm test` 410 of 410, `npm audit --audit-level=high` 0 vulnerabilities, `npm run test:browser` 3 of 3 |
-| GitHub Actions on `main` after the merge (commit `0d7bcaa`) | Succeeded: `npm test` 410 of 410, `npm audit --audit-level=high` 0 vulnerabilities, `npm run test:browser` 3 of 3 |
-| The deployed app after the merge: Render follows `main`, commit `0d7bcaa` is live | `/healthz` shows `"store":"sheets"` and `"storeReachable":true`; 8 of 8 WebSocket connections answered |
-| The deployed app at <https://nova-brawl.onrender.com> before the merge (Render, Frankfurt, then on the branch `build`, now `feature/round-1-first-build`, with the real Google Sheet): opened a room, registered two test players from an emulated iPhone and an emulated Android phone, started a match, landed a hit, reloaded a phone. Run twice | `/healthz` shows `"store":"sheets"` and `"storeReachable":true`; the QR image loads; both phones join; the hit shows as 8 % on the victim's phone only; the reloaded phone gets its pad back; 60 pictures a second. From a button press on the phone to the fighter moving on the big screen: median 52 and 55 ms (measured from Lisbon). The first run logged two failed WebSocket handshakes on the host page right after the service had started; the page reconnected by itself, and 27 further connections and the second run had none |
-| The real Google Sheet, with the server running locally: two test players registered, wrong and right PIN, one match result sent, server restarted, login again | Registration takes 3 to 5 seconds (the sheet is slow); the result was stored after 2.5 seconds with the right points and achievements; after the restart the login was answered from the sheet; the sheet holds a salt and a hash, no PIN. The match came from a script acting as host and phones over WebSocket, not from a played match |
-| `PORT=3987 node server/index.js`, then played with two emulated phones | A match from the title screen to the results, 60 pictures a second, no console errors |
+| GitHub Actions on `main` before this branch (pull request #19, commit `d8f6667`) | `npm test`, `npm audit` and `npm run test:browser` succeeded for the push and the pull request |
+| The deployed app at <https://nova-brawl.onrender.com>, running `main` before this branch, with the real Google Sheet, driven from a script with an emulated iPhone 13 and an emulated Pixel 7 | Passed every step: a room opens; a gamertag that is too short and two PINs that differ are refused with a message; the iPhone registers a new player; the Pixel 7 gets "Wrong PIN, 4 tries left." and then logs in with the right PIN, and the iPhone is told the account was opened on another phone; the player picks a fighter and is Ready, the host adds an Easy bot and starts on Campus with one life; the first-game guide (joystick left and right, Jump, Attack, Special) runs to its end; the phone is reloaded in mid-match and gets its pad back; the match ends against the bot with "Practice match: points need at least two logged-in players."; back in the lobby the player logs out. No page crashed and no request failed with a server error; the only console line was the 401 answer to the wrong PIN. `/healthz` before and after: `"store":"sheets"`, `"storeReachable":true`, `"pendingResults":0`, `"droppedResults":0` |
+| The real Google Sheet, with the server running locally (2026-11-11): two test players registered, wrong and right PIN, one match result sent, server restarted, login again | Registration takes 3 to 5 seconds (the sheet is slow); the result was stored after 2.5 seconds with the right points and achievements; after the restart the login was answered from the sheet; the sheet holds a salt and a hash, no PIN |
+| The deployed app on 2026-11-11, emulated phones, from Lisbon | From a button press on the phone to the fighter moving on the big screen: median 52 and 55 ms in two runs |
 
-**What the build did not run itself.** These are the honest gaps, and they matter for criterion 1:
+**What was not run.** These are the honest gaps, and they matter for criterion 1:
 
-- **A whole match on the deployed app.** The build played the deployed app only for a few seconds with emulated phones (see the table). After the deployment a team member played on it: the sheet now holds one stored match between two players they registered, so a complete match with a saved result has happened on the real system. The build did not watch that match.
-- **The automated tests do not use the real sheet.** They use the in-memory store and a stand-in that speaks the same protocol (`tests/server/outage.test.js`). The checks with the real sheet in the table were done once by hand.
-- **Real phones.** After the deployment the team tested the deployed app with iPhones in Safari and reports that it works. That is the team's own test, not something the build ran: everything the build checked itself was in Chromium with emulated iPhone and Android screens and touch events. Not reported so far: a real Android phone, the demo room's Wi-Fi and a projector.
-- **`main`.** Merged. The tests pass on `main` (see the table).
+- **A real Android phone.** Nobody in the team has one. Android was only checked as an emulated Pixel 7 in Chromium, on the deployed app and in `tests/browser/smoke.test.js`.
+- **The presentation room.** Its Wi-Fi and its projector were not tried before the deadline.
+- **Real iPhones.** The team tested the deployed app with iPhones in Safari after the deployment on 2026-11-11 and reports that it works. That is the team's own test; the scripted runs above use Chromium.
+- **A saved match on the deployed app since the tutorial.** The scripted run above was a practice match (one human and a bot), so nothing was written to the `matches` tab. After the deployment a team member played a saved match between two registered players.
+- **The automated tests do not use the real sheet.** They use the in-memory store and a stand-in that speaks the same protocol (`tests/server/outage.test.js`).
 
 ## 1. It works (20 %)
 
 > "The deployed app runs all workflows without errors, including invalid input."
 
-**Deployed from `main` at <https://nova-brawl.onrender.com>, checked there with emulated phones (see the table at the top), and tested by the team with iPhones in Safari.** The team reports that it works; the sheet holds one stored match from their test. For a firm claim that *all* workflows run without errors on real phones, the remaining step is to go through the list once on a phone (register, log in, wrong PIN, a full match, a reload in the middle, leaving) and on one Android phone. The list below is the evidence from the automated tests.
+**Deployed from `main` at <https://nova-brawl.onrender.com>, checked there on 2026-11-19 with every workflow and with invalid input (see the table at the top), and tested by the team with iPhones in Safari.** The list below is the evidence from the automated tests.
 
 - **Every workflow, in a real browser.** `tests/browser/flow.test.js`, "a whole match from the stage vote to the results, a second match, removing a player, logging out", plays the complete loop twice with the real pages and the real server and fails on any console error or broken file.
 - **What a player would notice.** `tests/browser/smoke.test.js` uses an emulated iPhone and an emulated Android phone: the fighter follows the phone and stops when the thumb lifts, a real hit shows as damage on the victim's phone only, the stage and the sprites are really drawn (pixels are read back from the canvas), every pad button can be reached by a finger, a held button stays held, pause really freezes the match, and a phone that reloads or loses its connection gets its pad back.
@@ -41,7 +35,7 @@ Run on the build machine (macOS, Node 26.13.0; the unit and server tests also un
 - **Four players end to end.** `tests/server/e2e.test.js`: "four phones register, join, pick, play a full match to a winner; the result reaches the store and the leaderboard".
 - **A robustness pass with a simulated bad network** (delay, jitter, stalls, a host or phone cut off for 5 to 40 seconds) and nine matches in a row found no lost or doubled button presses, no memory growth, and a result saved exactly once in every case. The problems it did find were fixed (D-129 to D-131 in [`DECISIONS.md`](DECISIONS.md)).
 
-Missing for the top level: one pass through every workflow on a real phone, a real Android phone, and a try in the demo room ([`TEAM_TASKS.md`](TEAM_TASKS.md)).
+Not checked: a real Android phone and the presentation room (see the gaps at the top).
 
 ## 2. User interface and experience (20 %)
 
@@ -53,7 +47,7 @@ Missing for the top level: one pass through every workflow on a real phone, a re
 - **Errors say what to do.** Messages are written for the player ("That gamertag is taken. Log in with 'I have an account'.", "Wrong PIN, 4 tries left.", "The host closed the room.") and are checked word for word in `tests/browser/smoke.test.js`. Connection trouble is always visible: "Weak connection", "Connection lost, reconnecting…", "The big screen lost its connection…".
 - **Checked by looking.** Every screen of the host page and the phone page was captured at laptop size and at iPhone and Android sizes and reviewed; long names, the landscape fighter select and overlapping banners were fixed after that.
 
-The team has played it on iPhones in Safari and reports that it works. Readability on the projector can only be judged in the room, and how the buttons feel is the team's call: The game-feel review left tuning notes for the team in [`TEAM_TASKS.md`](TEAM_TASKS.md).
+The team has played it on iPhones in Safari and reports that it works. Readability on the projector can only be judged in the room.
 
 ## 3. Scope and ambition (20 %)
 
@@ -62,6 +56,7 @@ The team has played it on iPhones in Safari and reports that it works. Readabili
 - **A real-time multiplayer game across devices**: one host page, two to four phones, a relay server with rooms, and reconnection in every phase.
 - **Game content**: 8 fighters with different weight, speed and a special each (`src/game/fighters.js`, `specials.js`), 3 stages with 3 hazards each (`stages.js`, `hazards.js`), 9 items (`items.js`), a map vote with stage previews, a hazard vote for eliminated players, lives, the 200 % burnout.
 - **Bots** at three levels (Easy, Medium, Hard) that play with the same buttons a phone sends and keep human limits (`src/game/bot.js`, D-156 to D-181), so one person can play a full match.
+- **A first-game guide** for new players: a full-screen phone diagram on the laptop and the real control lit up on each phone, gated by real inputs, with the completion saved per account (`src/game/tutorial.js`, `public/host/tutorial.js`, `public/play/tutorial.js`, D-211).
 - **Accounts and persistence**: gamertag and PIN, session tokens, points, 8 achievements, an all-time leaderboard, stored in a Google Sheet through Apps Script (`server/store/sheets.js`, `google-sheet/Code.gs`) with an in-memory store for development and outages.
 - **Original art and sound made in code**: all sprites and stages are drawn from SVG at start-up (`public/shared/art/`), all sounds and the music are synthesised (`public/shared/audio.js`). No downloaded assets except two open fonts ([`CREDITS.md`](../CREDITS.md)).
 - **Consistent**: one configuration file holds every number of the rules (`src/game/config.js`); the stage art draws exactly the platforms the rules use; the joystick and the buttons produce the seven buttons the rules read.
@@ -70,14 +65,14 @@ The team has played it on iPhones in Safari and reports that it works. Readabili
 
 > "Tests cover accepted and rejected actions and edge cases, and all pass on `main`."
 
-- **567 automated tests**: 562 with `node:test` for the rules, the server and the sheet script, 5 browser tests. See the table at the top for what was run where.
+- **552 automated tests**: 547 with `node:test` for the rules, the server and the sheet script, 5 browser tests. None is skipped. See the table at the top for what was run where.
 - **Accepted actions**: each rule (`tests/game/rules.test.js`, `movement.test.js`), each of the eight specials inside its range (`specials.test.js`), each item (`items.test.js`), each hazard with its safe platform (`hazards.test.js`), registration, login, rooms, a full match (`tests/server/`).
 - **Rejected actions**: specials and items out of range, votes from the wrong player or for the wrong stage, wrong PINs and the lockout, tampered and expired tokens, a player trying host actions, a host touching another host's room, forged and implausible results, oversized and malformed messages (`tests/server/rooms.test.js`, `strict.test.js`, `results.test.js`, `accounts.test.js`).
 - **Edge cases**: a tap shorter than one frame, presses bunched by a network hiccup, simultaneous hits, the last player standing, a KO in the same step as a burnout, exact boundaries of every limit (`tests/game/exact.test.js`, `input.test.js`, `tests/server/strict.test.js`), and a regression test for every defect the reviews found (`tests/*/regressions.test.js`).
 - **Were the tests themselves checked?** Yes. For each package a reviewer agent changed the code on purpose in many small ways and looked at which changes the tests missed; tests were added for those. For the client the last count before the final additions was 57 of 80 breakages caught; the smoke test was then rewritten to catch the remaining kinds that matter to a player (a dead button, an empty canvas, a pause that does not freeze).
-- **CI**: `.github/workflows/ci.yml` runs `npm ci`, `npm test`, `npm audit --audit-level=high` and the browser tests on every push and pull request. It passed on the pushed branch and on `main` after the merge (see the table at the top).
+- **CI**: `.github/workflows/ci.yml` runs `npm ci`, `npm test`, `npm audit --audit-level=high` and the browser tests on every push and pull request. It passed on `main` (see the table at the top).
 
-The pull request is merged and the tests pass on `main`. Known gaps in the tests: the Apps Script file inside Google itself (it is tested in Node against a stand-in spreadsheet, `tests/server/sheets-script.test.js`), Safari, and parts of the client that only a person can judge (how the game looks and sounds).
+Known gaps in the tests: the Apps Script file inside Google itself (it is tested in Node against a stand-in spreadsheet, `tests/server/sheets-script.test.js`), Safari, and parts of the client that only a person can judge (how the game looks and sounds).
 
 ## 5. Security (10 %)
 
@@ -99,9 +94,8 @@ Open point, stated in [`WALKTHROUGH.md`](WALKTHROUGH.md) section 8: the host pag
 
 This criterion is about the people, so the repository can only prepare them.
 
-- [`WALKTHROUGH.md`](WALKTHROUGH.md): the big picture, five questions every member should be able to answer, one part per package with "what it does", "why it was built this way" and "limits", then security, tests, known limits, how it could change, and five likely questions for each package owner.
-- [`DECISIONS.md`](DECISIONS.md): every decision with the alternative that was not taken and the reason. The team confirmed the build decisions (D-098 to D-131), the bot round (D-156 to D-165), D-181, D-182 and the demo mode details (D-196 to D-206) on 2026-11-13, and D-125 and the tutorial details of D-211 on 2026-11-17. No decision waits for the team.
-- [`TEAM_TASKS.md`](TEAM_TASKS.md): one small change for each member in their own package, with the test to write for it, so that each member has changed and tested the code they explain.
+- [`WALKTHROUGH.md`](WALKTHROUGH.md): the big picture, five questions every member should be able to answer, one part per package with "what it does", "why it was built this way" and "limits", then security, tests, known limits, how it could change, and the likely questions for each package owner.
+- [`DECISIONS.md`](DECISIONS.md): every decision with the alternative that was not taken and the reason. The team confirmed the build decisions (D-098 to D-131), the bot round (D-156 to D-165), D-181 and D-182 on 2026-11-13, D-125 and the tutorial details of D-211 on 2026-11-17, and decided D-212 (demo mode removed) on 2026-11-19. No decision waits for the team.
 - The commit history is split by package, so each member can follow their own part with `git log`.
 
-Not at the top level until: each member has read their part, done their task and can answer the questions without the document.
+Not at the top level until each member has read the walkthrough and can answer the questions without the document.

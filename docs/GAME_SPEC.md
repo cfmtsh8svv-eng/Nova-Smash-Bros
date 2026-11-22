@@ -178,15 +178,26 @@ Whether the special is ready is shown **only on the phone** (a ring on the Speci
 
 **KO moments.** Each KO shows one of several short texts on the big screen ("LAUNCHED!", "SEE YA!", "DROPPED OUT!", "OUT OF OFFICE!"; for the 200 % rule "BURNOUT!", "NEEDS A GAP YEAR!") and a matching line with the lives left on that player's phone, with a long, strong vibration pattern and a red flash. An elimination vibrates longest.
 
-**Final KO.** The last KO of the match is the big moment: the game drops to slow motion for **2 s**, the camera zooms in on the hit, the screen flashes and "FINAL KO!" appears. All phones vibrate. Then the end sequence of §10 starts.
+**Final KO.** The last KO of the match is the big moment: the game drops to slow motion for **2 s**, the camera zooms in on the hit, the screen flashes and "FINAL KO!" appears. All phones vibrate. Then the end sequence of §10d starts.
 
 ## 6b. First-game tutorial (D-211)
 
-If any human account has not completed the tutorial, the whole match starts in a shared, interactive tutorial after the countdown. The laptop shows a full-screen guide with a landscape phone diagram; each phone spotlights the real control. Steps: drag the joystick left **and** right, press J (jump), A (attack), then S (special). The next step waits until every connected human has performed the current action; bots do not hold it up. Each selected fighter's special name and effect are explained.
+**When.** If at least one player in the match has never finished the guide, the whole match starts with it, right after the countdown. Everyone in the match takes part, also players who know the game and bots.
 
-All fighters, including returning players and bots, are protected throughout the tutorial for **at least 15 seconds of simulation time**, extended until the required actions are complete. Pause stops the timer. Inputs still work for practice; hits, hazards, items and life loss cannot interrupt the guide. Leaving the blast zone returns the fighter safely without costing a life. Items and hazards start their usual timers after the guide ends. Disconnected humans do not block a step; reconnects receive the current step. Once all humans disconnect, progress waits for someone to return. A host can abort as usual.
+**What players see.** The laptop shows the guide full screen, with a drawing of a phone held sideways. On each phone the control of the current step lights up. The guide also explains the special of every fighter in the match.
 
-Completion is stored per participating, connected account as `players.tutorial_done` (1/0), independently of scores, including practice matches. Aborting before completion leaves it pending. Existing accounts with saved matches and no flag are treated as experienced; an explicit 0 requests the tutorial. New accounts start at 0. No repeat after login or server restart once saved; a sheet outage queues the write and uses the server cache meanwhile. As with result queues, a restart during an outage can lose pending writes.
+**Steps.**
+
+1. Drag the joystick left and then right.
+2. Press J (jump).
+3. Press A (attack).
+4. Press S (special).
+
+The next step comes when every connected human has done the current one. Bots never hold a step up, and neither does a player whose phone has dropped; a phone that reconnects gets the current step. If every human has dropped, the guide waits until someone is back.
+
+**Safe practice.** The guide lasts **at least 15 seconds** of game time, and longer until every step is done. Pause stops this time. Until the guide ends, everyone can move and attack, but nobody can be hurt or lose a life: a fighter who leaves the screen comes back without losing a life. Items and hazards start only after the guide. The host can end the match as usual.
+
+**Saved per player.** A player who did every step is marked in the sheet (`tutorial_done` = 1) and does not see the guide again, also after a new login or a server restart. This is saved even in a practice match and has nothing to do with points. A match ended before the guide is finished saves nothing. New accounts start with 0. Old accounts from before the guide (an empty cell) count as done if they have saved matches; writing 0 into the cell by hand shows the guide again. If the sheet is down, the write waits in the server's queue and the server remembers it meanwhile; a server restart during the outage loses it, as with results.
 
 ## 7. Content
 
@@ -279,6 +290,8 @@ Both are free. Render reads `render.yaml` (region Frankfurt, `npm ci --omit=dev`
 
 **Phone:** Register / log in → Fighter select (swipe through the 8 fighters one at a time, with the neighbours peeking in at the sides; each card shows the sprite, the two attacks and **Speed and Weight as five-step bars, without numbers**) → Ready (once ready, the button says **Switch character** and takes the player back to the choice, D-186) → Map vote (with Vote only, §10a) → Intro with a Skip button (§10b) → Gamepad (with the current control lit up during the first-game guide, §6b) → KO'd → Eliminated + hazard vote → Results.
 
+Every error is shown in plain words next to where it happened ("That gamertag is taken", "Wrong PIN, 3 tries left", "Room not found", "Connection lost, reconnecting…").
+
 ### 10a. Map vote
 
 Voting is the default; the host can still pick one fixed stage in the lobby (D-135).
@@ -299,11 +312,13 @@ Before every match (after the map vote, or right after Start with a fixed stage)
 - **End.** After 20 s, or as soon as **every connected player of the match** has pressed Skip, whichever comes first. A player who disconnects no longer holds it up. Then the usual 3, 2, 1 countdown starts. Buttons pressed during the intro do nothing.
 - **Server.** A phone sends `skip`, with no other field. It is passed to the host only while a match runs and only from a player of that match; anything else in the message is a bad message. The intro screen is a `phase` named `intro` with the stage, the players, the seconds left and who has skipped.
 
-Every error is shown in plain words next to where it happened ("That gamertag is taken", "Wrong PIN, 3 tries left", "Room not found", "Connection lost, reconnecting…").
+### 10c. Lobby
 
-**Lobby.** When a player joins, their slot appears on the big screen with a short entrance effect (flash and pop in the player colour, with a sound). Until that player has picked a fighter, the slot shows a **grey silhouette**; picking a fighter reveals the sprite. A bot's card shows its fighter, its nickname and the BOT tag at once, and its level with ◀ ▶ arrows (§5a); it plays the same entrance effect when it is added or comes back from the bench.
+When a player joins, their slot appears on the big screen with a short entrance effect (flash and pop in the player colour, with a sound). Until that player has picked a fighter, the slot shows a **grey silhouette**; picking a fighter reveals the sprite. A bot's card shows its fighter, its nickname and the BOT tag at once, and its level with ◀ ▶ arrows (§5a); it plays the same entrance effect when it is added or comes back from the bench.
 
-**End sequence and results screen** (D-155). It is drawn on the game canvas, on the stage of the match, right after the final-KO slow motion:
+### 10d. End sequence and results screen
+
+Decided in D-155. It is drawn on the game canvas, on the stage of the match, right after the final-KO slow motion:
 
 1. **0 to 1.8 s.** The camera zooms on the winner, who hops. "{NAME} WINS!" slams in with a screen shake and a burst of confetti.
 2. **1.8 to 2.6 s.** The camera goes back, the stage dims, and the name moves to the top with "graduates with honours" under it.

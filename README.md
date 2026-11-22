@@ -38,8 +38,8 @@ Then open **http://localhost:3000** on the laptop and click **Open a room**.
 ## Run the tests
 
 ```bash
-npm test                          # game rules and server (547 tests, about 20 seconds)
-npx playwright install chromium   # once, for the browser test
+npm test                          # game rules and server (547 tests, about 15 seconds)
+npx playwright install chromium   # once, for the browser test (on a fresh Linux: add --with-deps)
 npm run test:browser              # five browser tests: host page + emulated iPhone and Android phones
 npm audit --audit-level=high      # dependency check
 ```
@@ -107,3 +107,33 @@ The commits of the first build and many later ones are authored by Claude or car
 - The **match runs in the host page**; the server only passes messages on. The rules are pure code in `src/game/` and are tested without a browser.
 - A **Google Sheet** stores players and results, reached only by the server through an Apps Script web app.
 - Two runtime dependencies, pinned: `ws` and `qrcode`.
+
+## Where things are
+
+| Folder | What |
+|---|---|
+| `src/game/` | The rules: movement, combat, specials, items, hazards, bots, scoring. No DOM, no network. All tuning values in `src/game/config.js`. |
+| `server/` | The server: HTTP, WebSocket rooms, accounts, result checks. Its limits are in `server/config.js`. |
+| `server/store/` | Storage: `sheets.js` talks to the Google Sheet, `memory.js` keeps everything in memory (used without a sheet and in every test). |
+| `google-sheet/` | `Code.gs`, the script that runs inside the Google Sheet. |
+| `public/host/` | The big screen (laptop): lobby, map vote, match, results. |
+| `public/play/` | The phone: login, fighter select, gamepad. |
+| `public/shared/` | Art, sound and the connection code used by both pages. |
+| `tests/game/`, `tests/server/`, `tests/browser/` | The tests for the rules, the server and the whole app in a browser. |
+
+## Known limits and how it could change
+
+Known limits:
+
+- **The host page is trusted with the result.** The match runs in the laptop's browser, so the server cannot see what happened. It only checks that a result is possible (players, duration, damage, KOs; `server/results.js`, D-111, D-122). A tampered host page could still report a plausible fake result.
+- **The Google Sheet is slow and rate-limited** (one to three seconds a request). The game never waits for it: results are queued and written in the background, and the leaderboard is cached for 60 s.
+- **Rooms, the result queue and the login lock live in memory** (D-118). A restart of the server ends open rooms and loses results that were still waiting for the sheet. Accounts and saved results are in the sheet and survive.
+- **The free host sleeps** after 15 idle minutes, so the first visit after a pause waits until it has woken up.
+- **Real phones are only tested by hand** (see "What the tests cover and what they do not").
+
+How it could change:
+
+- **A database instead of the sheet.** Storage sits behind one interface (`server/store/`); a new store class with the same methods as `memory.js` replaces the sheet without touching rooms, rules or pages.
+- **Results the server can trust.** Running the rules (`src/game/`, which has no DOM) on the server instead of the host page would remove the trusted host. The rules already run headless in the tests.
+- **More fighters, stages, items or hazards.** Their numbers are in `src/game/config.js`, their platforms in `src/game/stages.js`, their behaviour in `src/game/` and their look in `public/shared/art/`.
+- **A stronger bot level.** Bot levels are number sets in `config.js` (`bots.easy`, `medium`, `hard`) for the same code (D-176).

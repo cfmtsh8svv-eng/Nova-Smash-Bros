@@ -6,9 +6,9 @@ NOVA Brawl is original work by the team named in the [README](README.md), built 
 
 The campus stage shows the Nova SBE logo on the roof. It was **redrawn in code** (`public/shared/art/stages.js`, function `novaLogo`) from the official mark.
 
-- Source: Wikimedia Commons, file `Nova_logo.png`
+- Source: Wikimedia Commons, file [`Nova_logo.png`](https://commons.wikimedia.org/wiki/File:Nova_logo.png)
 - Author: Nova SBE
-- Licence of the source file: CC BY-SA 4.0
+- Licence of the source file: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 - The logo is a **trademark of Nova School of Business and Economics**. It is used here only to show the real place in a student project and does not suggest that the school publishes or endorses the game.
 
 ## Fonts

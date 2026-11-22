@@ -76,9 +76,9 @@ export function createGame({ canvas, audio, sendTo, onEnd, onTutorialDone }) {
   const toAllPhones = (msg) => sendTo('all', msg);
 
   const HANDLERS = {
-    tutorialEnd(e) { if (e.slots.length) onTutorialDone?.(e.slots); },
+    tutorialEnd(e) { HANDLERS.go(); if (e.slots.length) onTutorialDone?.(e.slots); },
     countdown(e) { fx.banner(String(e.n), { size: 190, y: 330, life: 55 }); audio.play('count'); },
-    go() { fx.banner('BRAWL!', { size: 150, color: '#ff7a3d', y: 330, life: 60 }); audio.play('go'); fx.addFlash(0.35); },
+    go() { if (state?.tutorial?.active) return; fx.banner('BRAWL!', { size: 150, color: '#ff7a3d', y: 330, life: 60 }); audio.play('go'); fx.addFlash(0.35); },
     jump(e) { audio.play(e.double ? 'doubleJump' : 'jump'); fx.burst(e.x, e.y, { count: e.double ? 8 : 5, color: '#ffffff', speed: 2.5, size: 5, life: 16, gravity: 0 }); },
     land(e) { if (e.speed > 6) { audio.play('land'); fx.burst(e.x, e.y, { count: 6, color: '#e9e2d0', speed: 2.5, size: 4, life: 14, gravity: 0 }); } },
     ledgeGrab(e) { audio.play('ledge'); fx.burst(e.x, e.y, { count: 5, color: '#e9e2d0', speed: 2, size: 4, life: 12, gravity: 0.2 }); },

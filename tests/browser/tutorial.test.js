@@ -46,6 +46,8 @@ test('new player triggers full-screen phone guide; everyone performs each step; 
   const bounds = await host.locator('#tutorial').boundingBox();
   assert.deepEqual(bounds, { x: 0, y: 0, width: 1280, height: 800 }, 'guide covers the entire laptop, including letterboxing');
   assert.equal(await host.locator('.tutorialPhone').isVisible(), true);
+  const controller = await host.locator('.tutorialPhone').boundingBox();
+  assert.ok(controller.x >= 640 && controller.y <= 48 && controller.x + controller.width >= 1200, 'controller example is at the top right');
   assert.ok(await host.evaluate(() => window.novaBrawl.state.fighters.every((f) => f.tutorialProtected)), 'newcomer, returning player and bot all protected');
   await host.keyboard.press('Escape');
   const frames = await host.evaluate(() => window.novaBrawl.state.tutorial.frames);
@@ -77,7 +79,7 @@ test('new player triggers full-screen phone guide; everyone performs each step; 
   await host.waitForFunction(() => window.novaBrawl.state.tutorial.step === 1);
   await ana.waitForSelector('[data-b="jump"].tutorialFocus');
   await max.waitForSelector('[data-b="jump"].tutorialFocus');
-  // Passing 15 seconds alone cannot dismiss the input-gated guide.
+  // A long explanation must still be followed by its own fresh practice countdown.
   await host.evaluate(() => { window.novaBrawl.state.tutorial.frames = 900; });
   for (const [index, action] of [[1, 'jump'], [2, 'attack'], [3, 'special']]) {
     await ana.waitForSelector(`[data-b="${action}"].tutorialFocus`);
@@ -88,6 +90,23 @@ test('new player triggers full-screen phone guide; everyone performs each step; 
     await tap(max, action);
     await host.waitForFunction((n) => window.novaBrawl.state.tutorial.step === n, index + 1);
   }
+  await host.waitForSelector('#tutorial.practising');
+  await ana.waitForSelector('#pad.practising');
+  assert.equal(await host.locator('.tutorialPhone').isVisible(), false, 'arena is visible during free practice');
+  assert.equal(await host.evaluate(() => window.novaBrawl.state.tutorial.practiceFrames < 60), true, 'free practice has just started');
+  assert.match(await ana.textContent('#tutorialHint'), /FREE PRACTICE.*10s/);
+  const practiceBounds = await host.locator('#tutorial').boundingBox();
+  assert.ok(practiceBounds.height < 320, 'only a compact countdown overlays the arena');
+  assert.equal(await ana.locator('.tutorialFocus').count(), 0, 'every control is available in free practice');
+  assert.ok(await host.evaluate(() => window.novaBrawl.state.fighters.every((f) => f.tutorialProtected)));
+  assert.equal(store.players.get('ana').tutorial_done, false, 'practice is part of onboarding');
+  await host.keyboard.press('Escape');
+  const practiceFrame = await host.evaluate(() => window.novaBrawl.state.tutorial.practiceFrames);
+  await host.waitForTimeout(200);
+  assert.equal(await host.evaluate(() => window.novaBrawl.state.tutorial.practiceFrames), practiceFrame);
+  await host.keyboard.press('Escape');
+  await tap(ana, 'attack'); await tap(max, 'special');
+  assert.ok(await host.evaluate(() => window.novaBrawl.state.fighters.every((f) => f.percent === 0)));
   await host.waitForSelector('#tutorial', { state: 'hidden' });
   await ana.waitForSelector('#tutorialHint', { state: 'hidden' });
   await host.waitForFunction(() => window.novaBrawl.state.fighters.every((f) => !f.tutorialProtected));

@@ -83,7 +83,7 @@ test('legacy sheet experience, explicit pending flags, and the completion reques
 });
 
 test('tutorial status is bounded and accepted by the relay', () => {
-  const status = { t: 'status', pct: 0, lives: 3, state: 'alive', cd: 0, cdMax: 360, held: null, tipsy: false, fuse: null, buff: null, tutorialStep: 3, tutorialDone: false, tutorialLeft: 15 };
+  const status = { t: 'status', pct: 0, lives: 3, state: 'alive', cd: 0, cdMax: 360, held: null, tipsy: false, fuse: null, buff: null, tutorialStep: 3, tutorialDone: false, tutorialLeft: 10 };
   assert.equal(relayProblem(status), false);
-  for (const over of [{ tutorialStep: 5 }, { tutorialLeft: 16 }, { tutorialDone: 'yes' }]) assert.equal(relayProblem({ ...status, ...over }), true);
+  for (const over of [{ tutorialStep: 5 }, { tutorialLeft: 11 }, { tutorialDone: 'yes' }]) assert.equal(relayProblem({ ...status, ...over }), true);
 });

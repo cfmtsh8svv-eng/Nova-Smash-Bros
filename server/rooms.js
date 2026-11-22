@@ -89,7 +89,7 @@ export function relayProblem(m) {
   if (m.t === 'status') {
     return !(onlyKeys(m, ['t', 'pct', 'lives', 'state', 'cd', 'cdMax', 'held', 'tipsy', 'fuse', 'buff', 'tutorialStep', 'tutorialDone', 'tutorialLeft'])
       && isInt(m.pct, 0, 999) && isInt(m.lives, 0, 3) && FIGHTER_STATES.includes(m.state) && isInt(m.cd, 0, 3600) && isInt(m.cdMax, 1, 3600)
-      && optional(m.tutorialStep, (v) => isInt(v, 0, 4)) && optional(m.tutorialDone, bool) && optional(m.tutorialLeft, (v) => isInt(v, 0, 15))
+      && optional(m.tutorialStep, (v) => isInt(v, 0, 4)) && optional(m.tutorialDone, bool) && optional(m.tutorialLeft, (v) => isInt(v, 0, 10))
       && optional(m.held, shortText(12)) && optional(m.tipsy, bool)
       // The Group Project's seconds left, and LUCKY or BIFANA for the phone header (D-142).
       && optional(m.fuse, (v) => isInt(v, 0, 9)) && optional(m.buff, (v) => ['lucky', 'bifana'].includes(v)));

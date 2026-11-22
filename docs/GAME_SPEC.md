@@ -180,11 +180,11 @@ Whether the special is ready is shown **only on the phone** (a ring on the Speci
 
 **Final KO.** The last KO of the match is the big moment: the game drops to slow motion for **2 s**, the camera zooms in on the hit, the screen flashes and "FINAL KO!" appears. All phones vibrate. Then the end sequence of §10d starts.
 
-## 6b. First-game tutorial (D-211)
+## 6b. First-game tutorial (D-211, updated by D-219/D-220)
 
 **When.** If at least one player in the match has never finished the guide, the whole match starts with it, right after the countdown. Everyone in the match takes part, also players who know the game and bots.
 
-**What players see.** The laptop shows the guide full screen, with a drawing of a phone held sideways. On each phone the control of the current step lights up. The guide also explains the special of every fighter in the match.
+**What players see.** The laptop shows the guide full screen, with a drawing of a phone held sideways in the **top-right corner**. On each phone the control of the current step lights up. The guide also explains the special of every fighter in the match.
 
 **Steps.**
 
@@ -195,9 +195,11 @@ Whether the special is ready is shown **only on the phone** (a ring on the Speci
 
 The next step comes when every connected human has done the current one. Bots never hold a step up, and neither does a player whose phone has dropped; a phone that reconnects gets the current step. If every human has dropped, the guide waits until someone is back.
 
-**Safe practice.** The guide lasts **at least 15 seconds** of game time, and longer until every step is done. Pause stops this time. Until the guide ends, everyone can move and attack, but nobody can be hurt or lose a life: a fighter who leaves the screen comes back without losing a life. Items and hazards start only after the guide. The host can end the match as usual.
+**Safe practice.** The interactive guide waits until every connected human has tried the controls. After the last required action, a **separate ten-second free-practice phase** starts for everyone, regardless of how long the explanations took. The full-screen guide gives way to the visible arena with a compact countdown on the laptop and every participating phone. No further input is required to advance this timer. Pause stops it; a dropped phone does not extend it. This replaces the old minimum of 15 seconds from the beginning of the guide.
 
-**Saved per player.** A player who did every step is marked in the sheet (`tutorial_done` = 1) and does not see the guide again, also after a new login or a server restart. This is saved even in a practice match and has nothing to do with points. A match ended before the guide is finished saves nothing. New accounts start with 0. Old accounts from before the guide (an empty cell) count as done if they have saved matches; writing 0 into the cell by hand shows the guide again. If the sheet is down, the write waits in the server's queue and the server remembers it meanwhile; a server restart during the outage loses it, as with results.
+During both the guide and free practice, everyone can move, jump and try attack/special animations, but nobody can damage, launch or apply a status effect to another fighter, including bots. Falling out of the screen returns the fighter safely without losing a life. Items and hazards wait until real combat starts. Specials are ready at the start of free practice and real combat. Practice attacks, projectiles and buffered actions are cleared at the transition so they cannot hit after protection expires. After exactly **600 active simulation frames** of free practice, protection ends for everyone and combat starts automatically with the BRAWL cue. The host can end the match as usual.
+
+**Saved per player.** After free practice, a connected player who did every step is marked in the sheet (`tutorial_done` = 1) and does not see the guide again, also after a new login or a server restart. This is saved even in a practice match and has nothing to do with points. A match ended before free practice finishes does not save tutorial completion. New accounts start with 0. Old accounts from before the guide (an empty cell) count as done if they have saved matches; writing 0 into the cell by hand shows the guide again. If the sheet is down, the write waits in the server's queue and the server remembers it meanwhile; a server restart during the outage loses it, as with results.
 
 ## 7. Content
 

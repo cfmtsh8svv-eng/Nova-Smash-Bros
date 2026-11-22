@@ -19,7 +19,7 @@ A party platform fighter for **2 to 4 fighters**, at least one of them a human (
 | Deadline **2026-11-23 23:59**, commits after it do not count | `main` must hold the deployed code before then |
 | Must run at a **public URL**, shown live | Deployed on a free host, see §9 |
 | README: deployed URL, member names + student numbers, run and test commands | See `README.md` |
-| Every member commits code and can explain every part | Explained by the members in person; this spec and `DECISIONS.md` are the reference |
+| Every member commits code and can explain every part | The repository explains itself for a reader without the team: the README (what, how to run and test, what the tests do not cover), this spec (what and how) and `DECISIONS.md` (why). In the walkthrough the members answer questions on any part (D-216) |
 | JavaScript instead of Python | Approved by the teaching staff (team, 2026-11-11) |
 
 Grading: it works 20 %, UI/UX 20 %, scope 20 %, verification 10 %, security 10 %, repository walkthrough 20 %. §11 maps each criterion to what we build.
@@ -271,7 +271,7 @@ Rules for all held items: one held item at a time (the Group Project is the exce
 | **Render free web service** | The public URL in the README. Sleeps after 15 idle minutes; open it two minutes before the demo. |
 | **Mac mini + Tailscale Funnel** | Free backup URL running the same server. Never sleeps. |
 
-Both are free. Render reads `render.yaml` (region Frankfurt, `npm ci --omit=dev`, `npm start`, Node 22, health check `/healthz`, `TRUST_PROXY=cloudflare`); the four secrets of §8 are typed into the Render dashboard. Render is not connected to GitHub, so after a merge to `main` someone clicks **Manual Deploy → Deploy latest commit**. The backup runs `npm start` with the same four values in `.env` plus `HOST=127.0.0.1` (no `TRUST_PROXY`), and `tailscale funnel 3000` gives it a public https address. `/healthz` must show `"ok":true` and `"storeReachable":true` on either.
+Both are free. Render reads `render.yaml` (region Frankfurt, `npm ci --omit=dev`, `npm start`, Node 22, health check `/healthz`, `TRUST_PROXY=cloudflare`); the four secrets of §8 are typed into the Render dashboard. Render is not connected to GitHub, so after a merge to `main` someone clicks **Manual Deploy → Deploy latest commit**. The backup runs `npm start` with the same four values in `.env` plus `HOST=127.0.0.1` (no `TRUST_PROXY`), and `tailscale funnel 3000` gives it a public https address. `/healthz` must show `"ok":true` and `"storeReachable":true` on either. Right after a start or a wake-up `storeReachable` is `null` for a few seconds, until the server's first request to the sheet has answered; reload the page then.
 
 ## 10. Screens
 
@@ -320,9 +320,9 @@ There is **no leaderboard** on the results screen; it stays in the lobby. A line
 | It works | Deployed, health check, reconnects, every invalid input handled, sheet outage handled |
 | UI and UX | One-scan join, auto-login, clear errors, hazard warnings, phone feedback, rotate hint |
 | Scope | Real-time multiplayer over the network, phones as controllers, accounts, leaderboard, achievements, 8 fighters, 3 stages, hazards, items, bots, a first-game guide |
-| Verification | Unit tests for rules, combat, specials, items, hazards, bots; rejected actions and edge cases; server and protocol tests; a test of the sheet script (`Code.gs`); five browser test files; CI on every push and pull request |
+| Verification | Unit tests for rules, combat, specials, items, hazards, bots; rejected actions and edge cases; server and protocol tests; a test of the sheet script (`Code.gs`); five browser test files; CI on every push and pull request. What the tests do not cover (real phones, the real sheet, the deployment, real network latency, look and sound) is listed in the README |
 | Security | §8 |
-| Walkthrough | The members explain it in person. The reference: this spec (what and how, known limits in §3 and §8), `DECISIONS.md` (why, with the alternatives not taken) and the README |
+| Walkthrough | The repository is written to be read without the team (D-216): this spec (what and how, known limits in §3 and §8), `DECISIONS.md` (why, with the alternatives not taken) and the README (how to run and test, and what the tests do not cover). The members answer questions on any part |
 
 ## 12. Brand
 

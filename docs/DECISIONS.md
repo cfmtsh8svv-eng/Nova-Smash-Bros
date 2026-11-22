@@ -13,7 +13,7 @@ The **single source of truth** for every decision about NOVA Brawl. [`GAME_SPEC.
 
 **Numbering:** IDs are never reused. D-073 was never given out, and D-028 to D-041 are in the table of historical proposals at the end of [Decided](#decided).
 
-**Who:** `Team` = the team decided (Q&A or chat) · `Claude` = Claude proposed it while writing the docs
+**Who:** `Team` = the team decided (Q&A, chat or call) · a member's name = that member decided for the team · `Claude` = Claude proposed it while writing the docs · `Claude (build)`, `Claude (round 2)`, `Claude (round 4)` and so on = Claude decided a detail while building, wherever the team's brief left it open; the row says when the team confirmed it · `Team / Claude` = the team decided the main point and Claude the details
 
 ---
 
@@ -43,7 +43,7 @@ The **single source of truth** for every decision about NOVA Brawl. [`GAME_SPEC.
 | D-018 | Phone extras | **Vibration on hits, fighter select on the phone, own % and lives on the phone** | Emotes / taunts (not picked) | | Team | Decided |
 | D-019 | Language | **English** for docs and game | German docs + English game, everything in German | International student body | Team | Decided (sharpened by D-023) |
 | D-020 | Title | **NOVA Brawl** | Pancadaria na Nova, Carcavelos Clash, keep "Nova Smash Bros" | Own name, avoids the Nintendo trademark | Team | Decided |
-| D-021 | Course requirements | **OOP (classes), tests, docs / README, live demo**, more to follow | | Course rules | Team | Decided (list may grow, see O-03) |
+| D-021 | Course requirements | **OOP (classes), tests, docs / README, live demo**, more to follow | | Course rules | Team | Superseded by GAME_SPEC §2 (the requirements of the course wiki; it does not ask for classes) |
 | D-022 | Team size | **2–3 people** | 4–5, 6+ | | Team | Superseded by D-055 |
 
 ### Follow-up (2026-11-03)
@@ -255,11 +255,26 @@ Decided by the team on 2026-11-13, while going through the decisions that waited
 
 ### Special balance (2026-11-13)
 
-A bot round robin on 2026-11-13 (hard bots, every fighter against every other on both sides, 3 stages, 40 seeds per pairing, once with specials and once without) measured what each special adds to its fighter's win rate. Padel Smash added +29 points; Bass Drop -20, Spaghetti Lasso -21 and Round's On Me -28 points, so these three cost their fighter matches. Built on the branch `fix/special-balance`.
+A bot round robin on 2026-11-13 (hard bots, every fighter against every other on both sides, 3 stages, 40 seeds per pairing, once with specials and once without) measured what each special adds to its fighter's win rate. Padel Smash added +29 points; Bass Drop -20, Spaghetti Lasso -21 and Round's On Me -28 points, so these three cost their fighter matches. Built on the branch `fix/special-balance` (pull request #14).
+
+Win rates with hard bots before and after D-184 (2 lives, items and hazards off, 1,680 matches per fighter). "Effect" is the win rate with specials minus the win rate with the special switched off.
+
+| Fighter (special) | Win rate before | Win rate after | Effect before | Effect after |
+|---|---|---|---|---|
+| Maastricht Blondie (Padel Smash) | 67.4 % | 57.8 % | +27.4 | +17.8 |
+| Carcavelos Gang Member (Spaghetti Lasso) | 25.5 % | 55.0 % | -19.8 | +9.6 |
+| Bairro Chad (Round's On Me) | 35.7 % | 40.5 % | -26.2 | -21.4 |
+| House DJ (Bass Drop) | 23.5 % | 24.9 % | -23.5 | -22.0 |
+| Finance Bro (Cash Rain) | 46.4 % | 40.4 % | -0.4 | -6.4 |
+| Lisboa OG (Ding-Ding) | 63.6 % | 55.7 % | +12.9 | +4.9 |
+| Surfer Girl (Wave Rider) | 70.2 % | 64.4 % | +12.0 | +6.1 |
+| Wannabe Influencer (Ring Light Flash) | 67.6 % | 61.4 % | +17.6 | +11.4 |
+
+The spread shrank from 23.5 to 70.2 % to 24.9 to 64.4 %. Bass Drop and Round's On Me still cost their fighter about 20 points in bot matches; that may come from how bots use them more than from the numbers, so they are left for a play test.
 
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|
-| D-184 | Special values | **Padel Smash** 18 % to 14 % (knockback unchanged). **Round's On Me** 4 % to 7 %, tipsy 4 s to 3 s. **Spaghetti Lasso** stun 0.4 s to 0.7 s. **Bass Drop** radius 180 px to 230 px, launch angle 80° to 60° (more sideways, so it sends opponents towards the edge). Numbers in `SPECIAL_TUNING` (`config.js`), the fighter table in GAME_SPEC §6 and the card text of Round's On Me. Win rates after the change: see the pull request of `fix/special-balance`. | Cutting the Padel ball's range; a longer tipsy time | Round robin of 2026-11-13; the values were chosen by the team | Team, 2026-11-13 | Decided |
+| D-184 | Special values | **Padel Smash** 18 % to 14 % (knockback unchanged). **Round's On Me** 4 % to 7 %, tipsy 4 s to 3 s. **Spaghetti Lasso** stun 0.4 s to 0.7 s. **Bass Drop** radius 180 px to 230 px, launch angle 80° to 60° (more sideways, so it sends opponents towards the edge). Numbers in `SPECIAL_TUNING` (`config.js`), the fighter table in GAME_SPEC §7.1 and the card text of Round's On Me. Win rates before and after the change: the table above. | Cutting the Padel ball's range; a longer tipsy time | Round robin of 2026-11-13; the values were chosen by the team | Team, 2026-11-13 | Decided |
 | D-185 | Bots slip like people | Two slips per level in `config.js`, drawn from their own random numbers (`slipRng`), so the rest of a bot's play stays the same. **Tipsy:** for `tipsyAdaptFrames` after it gets tipsy the bot steers the wrong way, then it steers around the swap, but each frame with `tipsySlipChance` it gets it wrong again for `tipsySlipFrames`. **Hazards:** when a warning is first seen, the bot misses it with `hazardMissChance` and reacts only once the hazard is active. Numbers easy / medium / hard: tipsyAdaptFrames 60 / 40 / 20, tipsySlipChance 0.02 / 0.01 / 0.005, tipsySlipFrames 15 for all, hazardMissChance 0.3 / 0.15 / 0.05. Changes the tipsy line of D-168 (the bot steered around the swap from the first frame) and D-169 (the bot always left the zone on the warning). The tuning test of D-176 still passes. | Slips through the normal `rng` (would change every bot match of the tests); a fixed reaction time without slips | Team, 2026-11-13: bots should not cancel being drunk at once and should sometimes miss a warning | Team / Claude, 2026-11-13 | Decided |
 | D-186 | Ready button on the phone | Once a player is ready, the button on the fighter select says **Switch character** (before: "Ready! Tap to change"). Tapping it still takes the player back to the choice, as before. | Keeping the old text | It read like a status, not like a button | Team, 2026-11-13 | Decided |
 
@@ -294,8 +309,18 @@ Built on the branch `chore/trim-docs`.
 
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|
-| D-213 | Documentation set | The repository keeps three documents: `README.md` (what it is, URL, team, how to run, test and play, how it was built), `docs/GAME_SPEC.md` (the spec, now with the brand in §12 and hosting in §9) and `docs/DECISIONS.md` (this file). Setting up the sheet is in `google-sheet/README.md`. The walkthrough document, the criteria check, the concept, the short technical overview, the deploy and sheet guides and the archive of build prompts were removed. The members explain the project in person. | Keeping every document (D-026) | A shorter repository that only holds what is current | Bastian, 2026-11-22 | Decided |
+| D-213 | Documentation set | The repository keeps three documents: `README.md` (what it is, URL, team, how to run, test and play, how it was built), `docs/GAME_SPEC.md` (the spec, now with the brand in §12 and hosting in §9) and `docs/DECISIONS.md` (this file). Setting up the sheet is in `google-sheet/README.md`. The walkthrough document, the criteria check, the concept, the short technical overview, the deploy and sheet guides and the archive of build prompts were removed. The members explain the project in person. | Keeping every document (D-026) | A shorter repository that only holds what is current | Bastian, 2026-11-22 | Changed by D-215 (the full list of documents) and D-216 (the repository explains itself) |
 | D-214 | Three small fixes before submission | (1) While registering or logging in, the phone's button says `Creating your player…` or `Logging in…` and is disabled, then gets its label back; the sheet takes a few seconds and a silent grey button looked frozen. (2) An empty lobby slot keeps its dark background and fades only its frame and text, so the stage art no longer shows through. (3) `tests/browser/regressions.test.js` waits up to 10 s for the 'no connection' note instead of reading it once: the app shows it either at once or after the 6 s check in `submitResult`, depending on whether the browser has noticed the cut yet. The behaviour the test checks is unchanged; only the timing of the check was wrong, which made CI fail on `main` once (run 136). | Leaving them as they were | A visible state while waiting, a calmer lobby, and a test that no longer depends on timing | Claude, confirmed by the team on 2026-11-22 | Decided |
+
+### Final documentation review (2026-11-22)
+
+A check of every document against the code and the course wiki before the submission. Built on the branch `docs/final-review`.
+
+| ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
+|---|---|---|---|---|---|---|
+| D-215 | Documentation set, complete | The repository has six documents: `README.md` (what it is, URL, team, how to run, test and play, what the tests do not cover, how it was built), `docs/GAME_SPEC.md` (the spec), `docs/DECISIONS.md` (this file), `AGENTS.md` (commands, layout and rules for every session, read through `CLAUDE.md`), `CREDITS.md` (logo, fonts, software) and `google-sheet/README.md` (setting up the sheet). Changes the "three documents" of D-213. | Leaving D-213's count as it was | D-213 named three documents while the README listed more | Bastian, 2026-11-22 | Decided |
+| D-216 | The repository explains itself | The course staff look at the repository without the team, so the documents are written for a reader on their own: the README gets a section on what the tests cover and what they do not, and GAME_SPEC §2 and §11 no longer say that the members explain the project in person. In the walkthrough the members answer questions on any part. Changes the last sentence of D-213. | Explaining the project only in person | Course guide "Preparing the demo": the staff review the repository without the team present | Bastian, 2026-11-22 | Decided |
+| D-217 | How changes were reviewed | Every change reached `main` through a pull request, with one exception. Most pull requests were opened and merged by Bastian. Before a merge the team went through the change together (in a call or a meeting), the person who merged played it and ran the tests, and the code was checked by independent reviewer agents (D-121). GitHub's review function was not used, so these reviews leave no trace on the pull requests. The exception: the merge of `chore/remove-demo-and-refresh-docs` (commit `363f51e`, 2026-11-19, D-212) was pushed to `main` by a Claude session without a pull request, against rule 1 of `AGENTS.md`. | Leaving the record silent | The course asks for a review by a second person before a change reaches `main`; this row says how it was done | Bastian, 2026-11-22 | Decided |
 
 ### Proposals made by Claude while writing the docs
 

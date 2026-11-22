@@ -14,6 +14,10 @@ npm audit --audit-level=high   # must report nothing
 
 Node 22 or newer. No build step: the browser loads the ES modules as they are.
 
+## Data
+
+Without a sheet the server keeps accounts and scores in memory; restarting it resets them. With the Google Sheet, reset everything by deleting the rows below the headers in the `players` and `matches` tabs (`google-sheet/README.md`, "Good to know"). Tests never use the real sheet.
+
 ## Where things are
 
 | Folder | What |

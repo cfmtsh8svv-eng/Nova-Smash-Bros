@@ -301,7 +301,7 @@ Built on the branch `chore/remove-demo-and-refresh-docs`.
 
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|
-| D-212 | Demo mode removed | Delete demo mode completely: `DEMO_ENABLED`, `DEMO_SETTINGS`, Shift+D, the lobby line, the clock, the TIME! banner, the optional `demo` field of `vote_start` and `match_start`, the fighter list in the lobby phase, the demo checks of results and its tests and docs. The time cap of the rules (`timeCapS`, D-105) and the server's check of `byTimeCap` go with it, because only demo mode used them. A match ends only when one player is left. | Keeping the code switched off (D-210) | Code that never runs is code to explain and to maintain, and a skipped test in `tests/` breaks the course rule that tests are never skipped | Team | Decided |
+| D-212 | Demo mode removed | Delete demo mode completely: `DEMO_ENABLED`, `DEMO_SETTINGS`, Shift+D, the lobby line, the clock, the TIME! banner, the optional `demo` field of `vote_start` and `match_start`, the fighter list in the lobby phase, the demo checks of results and its tests and docs. The time cap of the rules (`timeCapS`, D-105) and the server's check of `byTimeCap` go with it, because only demo mode used them. A match ends only when one player is left. | Keeping the code switched off (D-210) | Code that never runs is code to explain and to maintain, and a skipped test in `tests/` goes against the course wiki, whose prompt template (Class 5) says not to "weaken, skip, or delete" tests | Team | Decided |
 
 ### Documentation trimmed (2026-11-22)
 

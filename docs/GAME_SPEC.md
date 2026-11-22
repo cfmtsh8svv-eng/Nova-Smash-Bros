@@ -1,6 +1,6 @@
 # NOVA Brawl: Game Spec v2.0
 
-**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards), the round 2 changes of 2026-11-12 (D-132 onwards), the bots of round 4 (D-156 onwards, bot levels D-175 onwards), the special balance (D-184 to D-186) and demo mode (D-187 onwards, §6b). Where `CONCEPT.md` or `SPECS.md` say something different, this file wins. Brand voice, signature lines and humour rules in `CONCEPT.md` §3 still apply.
+**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards), the round 2 changes of 2026-11-12 (D-132 onwards), the bots of round 4 (D-156 onwards, bot levels D-175 onwards), the special balance (D-184 to D-186) and the first-game tutorial (D-211). Demo mode was built and removed again (D-212). Where `CONCEPT.md` or `SPECS.md` say something different, this file wins. Brand voice, signature lines and humour rules in `CONCEPT.md` §3 still apply.
 
 Sound: music per stage and effects are synthesised in the browser, with separate volume controls on the host. There are no keyboard players (D-132). Every human plays from a phone; the host can fill free places with **bots** (§5a, D-156 onwards).
 
@@ -19,7 +19,7 @@ A party platform fighter for **2 to 4 fighters**, at least one of them a human (
 | Deadline **2026-11-23 23:59**, commits after it do not count | `main` must hold the deployed code before then |
 | Must run at a **public URL**, shown live | Deployed on a free host, see §9 |
 | README: deployed URL, member names + student numbers, run and test commands | See `README.md` |
-| Every member commits code and can explain every part | `docs/WALKTHROUGH.md`, `docs/TEAM_TASKS.md` |
+| Every member commits code and can explain every part | `docs/WALKTHROUGH.md` |
 | JavaScript instead of Python | Approved by the teaching staff (team, 2026-11-11) |
 
 Grading: it works 20 %, UI/UX 20 %, scope 20 %, verification 10 %, security 10 %, repository walkthrough 20 %. §11 maps each criterion to what we build.
@@ -40,7 +40,7 @@ Laptop (host page, runs game) ───┘    (static files, rooms, relay, accou
 | Simulation | Runs in the **host page** at a fixed 60 Hz. The server only relays inputs and events. | Smooth rendering, tiny server |
 | Game logic | Pure modules in `src/game/` with no DOM access | Runs headless in Node for tests |
 | Storage | **Google Sheet** through an Apps Script web app. No database. | Team decision |
-| Tests | `node:test` (built in). Playwright as a dev dependency for one browser smoke test. | No test framework to learn |
+| Tests | `node:test` (built in). Playwright as a dev dependency for the five browser tests. | No test framework to learn |
 
 **Rooms.** The host page asks the server for a room and gets a 4-letter code. The QR code encodes `https://<host>/play?room=ABCD`. A room holds at most 4 players; a fifth phone sees "Room full".
 
@@ -81,7 +81,7 @@ The **leaderboard** ranks players by **points**. Each match gives placement poin
 |---|---|
 | Players | 2 to 4 fighters: 1 to 4 humans plus bots (§5a). Alone: 1 to 3 bots. Two humans: 0 to 2. Three: 0 or 1. Four: none. |
 | Lives | **1, 2 or 3**, chosen by the host in the lobby (default 3) |
-| End of match | When only **one player is left**. No time limit (demo mode has a 120 s cap, §6b). |
+| End of match | When only **one player is left**. No time limit. |
 | Damage | Starts at 0 %. Every hit adds damage. Higher damage means more knockback. |
 | KO "LAUNCHED!" | Crossing the blast zone around the screen |
 | KO "BURNOUT!" | Reaching **200 %** |
@@ -162,16 +162,6 @@ The phone header shows the player's **name tag in their player colour**, damage 
 
 **Feedback on the phone** when something happens to its player: a vibration pattern (Android), a full-screen colour flash and a short sound (all phones, because iPhone browsers do not vibrate), and a one-line message such as "You're drunk! Drink water!". Every special that hits a player triggers this on that player's phone only.
 
-Demo mode (a preset for the presentation) is described in §6b.
-
-## First-game tutorial (D-211)
-
-If any human account has not completed the tutorial, the whole match starts in a shared, interactive tutorial after the countdown. The laptop shows a full-screen guide with a landscape phone diagram; each phone spotlights the real control. Steps: drag the joystick left **and** right, press J (jump), A (attack), then S (special). The next step waits until every connected human has performed the current action; bots do not hold it up. Each selected fighter's special name and effect are explained.
-
-All fighters, including returning players and bots, are protected throughout the tutorial for **at least 15 seconds of simulation time**, extended until the required actions are complete. Pause stops the timer. Inputs still work for practice; hits, hazards, items and life loss cannot interrupt the guide. Leaving the blast zone returns the fighter safely without costing a life. Items and hazards start their usual timers after the guide ends. Disconnected humans do not block a step; reconnects receive the current step. Once all humans disconnect, progress waits for someone to return. A host can abort as usual.
-
-Completion is stored per participating, connected account as `players.tutorial_done` (1/0), independently of scores, including practice matches. Aborting before completion leaves it pending. Existing accounts with saved matches and no flag are treated as experienced; an explicit 0 requests the tutorial. New accounts start at 0. No repeat after login or server restart once saved; a sheet outage queues the write and uses the server cache meanwhile. As with result queues, a restart during an outage can lose pending writes.
-
 ## 6a. What is on the big screen during a match
 
 | Where | What |
@@ -180,7 +170,7 @@ Completion is stored per participating, connected account as `players.tutorial_d
 | **Above each fighter** | A pill in the player colour with the name and hearts, and under it a thin damage bar |
 | **Top right** | The hazard countdown (name, then 3, 2, 1) |
 | Centre | KO texts and the final-KO sequence only |
-| **Bottom centre** | A small, semi-transparent line `Press P or Esc to pause`, in the strip under the main ground so it never covers a platform. It shows during the countdown and the fight and is hidden from the final KO on. In a demo match the clock (§6b) stands here instead, and the pause hint is not shown. |
+| **Bottom centre** | A small, semi-transparent line `Press P or Esc to pause`, in the strip under the main ground so it never covers a platform. It shows during the countdown and the fight and is hidden from the final KO on. |
 
 Whether the special is ready is shown **only on the phone** (a ring on the Special button). The phone header shows name, damage % and hearts, with no points and no placement.
 
@@ -190,15 +180,13 @@ Whether the special is ready is shown **only on the phone** (a ring on the Speci
 
 **Final KO.** The last KO of the match is the big moment: the game drops to slow motion for **2 s**, the camera zooms in on the hit, the screen flashes and "FINAL KO!" appears. All phones vibrate. Then the end sequence of §10 starts.
 
-## 6b. Demo mode
+## 6b. First-game tutorial (D-211)
 
-**Temporarily disabled (D-210).** `DEMO_ENABLED` is false. Shift+D does nothing and the server rejects demo starts. The implementation and settings below are retained for later reactivation.
+If any human account has not completed the tutorial, the whole match starts in a shared, interactive tutorial after the countdown. The laptop shows a full-screen guide with a landscape phone diagram; each phone spotlights the real control. Steps: drag the joystick left **and** right, press J (jump), A (attack), then S (special). The next step waits until every connected human has performed the current action; bots do not hold it up. Each selected fighter's special name and effect are explained.
 
-A preset for the course presentation (D-187 to D-209; the presenter's guide is [`DEMO.md`](DEMO.md)). The host switches it on and off with **Shift+D in the lobby**; there is no button, Shift+D does nothing outside the lobby, and a reload of the host page switches it off. While it is on, the lobby shows, centred under the QR code, **DEMO MODE** and, smaller on a second line, **(to quit press Shift + D)** (D-208; no toast, and nothing is shown when it is switched off), and the lives selector is locked to the demo value.
+All fighters, including returning players and bots, are protected throughout the tutorial for **at least 15 seconds of simulation time**, extended until the required actions are complete. Pause stops the timer. Inputs still work for practice; hits, hazards, items and life loss cannot interrupt the guide. Leaving the blast zone returns the fighter safely without costing a life. Items and hazards start their usual timers after the guide ends. Disconnected humans do not block a step; reconnects receive the current step. Once all humans disconnect, progress waits for someone to return. A host can abort as usual.
 
-All values are in `DEMO_SETTINGS` in `src/game/config.js`: **1 life**, a hard cap of **120 s** of fighting, the next hazard warning **5 to 8 s** after a hazard ends, and four fighters: **Maastricht Blondie, Lisboa OG, Finance Bro, Surfer Girl**. The phones' carousel shows only these (a phone on another fighter moves to the first of them and is no longer Ready), bots play only these, and a demo match with another fighter cannot start. Stage vote, intro and fighter select are unchanged.
-
-At the cap, among the fighters still in the match, **more lives left** wins, then the **lower current damage %**, then more damage dealt. There is no final KO: the fighters freeze and **TIME!** appears for a moment, then the usual end sequence. During a demo match the fighting time left is shown as `m:ss` at the bottom centre of the big screen in place of the pause hint, large: it fills 56 % of the strip between the main ground (y 600) and the bottom edge (D-209). It stops while paused. A demo match is **never saved** (no sheet row, points, achievements, crowns or hourly count); the results say "Demo match: not saved."
+Completion is stored per participating, connected account as `players.tutorial_done` (1/0), independently of scores, including practice matches. Aborting before completion leaves it pending. Existing accounts with saved matches and no flag are treated as experienced; an explicit 0 requests the tutorial. New accounts start at 0. No repeat after login or server restart once saved; a sheet outage queues the write and uses the server cache meanwhile. As with result queues, a restart during an outage can lose pending writes.
 
 ## 7. Content
 
@@ -287,9 +275,9 @@ Both are free. `docs/DEPLOY.md` has the steps for each.
 
 ## 10. Screens
 
-**Host (laptop):** Title (no team names) → Lobby (QR code, room code, player cards, Add bot / Remove bot (§5a), stage choice: Vote or one of the three stages, close room, lives 1/2/3 (locked in demo mode, §6b), items and hazards on/off, **separate volume sliders for music and effects**, leaderboard) → Map vote (with Vote only, §10a) → Intro (§10b) → Countdown → Match (HUD with one card per player at the top) → End sequence and results on the podium (winner, per-player stats, points, new achievements; no leaderboard) → back to the lobby. There is no rematch button.
+**Host (laptop):** Title (no team names) → Lobby (QR code, room code, player cards, Add bot / Remove bot (§5a), stage choice: Vote or one of the three stages, close room, lives 1/2/3, items and hazards on/off, **separate volume sliders for music and effects**, leaderboard) → Map vote (with Vote only, §10a) → Intro (§10b) → Countdown → First-game guide when a new player is in the match (§6b) → Match (HUD with one card per player at the top) → End sequence and results on the podium (winner, per-player stats, points, new achievements; no leaderboard) → back to the lobby. There is no rematch button.
 
-**Phone:** Register / log in → Fighter select (swipe through the 8 fighters, or the 4 of demo mode (§6b), one at a time, with the neighbours peeking in at the sides; each card shows the sprite, the two attacks and **Speed and Weight as five-step bars, without numbers**) → Ready (once ready, the button says **Switch character** and takes the player back to the choice, D-186) → Map vote (with Vote only, §10a) → Intro with a Skip button (§10b) → Gamepad → KO'd → Eliminated + hazard vote → Results.
+**Phone:** Register / log in → Fighter select (swipe through the 8 fighters one at a time, with the neighbours peeking in at the sides; each card shows the sprite, the two attacks and **Speed and Weight as five-step bars, without numbers**) → Ready (once ready, the button says **Switch character** and takes the player back to the choice, D-186) → Map vote (with Vote only, §10a) → Intro with a Skip button (§10b) → Gamepad (with the current control lit up during the first-game guide, §6b) → KO'd → Eliminated + hazard vote → Results.
 
 ### 10a. Map vote
 
@@ -331,7 +319,7 @@ There is **no leaderboard** on the results screen; it stays in the lobby. A line
 |---|---|
 | It works | Deployed, health check, reconnects, every invalid input handled, sheet outage handled |
 | UI and UX | One-scan join, auto-login, clear errors, hazard warnings, phone feedback, rotate hint |
-| Scope | Real-time multiplayer over the network, phones as controllers, accounts, leaderboard, achievements, 8 fighters, 3 stages, hazards, items, bots |
+| Scope | Real-time multiplayer over the network, phones as controllers, accounts, leaderboard, achievements, 8 fighters, 3 stages, hazards, items, bots, a first-game guide |
 | Verification | Unit tests for rules, combat, specials, items, hazards, bots; rejected actions and edge cases; server and protocol tests; a test of the sheet script (`Code.gs`); five browser test files; CI on every push and pull request |
 | Security | §8 |
 | Walkthrough | `docs/WALKTHROUGH.md`: how it is built, why, limits, what could change |

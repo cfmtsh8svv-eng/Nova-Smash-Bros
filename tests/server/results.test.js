@@ -42,7 +42,6 @@ for (const [name, mutate, reason] of [
   ['a duration longer than the time since the start', (r) => { r.durationS = 500; }, /longer than the time/],
   ['a duration of more than six hours', (r) => { r.durationS = 6 * 3600 + 1; }, /duration/],
   ['a duration that is not a whole number', (r) => { r.durationS = 12.5; }, /duration/],
-  ['a time-cap win, which this build does not have', (r) => { r.byTimeCap = true; }, /time limit/],
   ['a missing player', (r) => { r.players.pop(); }, /player list/],
   ['an extra player', (r) => { r.players.push({ ...r.players[1], slot: 2, place: 3 }); }, /player list/],
   ['a player who is not in the match', (r) => { r.players[1].slot = 3; }, /missing from the result/],

@@ -1,4 +1,4 @@
-// D-210/D-211: default demo gate and the shared interactive guide, using real pad inputs.
+// D-211: the shared interactive guide, using real pad inputs.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium, devices } from 'playwright';
@@ -23,10 +23,6 @@ test('new player triggers full-screen phone guide; everyone performs each step; 
   await host.goto(base); await host.click('#openRoom');
   await host.waitForFunction(() => /^[A-Z]{4}$/.test(document.getElementById('roomCode').textContent));
   const code = await host.textContent('#roomCode');
-  await host.keyboard.press('Shift+KeyD');
-  assert.equal(await host.evaluate(() => window.novaBrawl.demo), false);
-  assert.equal(await host.isVisible('#demoLine'), false);
-  assert.equal(await host.isDisabled('#lifeButtons button[data-value="2"]'), false);
 
   const phone = async (name) => {
     const d = devices['iPhone 13'];

@@ -68,7 +68,7 @@ export function createMatch({ stageId, players, settings, seed = 1, tutorial = f
     fighters: players.map((p, i) => createFighter(p, stage.spawns[i], s.lives, i, players)),
     projectiles: [], items: [], events: [],
     placements: [], // slots, best first; filled from the back as players are eliminated
-    winner: null, byTimeCap: false, lastKo: null, hazardVotes: {},
+    winner: null, lastKo: null, hazardVotes: {},
   };
   for (const f of state.fighters) f.tutorialProtected = Boolean(state.tutorial);
   state.itemTimer = nextItemDelay(state);
@@ -219,15 +219,6 @@ function checkEnd(state) {
     for (const f of state.fighters) feedback(state, f.slot, 'finalKo', winnerText, '#ffffff', { title: FINAL_KO_TEXT });
     return;
   }
-  // Optional time cap. It is off in the normal game (timeCapS = 0).
-  if (state.settings.timeCapS > 0 && state.fightFrames >= state.settings.timeCapS * FPS) {
-    const rest = [...left].sort((a, b) => b.lives - a.lives || a.percent - b.percent || b.stats.damageDealt - a.stats.damageDealt || a.slot - b.slot);
-    state.placements = [...rest.map((f) => f.slot), ...state.placements];
-    state.winner = state.placements[0];
-    state.byTimeCap = true;
-    state.phase = 'ended';
-    state.events.push({ type: 'matchEnd', result: buildResult(state) });
-  }
 }
 
 // The numbers of a finished match, as shown on the results screen and sent to the server.
@@ -237,7 +228,6 @@ export function buildResult(state) {
     lives: state.settings.lives,
     durationS: Math.max(1, Math.round(state.fightFrames / FPS)),
     winner: state.winner,
-    byTimeCap: state.byTimeCap,
     players: state.fighters.map((f) => ({
       slot: f.slot,
       name: f.name,

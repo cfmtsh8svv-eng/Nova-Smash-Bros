@@ -2,7 +2,7 @@
 
 > **Scan. Pick. Brawl.** A party platform fighter set at Nova SBE. Your phone is the controller.
 
-Team project for **Introduction to Programming**.
+Team project for **Introduction to Programming**. The game is written in JavaScript instead of the course's Python; the teaching staff approved this ([D-042](docs/DECISIONS.md)).
 
 One to four players scan a QR code, their phones turn into controllers, and they fight on the **Nova SBE Campus**, at **Carcavelos Beach** and in **Bairro Alto**. Every hit raises your damage %, and the higher it gets, the further you fly. Get knocked off the screen or reach 200 % and you lose a life. The last player standing wins. Short of players? The host fills free places with **bots** (Freshman, Intern, Erasmus), so even one person can play a full match.
 
@@ -38,7 +38,7 @@ Then open **http://localhost:3000** on the laptop and click **Open a room**.
 ## Run the tests
 
 ```bash
-npm test                          # game rules and server (about 560 tests, a few seconds)
+npm test                          # game rules and server (547 tests, about 20 seconds)
 npx playwright install chromium   # once, for the browser test
 npm run test:browser              # five browser tests: host page + emulated iPhone and Android phones
 npm audit --audit-level=high      # dependency check
@@ -52,7 +52,7 @@ The same commands run on every push in GitHub Actions (`.github/workflows/ci.yml
 2. **Phones:** scan the QR code. New players choose a gamertag (3 to 12 letters, numbers or `_`) and a 4-digit PIN; returning players are logged in automatically.
 3. **Pick a fighter** by swiping, tap **Ready!**
 4. **Laptop:** add bots if you like (*Add bot*, *Remove bot*; a click on a bot's card changes its fighter, and its ◀ ▶ arrows set it to Easy, Medium or Hard), leave the stage on **Vote** (the default) or pick one, choose the number of lives, then press *Start*. Everyone in the lobby must be Ready, and a match needs at least two fighters, bots included. A match with only one person in it is a practice match and gives no points. With Vote, every phone shows the three stages: swipe, tap **Vote!**; the vote ends when everyone has voted or after 10 s.
-5. **Fight.** Turn the phone sideways.
+5. **Fight.** Turn the phone sideways. When someone plays their first match, a short guide comes first: everyone tries the joystick and the three buttons, then the match begins.
 
 The left half of the phone is a joystick: put your thumb down anywhere there and drag.
 
@@ -78,8 +78,6 @@ Each stage has three **hazards**: the Cascais Line train (sometimes late!), Bad 
 | [`docs/CRITERIA_CHECK.md`](docs/CRITERIA_CHECK.md) | The grading criteria and the evidence for each |
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Every decision in one log |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/SETUP_SHEETS.md`](docs/SETUP_SHEETS.md) | Deploying, and connecting the Google Sheet |
-| [`docs/TEAM_TASKS.md`](docs/TEAM_TASKS.md) | Small follow-up tasks for each member |
-| [`docs/DEMO.md`](docs/DEMO.md) | Demo mode for the presentation: how to switch it on, what changes, where the values are |
 | [`docs/SPECS.md`](docs/SPECS.md), [`docs/CONCEPT.md`](docs/CONCEPT.md) | Technical overview, brand and voice |
 | [`docs/archive/`](docs/archive/) | History: the build prompts of each round and the first brainstorm (ideas that were not built) |
 | [`CREDITS.md`](CREDITS.md) | Logo, fonts and software credits |

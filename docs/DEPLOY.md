@@ -81,7 +81,7 @@ Both servers use the same sheet, so accounts work on both. Only one of them shou
 ## Before the demo: checklist
 
 1. Two minutes before: open the public URL (wakes the free host). `/healthz` shows `"ok":true` and `"storeReachable":true`. While a room is open, the big screen keeps the host awake by itself.
-2. Open a room, scan with one iPhone and one Android phone on the room's network. Both reach the fighter select.
+2. Open a room, scan with two phones on the room's network (an iPhone and, if anyone has one, an Android phone). Both reach the fighter select.
 3. Play ten seconds. Buttons respond, the phone shows damage and lives.
 4. Sound: click once on the laptop page (browsers only allow sound after a click); set the two volume sliders.
 5. The backup URL answers too.

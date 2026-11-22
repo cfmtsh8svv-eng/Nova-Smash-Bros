@@ -168,7 +168,7 @@ button.skip.on { background: var(--green); }
 .pad.learning { display: grid; grid-template-rows: max(12%, 34px) auto minmax(0, 1fr); gap: 0; align-items: stretch; }
 .learning .tutorialHint { position: relative; grid-row: 2; inset: auto; margin: 6px 3% 8px; }
 .learning .controls { position: relative; grid-row: 3; inset: auto; width: 100%; height: 100%; min-height: 0; }
-.learning .key, .learning .stickZone { opacity: 0.26; }
+.learning:not(.practising) .key, .learning:not(.practising) .stickZone { opacity: 0.26; }
 .learning .tutorialFocus { opacity: 1; border-color: #f6c343; box-shadow: 0 0 0 4px #f6c34350, 0 0 28px #f6c34380; animation: tutorialPulse 1.2s ease-in-out infinite alternate; }
 .learning .tutorialFocus .label { color: #fff; }
 @keyframes tutorialPulse { to { box-shadow: 0 0 0 7px #f6c34330, 0 0 38px #f6c343; } }

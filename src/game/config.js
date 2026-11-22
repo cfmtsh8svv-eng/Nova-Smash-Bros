@@ -42,7 +42,7 @@ export const CONFIG = {
   // Leaving this rectangle is a KO ("LAUNCHED!").
   blast: { left: -170, right: 1450, top: -230, bottom: 900 },
   match: {
-    tutorialMinFrames: seconds(15),
+    tutorialPracticeFrames: seconds(10),
     countdownFrames: seconds(3), // 3, 2, 1 ... then BRAWL!
     respawnFrames: seconds(2),
     invincibleFrames: seconds(2),

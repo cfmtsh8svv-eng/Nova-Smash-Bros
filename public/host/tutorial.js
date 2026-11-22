@@ -39,8 +39,12 @@ export function createTutorialView() {
       const key = JSON.stringify([t.step, t.progress, humans.map((f) => f.connected), tutorialSeconds(t)]);
       if (key === last) return;
       last = key;
+      const practising = t.step === 4;
+      const seconds = tutorialSeconds(t);
+      root.classList.toggle('practising', practising);
+      for (const node of [badge, phone, progress, specials]) node.hidden = practising;
       root.dataset.step = String(t.step);
-      title.textContent = TUTORIAL_STEPS[t.step].title;
+      title.textContent = practising ? `FREE PRACTICE · ${seconds}s` : TUTORIAL_STEPS[t.step].title;
       line.textContent = TUTORIAL_STEPS[t.step].text;
       [stick, jump, attack, special].forEach((node, i) => node.classList.toggle('guideSpotlight', i === t.step));
       progress.textContent = humans.map((f) => `${f.name}: ${!f.connected ? 'reconnecting…' : t.step === 4 || t.progress[f.slot] & (1 << t.step) ? '✓ Done' : 'your turn'}`).join('  ·  ');
@@ -51,9 +55,8 @@ export function createTutorialView() {
         row.append(el('b', '', `${f.name} · ${def.special.name}: `), document.createTextNode(def.special.text));
         specials.append(row);
       }
-      const seconds = tutorialSeconds(t);
-      footer.textContent = seconds ? `Step ${Math.min(4, t.step + 1)} / 4 · Protection: at least ${seconds}s left · Press P or Esc to pause`
-        : 'Protection stays on until everyone has tried each control · Press P or Esc to pause';
+      footer.textContent = practising ? 'Everyone is protected. Brawl starts automatically · P or Esc to pause'
+        : `Step ${t.step + 1} / 4 · Everyone is protected · Then 10 seconds of free practice · P or Esc to pause`;
     },
   };
 }

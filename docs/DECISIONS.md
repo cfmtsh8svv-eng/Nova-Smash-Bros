@@ -288,12 +288,12 @@ A preset for the presentation, built on the branches `feature/demo-mode` (pull r
 
 ### Tutorial and demo pause (2026-11-17)
 
-Built on the branch `feature/first-game-tutorial` (pull request #18). The parts of D-211 that were settled while building it (the 15 s minimum that is extended until every step is done, and old accounts with saved matches counting as experienced) were confirmed by the team on 2026-11-17. D-210 switched demo mode off; D-212 then removed it.
+Built on the branch `feature/first-game-tutorial` (pull request #18). The original parts of D-211 that were settled while building it (the 15 s minimum that is extended until every step is done, and old accounts with saved matches counting as experienced) were confirmed by the team on 2026-11-17. D-210 switched demo mode off; D-212 then removed it.
 
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|
 | D-210 | Demo mode switched off for now | Keep all demo code and settings, but switch the mode off with `DEMO_ENABLED = false`: Shift+D on the host page does nothing and the server rejects demo starts. The demo browser test is skipped. | Delete the demo code and settings | The team wants normal play only for now, and demo mode can be switched back on later | Team | Superseded by D-212 |
-| D-211 | First-game tutorial | A new participant triggers a full-screen laptop phone guide plus real phone spotlights. Every connected human must try left/right, J, A, S in order. All fighters are protected for at least 15 active seconds and until the steps finish. No hazards, items or life loss during practice. Persist completion per connected participant, including solo practice, with `tutorial_done`; legacy accounts with matches default to experienced. | A guide that ends after a fixed 15 s, whether or not everyone tried the controls | Team request; the action requirement can extend the 15 seconds | Team | Decided |
+| D-211 | First-game tutorial | A new participant triggers a full-screen laptop phone guide plus real phone spotlights. Every connected human must try left/right, J, A, S in order. All fighters are protected for at least 15 active seconds and until the steps finish. No hazards, items or life loss during practice. Persist completion per connected participant, including solo practice, with `tutorial_done`; legacy accounts with matches default to experienced. | A guide that ends after a fixed 15 s, whether or not everyone tried the controls | Team request; the action requirement can extend the 15 seconds | Team | Changed by D-219/D-220 |
 
 ### Demo mode removed (2026-11-19)
 
@@ -322,6 +322,15 @@ A check of every document against the code and the course wiki before the submis
 | D-216 | The repository explains itself | The course staff look at the repository without the team, so the documents are written for a reader on their own: the README gets a section on what the tests cover and what they do not, and GAME_SPEC §2 and §11 no longer say that the members explain the project in person. In the walkthrough the members answer questions on any part. Changes the last sentence of D-213. | Explaining the project only in person | Course guide "Preparing the demo": the staff review the repository without the team present | Bastian, 2026-11-22 | Decided |
 | D-217 | How changes were reviewed | Every change reached `main` through a pull request, with one exception. Most pull requests were opened and merged by Bastian. Before a merge the team went through the change together (in a call or a meeting), the person who merged played it and ran the tests, and the code was checked by independent reviewer agents (D-121). GitHub's review function was not used, so these reviews leave no trace on the pull requests. The exception: the merge of `chore/remove-demo-and-refresh-docs` (commit `363f51e`, 2026-11-19, D-212) was pushed to `main` by a Claude session without a pull request, against rule 1 of `AGENTS.md`. | Leaving the record silent | The course asks for a review by a second person before a change reaches `main`; this row says how it was done | Bastian, 2026-11-22 | Decided |
 | D-218 | Play test of the balance and the bots | The team played Bass Drop, Round's On Me (left for a play test after D-184) and the bots on real phones. The special values and the bot numbers (D-167, D-179) stay as they are. | Changing the values again before the submission | The bot round robin measured only bots; the play test checked how it feels for people | Team, 2026-11-22 | Decided |
+
+### Tutorial placement and separate free practice (2026-11-22)
+
+Built on the branch `feature/tutorial-free-practice`.
+
+| ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
+|---|---|---|---|---|---|---|
+| D-219 | Controller illustration | Place the landscape phone illustration at the top right of the laptop's tutorial guide. Keep the real phone controls and their spotlights in their usual positions. | A centred controller illustration | Team wants the example controller at the top right | Team | Decided |
+| D-220 | Separate free practice | After the final required tutorial action, start a fresh ten-second free-practice countdown for every fighter. Show the arena and allow movement, jumps and attack/special animations, with no damage, knockback, status effects or life loss. Pause stops the timer. Reset specials for practice and combat, and clear trial attacks, projectiles and buffered actions before combat begins automatically. Persist onboarding only after free practice finishes. Replaces D-211's minimum 15 seconds from the beginning of the guide. | Counting practice time while the controls are still being explained | Everyone gets ten full seconds to try the controls in the arena after the explanations | Team | Decided |
 
 ### Proposals made by Claude while writing the docs
 

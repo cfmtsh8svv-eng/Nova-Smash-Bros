@@ -6,6 +6,13 @@ Team project for **Introduction to Programming**. The game is written in JavaScr
 
 One to four players scan a QR code, their phones turn into controllers, and they fight on the **Nova SBE Campus**, at **Carcavelos Beach** and in **Bairro Alto**. Every hit raises your damage %, and the higher it gets, the further you fly. Get knocked off the screen or reach 200 % and you lose a life. The last player standing wins. Short of players? The host fills free places with **bots** (Freshman, Intern, Erasmus), so even one person can play a full match.
 
+## Objectives
+
+- Build a party fighter that one to four people in the same room play together: the laptop is the shared screen and every player's phone is the controller, with no app to install.
+- Let one person play a full match alone, by filling free places with bots at three levels (Easy, Medium, Hard).
+- Keep player accounts and match results between sessions in a Google Sheet that only the server can reach, so a leaderboard builds up over time.
+- Keep the game rules separate from the browser so they can be tested automatically: 547 tests for the rules and the server and five browser tests, run on every push.
+
 ## Deployed app
 
 **URL:** <https://nova-brawl.onrender.com> (how it is hosted: [`docs/GAME_SPEC.md`](docs/GAME_SPEC.md) §9)

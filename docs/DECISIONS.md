@@ -1,13 +1,13 @@
 # NOVA Brawl: Decision Log
 
-The **single source of truth** for every decision about NOVA Brawl. [`GAME_SPEC.md`](GAME_SPEC.md) is the spec that follows from it; [`WALKTHROUGH.md`](WALKTHROUGH.md) explains how it was built.
+The **single source of truth** for every decision about NOVA Brawl. [`GAME_SPEC.md`](GAME_SPEC.md) is the spec that follows from it.
 
 ## How to use this file
 
 1. **New decision** → add a row with the next ID (`D-0xx`), today's date and who decided.
 2. **Changed decision** → never delete or rewrite the old row. Set its status to **Superseded by D-0xx** and add a new row.
 3. **Open question** → add it to [Open decisions](#open-decisions) (`O-xx`). Once it's decided, move it up as a `D-0xx` row and mark the `O-xx` row **Closed → D-0xx**.
-4. Then update `GAME_SPEC.md` (and `WALKTHROUGH.md` if the way it is built changes) to match.
+4. Then update `GAME_SPEC.md` to match.
 
 **Status values:** `Decided` · `Decided, team to confirm` (made by Claude during a build, in use, the team has not confirmed it yet) · `Proposal` (suggested by Claude, not yet confirmed by the team) · `Changed by D-0xx` (still valid, one part replaced) · `Superseded by D-0xx` (replaced as a whole) · `Open`
 
@@ -53,8 +53,8 @@ The **single source of truth** for every decision about NOVA Brawl. [`GAME_SPEC.
 | D-023 | Language rule | **English only. No Portuguese slang or words** in the game or the docs | English with Portuguese slang ("Bora!", "Fixe!"; this was in concept v0.1) | Team request | Team | Decided |
 | D-024 | Item & place names | Translated to English: **Custard Tart** (was Pastel de Nata), **Espresso** (was Bica / Galão), **Beer** (was Imperial), **Cherry Shot** (was Ginjinha), **Carcavelos Beach** (was Praia de Carcavelos), **Cascais Line** (was Linha de Cascais). **Bairro Alto** keeps its name because it's the stage name the team chose. | Keep the Portuguese food names | Follows from D-023 | Claude | Superseded by D-140 for the items (Pastel de Nata, Bifana, Azulejo); the place names stay |
 | D-025 | Fighter 6 | **Busker Bruno** (student musician with cape and guitar) replaces "Tuna Tomás" | Keep Tuna Tomás ("tuna" is a Portuguese student music group) | Follows from D-023 | Claude | Superseded by D-049 (no fighter 6 of that name) |
-| D-026 | Documentation set | `CONCEPT.md` (what & why), `SPECS.md` (how), `DECISIONS.md` (this file), `BRAINSTORM.md` (ideas not yet decided), `mockup/index.html` (visual mock-up; now `design/mockup/index.html`) | Everything in one file | Clear roles, decisions in one place | Team | Changed after the build: `GAME_SPEC.md` is the spec and `WALKTHROUGH.md` explains how it is built; `SPECS.md` is a short map, `BRAINSTORM.md` is in `archive/` |
-| D-027 | Brainstorm ideas | Login, gamification, leaderboard, stats, achievements, skins and pause ideas are **collected in `BRAINSTORM.md`** and are **not in scope yet** | Put them straight into the specs | They need a scope decision first (O-08, O-09) | Team | Closed by D-054, D-067, D-069 and D-070 |
+| D-026 | Documentation set | `CONCEPT.md` (what & why), `SPECS.md` (how), `DECISIONS.md` (this file), `BRAINSTORM.md` (ideas not yet decided), `mockup/index.html` (visual mock-up) | Everything in one file | Clear roles, decisions in one place | Team | Superseded by D-213 |
+| D-027 | Brainstorm ideas | Login, gamification, leaderboard, stats, achievements, skins and pause ideas are **collected in a brainstorm list** and are **not in scope yet** | Put them straight into the specs | They need a scope decision first (O-08, O-09) | Team | Closed by D-054, D-067, D-069 and D-070 |
 
 ### Build-prep session (2026-11-11)
 
@@ -115,8 +115,8 @@ Decided by the team in the grilling session before the build. Full detail: [`GAM
 | D-093 | Fourth place | Lies flat on the ground beside the podium | Standing, or hidden | | Team | Decided |
 | D-094 | Build process | Built with Claude Fable, with independent reviewer agents after each package. If Fable usage runs too high, subagents move to Opus or Sonnet. | | Team request | Team | Decided |
 | D-095 | Aiming | Attack and Special go **where the fighter looks**: left, right, or up while up is held | Left and right only | Hit someone jumping over you | Team | Decided |
-| D-096 | Demo mode | **Built later.** Everything agreed is kept in `DEMO.md`; the first build is the full game without it. | Build it now (D-046) | Team decision | Team | Superseded by D-187 to D-195, removed by D-212 |
-| D-097 | Code priorities | **Quality and function before simplicity.** The code may be complex; the walkthrough document explains it. | Beginner-readable code first | Team decision | Team | Decided |
+| D-096 | Demo mode | **Built later.** Everything agreed is kept in a separate demo note; the first build is the full game without it. | Build it now (D-046) | Team decision | Team | Superseded by D-187 to D-195, removed by D-212 |
+| D-097 | Code priorities | **Quality and function before simplicity.** The code may be complex; the members explain it in the walkthrough. | Beginner-readable code first | Team decision | Team | Decided |
 
 ### Decisions made during the build (2026-11-11)
 
@@ -131,7 +131,7 @@ Made by Claude while building, wherever the spec left something open. The team c
 | D-102 | Ranges the spec does not state | Padel ball flies 510 px, the mini tram rolls 600 px, a thrown book flies about 600 px. The tram lands on any platform and rolls along it. Nothing reaches through the solid ground. |  | "Specials hit only inside their stated range, never the whole screen" | Claude (build), confirmed by the team on 2026-11-13 | Decided |
 | D-103 | Specials aimed up | Padel ball and book fly up; Wave Rider rises 360 px and carries opponents up; the lasso reaches 380 px up and lifts its target above the caster; the tram is tossed up and rolls where it lands; the four radius specials ignore the direction. | Left and right only | GAME_SPEC §6: attack and special go where the fighter looks | Claude (build), confirmed by the team on 2026-11-13 | Decided |
 | D-104 | KO details | Blast zone: 170 px beyond the left and right edge, 230 px above the top, 180 px below the bottom. Respawn point is the top centre (640, 60) on every stage. A KO counts for the last attacker for 8 s. If several players leave in the same frame, the one with more damage goes first; the last player standing cannot be knocked out, so there is always exactly one winner. |  | Needed for a result the server can check | Claude (build), confirmed by the team on 2026-11-13 | Decided |
-| D-105 | Time cap | The settings object has `timeCapS` (0 = off, the normal game). The rule behind it exists in the rules and is tested, so in the rules demo mode only has to set values. No demo toggle was built (D-096), and the server refuses time-capped results until demo mode is added. | Leaving it out | BUILD_PROMPT: keep all match settings in one object so demo mode can be added without touching the rules | Claude (build), confirmed by the team on 2026-11-13 | Superseded by D-212 |
+| D-105 | Time cap | The settings object has `timeCapS` (0 = off, the normal game). The rule behind it exists in the rules and is tested, so in the rules demo mode only has to set values. No demo toggle was built (D-096), and the server refuses time-capped results until demo mode is added. | Leaving it out | First build brief: keep all match settings in one object so demo mode can be added without touching the rules | Claude (build), confirmed by the team on 2026-11-13 | Superseded by D-212 |
 | D-106 | Final KO and hit pause | Both are done by `src/game/loop.js`, which only changes when the next step of the rules happens (quarter speed for 2 s; a short freeze on hits). The camera zooms on the place where the last player was knocked out. | Slowing the physics | An effect must never change the result; tested with and without effects | Claude (build), confirmed by the team on 2026-11-13 | Decided |
 | D-107 | Keyboard players | Up to two on the host page (W A S D + F G H, arrows + I O P). They have no account and earn no points. A match with fewer than two logged-in players is a practice match: it is played normally but not stored. | Letting keyboard players earn points | Points belong to accounts; this also stops a host from farming points alone | Claude (build) | Superseded by D-132 |
 | D-108 | Host page reconnect | The socket that created a room gets a secret host key. If the host page loses its connection or is reloaded, it takes the room back with that key within 60 s. The spec's sentence "only the socket that created a room is its host" is kept in spirit: only the page that created the room has the key. | Losing the room on any Wi-Fi blip | A live demo on an unknown network | Claude (build), confirmed by the team on 2026-11-13 | Decided |
@@ -141,10 +141,10 @@ Made by Claude while building, wherever the spec left something open. The team c
 | D-112 | Limits | HTTP body 1 KB; phone message 512 bytes, host message 4 KB; 80 messages a second per phone, 200 per host; 120 logins, 40 registrations, 40 failed join attempts and 600 API calls a minute per address; 10 new rooms a minute and 12 open rooms per address, 200 rooms and 3,000 connections in total (400 per address); a room nobody uses for 3 h is removed; a connection that never opens or joins a room is closed after a minute. |  | All in `server/config.js` | Claude (build), confirmed by the team on 2026-11-13 | Decided |
 | D-113 | Join link | The QR code encodes the address the host page itself was opened with (https on the public URL, http on a home network). | Always https | So the same server also works on a laptop in the same Wi-Fi | Claude (build), confirmed by the team on 2026-11-13 | Decided |
 | D-114 | Ready | A player's fighter appears on the big screen as soon as they swipe to it; they count as in once they tap Ready. The host can start as soon as two players are ready; players who are not ready sit that match out. New players can join while a match runs and play in the next one. | Everyone must be ready | GAME_SPEC §5: start with 2 or 3 players | Claude (build), confirmed by the team on 2026-11-13 | Decided; start rule changed by D-156 and D-171 (every human in the lobby must be Ready) |
-| D-115 | Extra phone feedback | Normal hits give a short vibration and flash without text; landing a KO shows "Nice hit!"; picking up an item shows what it does. | Feedback for specials only | D-018 (vibration on hits) and the signature lines in CONCEPT §3.4 | Claude (build), confirmed by the team on 2026-11-13 | Decided |
+| D-115 | Extra phone feedback | Normal hits give a short vibration and flash without text; landing a KO shows "Nice hit!"; picking up an item shows what it does. | Feedback for specials only | D-018 (vibration on hits) and the signature lines in GAME_SPEC §12 | Claude (build), confirmed by the team on 2026-11-13 | Decided |
 | D-116 | Input over the network | The phone sends all seven buttons as one number with a running counter, on every change and ten times a second as a heartbeat. The host lets go of a phone's buttons if nothing arrived for 0.6 s, so a locked phone or a network hiccup cannot leave a fighter running off the stage. A button that is still held when the phone is heard again carries on as a hold; it does not count as a new press. | Sending single button events | Nothing can get out of step | Claude (build), confirmed by the team on 2026-11-13 | Decided |
 | D-117 | Visitor address behind the proxy | With `TRUST_PROXY=cloudflare` (set on Render) the address for rate limits is taken from `CF-Connecting-IP`, which Render's front door sets itself. Headers a visitor can choose (`X-Forwarded-For`) are never used. Behind Tailscale Funnel the setting stays off and the server listens on `127.0.0.1` only (`HOST`). The limits are roomy because a whole lecture hall can share one address; PIN guessing is stopped by the lock on the gamertag. | The first or last forwarded entry | Otherwise all visitors share one limit on Render | Claude (build), confirmed by the team on 2026-11-13 | Decided |
-| D-118 | What lives only in memory | Rooms, the result queue, the lockout counters and "who logged in last" are kept in the server's memory. They are lost when the server restarts (the free host sleeps when idle). Accounts and saved results are in the sheet and survive. | A second store | Keeps the server small; stated as a limit in the walkthrough | Claude (build), confirmed by the team on 2026-11-13 | Decided |
+| D-118 | What lives only in memory | Rooms, the result queue, the lockout counters and "who logged in last" are kept in the server's memory. They are lost when the server restarts (the free host sleeps when idle). Accounts and saved results are in the sheet and survive. | A second store | Keeps the server small; a known limit (GAME_SPEC §3) | Claude (build), confirmed by the team on 2026-11-13 | Decided |
 | D-119 | Fonts and sound | Bungee and Nunito are bundled (SIL Open Font License). All sound is synthesised. | Loading fonts from Google; sound files | No outside requests, no licences to manage | Claude (build), confirmed by the team on 2026-11-13 | Decided |
 | D-120 | Debug hook | The host page exposes `window.novaBrawl` (current screen, match state, roster) for the browser test and for debugging. It gives no power the host page does not already have. | Hiding it | The browser test needs to see that fighters move | Claude (build), confirmed by the team on 2026-11-13 | Decided |
 | D-121 | Reviews | After each package (game rules, server, client) independent reviewer agents checked the spec, hunted bugs, checked security and ran mutation checks on the tests. Their findings were reproduced and fixed. Every fixed defect in the rules and the server has a regression test (`tests/*/regressions.test.js`, `exact.test.js`, `strict.test.js`); client fixes are covered by the browser tests where those can reach them. |  | D-094 | Claude (build), confirmed by the team on 2026-11-13 | Decided |
@@ -161,7 +161,7 @@ Made by Claude while building, wherever the spec left something open. The team c
 
 ### Round 2: gameplay and UI (2026-11-12)
 
-The team agreed the changes in [`BUILD_PROMPT_ROUND2.md`](archive/BUILD_PROMPT_ROUND2.md) point by point. Rows marked "Team" record those decisions; rows marked "Claude (round 2)" are details the build prompt left open. The team confirmed all of them on 2026-11-12.
+The team agreed the round 2 changes point by point. Rows marked "Team" record those decisions; rows marked "Claude (round 2)" are details the team's brief left open. The team confirmed all of them on 2026-11-12.
 
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|
@@ -188,18 +188,18 @@ The team agreed the changes in [`BUILD_PROMPT_ROUND2.md`](archive/BUILD_PROMPT_R
 
 ### Round 3: match intro, crown and end sequence (2026-11-12)
 
-The team agreed these changes on 2026-11-12 after checking the mockups `design/options/round10-intro.html` and `design/options/round11-podium.html`.
+The team agreed these changes on 2026-11-12 after checking two mockups, one of the intro and one of the podium.
 
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|
 | D-152 | Five fireworks | Five spots in the street instead of three, one near the middle of each fifth (at most 44 px from it), so neighbouring rockets always leave a gap. Rockets are 45 px wide instead of 30. `hazards.fireworks.spots` and `width` in `config.js`. | Three spots, 30 px (D-148, D-149) | Team request of 2026-11-12 | Team | Decided |
-| D-153 | Intro before every match | 20 s over the dimmed stage: the nine items in three columns (yellow frames, the Lucky Rooster with a gold glow and RARE), the three hazards of the stage as small animated pictures, a 20 s bar and one Skip pip per player. It ends after 20 s or when every connected player of the match has pressed Skip on the phone. Phone → server → host message `skip` (no fields), passed on only during a match and only from its players; the host decides when the intro ends. The match is set up and drawn behind the intro but does not run; inputs from the intro are dropped. No leaderboard on it. | | Team request of 2026-11-12; mockup `design/options/round10-intro.html` approved by the team | Team | Decided; bots have no Skip pip (D-160) |
-| D-154 | Crown for the last match's winner | Cosmetic only. A player whose last saved match was a win wears a gold crown on the fighter during the match, on the lobby card's sprite (no text) and on the podium; several players can wear one. Stored as a 14th column `last_won` (1 or 0) in the `players` tab, set by every saved result (the winner 1, the others in that match 0); practice matches and results over the limits change nothing. The server changes its cached copy at once, so with the sheet down the crown is still right until a restart. The roster tells the host who wears one. The crown sits on the highest drawn pixel of the head (fighters differ in height), and a crowned fighter's name pill is drawn 22 px higher so the crown stays visible. | | Team request of 2026-11-12; mockup `design/options/round11-podium.html` approved by the team | Team | Decided |
-| D-155 | End sequence and podium on the stage | Replaces the results page with its DOM podium and leaderboard (GAME_SPEC §10): after the final KO the canvas zooms on the winner with a "{NAME} WINS!" slam, shake and confetti, then three blocks rise out of the stage ground (y 600), the fighters take their places, the 4th lies flat under its card, old crowns pop off and the winner gets one, fireworks; stat cards above the fighters from 4.2 s, Back to the lobby from 5.2 s. No leaderboard on the results screen (it stays in the lobby). Details Claude added: the 2nd and 3rd drop in from above, because they were knocked out and are not on the stage when the match ends; a winner who already wore a crown keeps it; fireworks stop after 10 s. | The DOM podium with the leaderboard under it | Team request of 2026-11-12; mockup `design/options/round11-podium.html` approved by the team | Team | Decided |
+| D-153 | Intro before every match | 20 s over the dimmed stage: the nine items in three columns (yellow frames, the Lucky Rooster with a gold glow and RARE), the three hazards of the stage as small animated pictures, a 20 s bar and one Skip pip per player. It ends after 20 s or when every connected player of the match has pressed Skip on the phone. Phone → server → host message `skip` (no fields), passed on only during a match and only from its players; the host decides when the intro ends. The match is set up and drawn behind the intro but does not run; inputs from the intro are dropped. No leaderboard on it. | | Team request of 2026-11-12; intro mockup approved by the team | Team | Decided; bots have no Skip pip (D-160) |
+| D-154 | Crown for the last match's winner | Cosmetic only. A player whose last saved match was a win wears a gold crown on the fighter during the match, on the lobby card's sprite (no text) and on the podium; several players can wear one. Stored as a 14th column `last_won` (1 or 0) in the `players` tab, set by every saved result (the winner 1, the others in that match 0); practice matches and results over the limits change nothing. The server changes its cached copy at once, so with the sheet down the crown is still right until a restart. The roster tells the host who wears one. The crown sits on the highest drawn pixel of the head (fighters differ in height), and a crowned fighter's name pill is drawn 22 px higher so the crown stays visible. | | Team request of 2026-11-12; podium mockup approved by the team | Team | Decided |
+| D-155 | End sequence and podium on the stage | Replaces the results page with its DOM podium and leaderboard (GAME_SPEC §10): after the final KO the canvas zooms on the winner with a "{NAME} WINS!" slam, shake and confetti, then three blocks rise out of the stage ground (y 600), the fighters take their places, the 4th lies flat under its card, old crowns pop off and the winner gets one, fireworks; stat cards above the fighters from 4.2 s, Back to the lobby from 5.2 s. No leaderboard on the results screen (it stays in the lobby). Details Claude added: the 2nd and 3rd drop in from above, because they were knocked out and are not on the stage when the match ends; a winner who already wore a crown keeps it; fireworks stop after 10 s. | The DOM podium with the leaderboard under it | Team request of 2026-11-12; podium mockup approved by the team | Team | Decided |
 
 ### Round 4: bots (2026-11-12)
 
-Decided in a question round on 2026-11-12 before the build ([`BUILD_PROMPT_ROUND4.md`](archive/BUILD_PROMPT_ROUND4.md)). Rows marked "Claude (round 4)" fill in details the answers left open; the team confirmed the whole round on 2026-11-13. GAME_SPEC §5a has the rules.
+Decided in a question round on 2026-11-12 before the build. Rows marked "Claude (round 4)" fill in details the answers left open; the team confirmed the whole round on 2026-11-13. GAME_SPEC §5a has the rules.
 
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|
@@ -225,7 +225,7 @@ Decided in a question round on 2026-11-12 before the build ([`BUILD_PROMPT_ROUND
 
 ### Round 4, part 2: bot levels (2026-11-12)
 
-Decided by Bastian on 2026-11-12, after the bots of round 4 were built. Still on `build_v4` (now `feature/round-4-bots`), because it belongs to the bot update. The build prompt is [`BUILD_PROMPT_ROUND4_LEVELS.md`](archive/BUILD_PROMPT_ROUND4_LEVELS.md).
+Decided by Bastian on 2026-11-12, after the bots of round 4 were built. Still on `build_v4` (now `feature/round-4-bots`), because it belongs to the bot update.
 
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|
@@ -243,7 +243,7 @@ Found in a review of the whole repository on 2026-11-13, fixed on the branch `bu
 
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|
-| D-182 | Winner column without an account | `apps-script/Code.gs` accepts as the `winner` of a match a gamertag, `(bot)` (a bot won, D-172) or `(unknown)` (the winner's row could not be read when the result was saved). Before, it only accepted a gamertag or `(keyboard player)`, a value from before D-132, so every match a bot won against two or more players was refused as `bad_request` and dropped: the players' numbers reached the lobby and the leaderboard of the running server, but never the sheet, and were gone after a restart. The server's results never changed. A new test runs `Code.gs` in Node against a stand-in spreadsheet with the results the server really produces. `/healthz` now also shows `droppedResults`, the number of results the store refused for good since the start, so a refusal like this one is noticed. The deployed script must be updated by hand (SETUP_SHEETS.md, "If you change the script later"). | Writing the bot's name as the winner (it is no gamertag and could match a real player's) | Review of 2026-11-13 | Claude, 2026-11-13, confirmed by the team on 2026-11-13 | Decided |
+| D-182 | Winner column without an account | `google-sheet/Code.gs` accepts as the `winner` of a match a gamertag, `(bot)` (a bot won, D-172) or `(unknown)` (the winner's row could not be read when the result was saved). Before, it only accepted a gamertag or `(keyboard player)`, a value from before D-132, so every match a bot won against two or more players was refused as `bad_request` and dropped: the players' numbers reached the lobby and the leaderboard of the running server, but never the sheet, and were gone after a restart. The server's results never changed. A new test runs `Code.gs` in Node against a stand-in spreadsheet with the results the server really produces. `/healthz` now also shows `droppedResults`, the number of results the store refused for good since the start, so a refusal like this one is noticed. The deployed script must be updated by hand (`google-sheet/README.md`, "After a change to Code.gs"). | Writing the bot's name as the winner (it is no gamertag and could match a real player's) | Review of 2026-11-13 | Claude, 2026-11-13, confirmed by the team on 2026-11-13 | Decided |
 
 ### Team review (2026-11-13)
 
@@ -265,7 +265,7 @@ A bot round robin on 2026-11-13 (hard bots, every fighter against every other on
 
 ### Demo mode (2026-11-13, removed 2026-11-19)
 
-A preset for the presentation, built on the branches `feature/demo-mode` (pull request #15) and `fix/demo-line-and-clock` (pull request #17), switched off by D-210 and removed by D-212. The 23 rows of that round are folded into one here; the full rows are in the git history of this file (for example commit `be6f4e0`).
+A preset for the presentation, built on the branches `feature/demo-mode` (pull request #15) and `fix/demo-line-and-clock` (pull request #17), switched off by D-210 and removed by D-212. The 23 rows of that round are folded into one here.
 
 | ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
 |---|---|---|---|---|---|---|
@@ -288,26 +288,34 @@ Built on the branch `chore/remove-demo-and-refresh-docs`.
 |---|---|---|---|---|---|---|
 | D-212 | Demo mode removed | Delete demo mode completely: `DEMO_ENABLED`, `DEMO_SETTINGS`, Shift+D, the lobby line, the clock, the TIME! banner, the optional `demo` field of `vote_start` and `match_start`, the fighter list in the lobby phase, the demo checks of results and its tests and docs. The time cap of the rules (`timeCapS`, D-105) and the server's check of `byTimeCap` go with it, because only demo mode used them. A match ends only when one player is left. | Keeping the code switched off (D-210) | Code that never runs is code to explain and to maintain, and a skipped test in `tests/` breaks the course rule that tests are never skipped | Team | Decided |
 
+### Documentation trimmed (2026-11-22)
+
+Built on the branch `chore/trim-docs`.
+
+| ID | Topic | Decision | Rejected alternative | Why / source | Who | Status |
+|---|---|---|---|---|---|---|
+| D-213 | Documentation set | The repository keeps three documents: `README.md` (what it is, URL, team, how to run, test and play, how it was built), `docs/GAME_SPEC.md` (the spec, now with the brand in §12 and hosting in §9) and `docs/DECISIONS.md` (this file). Setting up the sheet is in `google-sheet/README.md`. The walkthrough document, the criteria check, the concept, the short technical overview, the deploy and sheet guides and the archive of build prompts were removed. The members explain the project in person. | Keeping every document (D-026) | A shorter repository that only holds what is current | Bastian, 2026-11-22 | Decided |
+
 ### Proposals made by Claude while writing the docs
 
-**Historical.** These were proposals from the first concept phase. Wherever they conflict with the build-prep decisions (D-042 onwards) they are superseded, and the documents they point to (`CONCEPT` §4, the old `SPECS`) were rewritten after the build. They are kept so the history stays complete.
+Proposals from the first concept phase (2026-11-03). Wherever they conflict with the build-prep decisions (D-042 onwards) they are superseded. The last column says where the topic stands now.
 
-| ID | Topic | Proposal | Where |
+| ID | Topic | Proposal | Now |
 |---|---|---|---|
-| D-028 | Fighter roster | Excel Eddie, Sofia Swell, Erasmus Erik, Bookworm Bea, Founder Filipa, Busker Bruno (names are placeholders) | CONCEPT §4.3 |
-| D-029 | MVP fighters | Excel Eddie + Sofia Swell first | SPECS §3.5 |
-| D-030 | Colour palette & fonts | Atlantic Blue, Tile Blue, Tile White, Sunset Orange, Beach Sand, Bairro Night, Tram Yellow · Bungee + Nunito | CONCEPT §3.5 |
-| D-031 | Logo | "NOVA BRAWL" wordmark, the "O" is a custard tart seen from above | CONCEPT §3.5 |
-| D-032 | Burnout wording | The 200 % KO is called **"BURNOUT!"**, the winner "graduates with honours" | CONCEPT §4.1 |
-| D-033 | Hazard rhythm | One hazard at a time, every 25–40 s, always with a 3 s warning | CONCEPT §4.4, SPECS F-STG-03 |
-| D-034 | Tipsy details | 8 s, no stacking. Beer = wobble, Blue Drink = left/right swapped, Cherry Shot = up/down swapped | CONCEPT §4.4, SPECS F-ITM-08 |
-| D-035 | Item values | Tart +20 % heal, Book 14 %, Laptop 10 % + stun, Espresso +30 % speed, Sardine 5 swings | SPECS F-ITM |
+| D-028 | Fighter roster | Excel Eddie, Sofia Swell, Erasmus Erik, Bookworm Bea, Founder Filipa, Busker Bruno (names are placeholders) | Superseded by D-049; the eight fighters are in GAME_SPEC §7.1 |
+| D-029 | MVP fighters | Excel Eddie + Sofia Swell first | Superseded by D-049: all eight were built |
+| D-030 | Colour palette & fonts | Atlantic Blue, Tile Blue, Tile White, Sunset Orange, Beach Sand, Bairro Night, Tram Yellow · Bungee + Nunito | Fonts kept (D-119); the UI colours in use are in GAME_SPEC §12 |
+| D-031 | Logo | "NOVA BRAWL" wordmark, the "O" is a custard tart seen from above | No tart in the logo: the title is the text "NOVA BRAWL" in Bungee, "BRAWL" in Sunset Orange (GAME_SPEC §12) |
+| D-032 | Burnout wording | The 200 % KO is called **"BURNOUT!"**, the winner "graduates with honours" | In use: D-088, GAME_SPEC §6a and §12 |
+| D-033 | Hazard rhythm | One hazard at a time, every 25–40 s, always with a 3 s warning | Superseded by D-143 (10 to 15 s) and D-100 (name, then 3, 2, 1) |
+| D-034 | Tipsy details | 8 s, no stacking. Beer = wobble, Blue Drink = left/right swapped, Cherry Shot = up/down swapped | Tipsy now always swaps left and right (D-016, GAME_SPEC §7.2) |
+| D-035 | Item values | Tart +20 % heal, Book 14 %, Laptop 10 % + stun, Espresso +30 % speed, Sardine 5 swings | Superseded by D-140; values in GAME_SPEC §7.3 |
 | D-036 | Libraries | Superseded by D-042: the libraries of the earlier plan no longer apply. Runtime dependencies are `ws` and `qrcode`. | GAME_SPEC §3 |
-| D-037 | Resolution & timing | Internal 1280×720, fixed 60 Hz simulation | SPECS F-UI-07, F-CMB-01 |
-| D-038 | Knockback formula | `(base_kb + kb_growth × % / 100) × (100 / weight)` with the starting values in SPECS §6 | SPECS §6 |
-| D-039 | HUD position | Player cards with % at the **top** of the screen (the team mentioned "the % is shown at the top") | SPECS F-UI-02 |
-| D-040 | Host & controls on the laptop | `Enter` start, `Esc` pause, `F11` fullscreen, `F3` debug, `M` mute | SPECS §3 |
-| D-041 | Team roles | A: Gameplay · B: Phone & network · C: Stages & look | SPECS §9 |
+| D-037 | Resolution & timing | Internal 1280×720, fixed 60 Hz simulation | In use: GAME_SPEC §5, `src/game/config.js` |
+| D-038 | Knockback formula | `(base_kb + kb_growth × % / 100) × (100 / weight)` | In use: GAME_SPEC §5 |
+| D-039 | HUD position | Player cards with % at the **top** of the screen (the team mentioned "the % is shown at the top") | In use: D-084, GAME_SPEC §6a |
+| D-040 | Host & controls on the laptop | `Enter` start, `Esc` pause, `F11` fullscreen, `F3` debug, `M` mute | Only pause stayed: P or Esc (D-134) |
+| D-041 | Team roles | A: Gameplay · B: Phone & network · C: Stages & look | The code is split into three packages: rules, server, client (`AGENTS.md`) |
 
 ---
 
@@ -317,14 +325,14 @@ Built on the branch `chore/remove-demo-and-refresh-docs`.
 |---|---|---|---|---|---|
 | O-01 | **Networking**: how do the phones connect? | A) laptop as local server · B) cloud relay · C) both | Build A first, test on the real demo network in week 1, then decide | End of week 1 | Closed → D-044 |
 | O-02 | **Global catastrophe events** | Blackout, earthquake, heat wave, storm, or none | Pick 1–2 at most, only after all stage hazards work | Week 2 | Closed → D-183 (dropped for now) |
-| O-03 | **More course requirements** | (the team announced that more will follow) | Add them to SPECS §8 as soon as they're known | When announced | Closed → GAME_SPEC §2 |
+| O-03 | **More course requirements** | (the team announced that more will follow) | Add them to the spec as soon as they're known | When announced | Closed → GAME_SPEC §2 |
 | O-04 | Final fighter names, looks and colours | Keep the D-028 placeholders or rename | | Week 1 | Closed → D-049 |
 | O-05 | Music & SFX | Make our own, CC0 packs, or a mix | CC0 packs + a few signature sounds of our own | Week 2 | Closed → D-068 |
 | O-06 | Stage select | Host picks, phone vote, always random | Host picks + a "Random" option | Week 2 | Closed → D-064 |
 | O-07 | Who is the host? | Laptop keyboard, the P1 phone, or both | Both | Week 1 | Closed → D-065 |
-| O-08 | **Login / profiles** | None (guest only) · nickname + 4-digit PIN stored on the laptop · real accounts (email) | Nickname + PIN in a local SQLite database, guest mode always available (see BRAINSTORM §1.1) | Week 1 (affects storage design) | Closed → D-054 |
-| O-09 | **Gamification scope for v1** | Stats only · + leaderboard · + achievements · + XP, levels and skins | v1: match stats + all-time leaderboard + 3–6 achievements. XP and skins only if time allows (see BRAINSTORM §1.3) | Week 1 | Closed → D-054 |
-| O-10 | **Football-star skin** (the team's Cristiano Ronaldo idea) | Real person (needs permission) · original "Football Legend" homage skin · drop it | Original homage skin (see BRAINSTORM §1.7) | Before any art is made | Closed → D-183 (dropped for now) |
-| O-11 | Pause rules | Only the host can pause · every player can pause from the phone (with a limit) | Host always. Players get 1 pause per match from the phone (see BRAINSTORM §1.5) | Week 2 | Closed → D-070 |
-| O-12 | Fighter suggestions at select | No suggestions · "Suggested for you" based on stats · random "Try this one!" | "Try this one!" for new players, stats-based once profiles exist (see BRAINSTORM §1.6) | Week 2 | Closed → D-183 (dropped for now) |
+| O-08 | **Login / profiles** | None (guest only) · nickname + 4-digit PIN stored on the laptop · real accounts (email) | Nickname + PIN in a local SQLite database, guest mode always available | Week 1 (affects storage design) | Closed → D-054 |
+| O-09 | **Gamification scope for v1** | Stats only · + leaderboard · + achievements · + XP, levels and skins | v1: match stats + all-time leaderboard + 3–6 achievements. XP and skins only if time allows | Week 1 | Closed → D-054 |
+| O-10 | **Football-star skin** (the team's Cristiano Ronaldo idea) | Real person (needs permission) · original "Football Legend" homage skin · drop it | Original homage skin | Before any art is made | Closed → D-183 (dropped for now) |
+| O-11 | Pause rules | Only the host can pause · every player can pause from the phone (with a limit) | Host always. Players get 1 pause per match from the phone | Week 2 | Closed → D-070 |
+| O-12 | Fighter suggestions at select | No suggestions · "Suggested for you" based on stats · random "Try this one!" | "Try this one!" for new players, stats-based once profiles exist | Week 2 | Closed → D-183 (dropped for now) |
 | O-13 | **God level for bots** (possible later feature, D-175) | Numbers only (reaction 6 frames, no misjudgement) · new behaviour: dodging attacks, edge-guarding, punishing a missed attack, reading the opponent's special cooldown | New behaviour, but within the human limits (no hidden timers, no faster presses than a thumb), and only after playtests show that Hard is too easy | After the demo | Closed → D-183 (dropped for now) |

@@ -24,7 +24,7 @@ console.log(`NOVA Brawl is running: http://localhost:${port}  (store: ${store.ki
 if (config.useSheets) {
   app.data.check().then((ok) => {
     if (ok) console.log('The Google Sheet answers.');
-    else console.error('WARNING: the Google Sheet does not answer. Check SHEETS_WEBAPP_URL, SHEETS_SHARED_SECRET and the deployment of the script (docs/SETUP_SHEETS.md).');
+    else console.error('WARNING: the Google Sheet does not answer. Check SHEETS_WEBAPP_URL, SHEETS_SHARED_SECRET and the deployment of the script (google-sheet/README.md).');
   });
 }
 

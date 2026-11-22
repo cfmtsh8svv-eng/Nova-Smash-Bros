@@ -1,10 +1,10 @@
 # NOVA Brawl: Game Spec v2.0
 
-**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards), the round 2 changes of 2026-11-12 (D-132 onwards), the bots of round 4 (D-156 onwards, bot levels D-175 onwards), the special balance (D-184 to D-186) and the first-game tutorial (D-211). Demo mode was built and removed again (D-212). Where `CONCEPT.md` or `SPECS.md` say something different, this file wins. Brand voice, signature lines and humour rules in `CONCEPT.md` §3 still apply.
+**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards), the round 2 changes of 2026-11-12 (D-132 onwards), the bots of round 4 (D-156 onwards, bot levels D-175 onwards), the special balance (D-184 to D-186) and the first-game tutorial (D-211). Demo mode was built and removed again (D-212). The brand (name, voice, signature lines, colours, fonts, humour rules) is in §12.
 
 Sound: music per stage and effects are synthesised in the browser, with separate volume controls on the host. There are no keyboard players (D-132). Every human plays from a phone; the host can fill free places with **bots** (§5a, D-156 onwards).
 
-Art: the game draws everything with `public/shared/art/`, and the platforms it uses are in `src/game/stages.js`. The art reference and the option rounds the team chose from (the `design/` folder) were removed on 2026-11-13; they are in the git history.
+Art: the game draws everything with `public/shared/art/`, and the platforms it uses are in `src/game/stages.js`.
 
 ---
 
@@ -19,7 +19,7 @@ A party platform fighter for **2 to 4 fighters**, at least one of them a human (
 | Deadline **2026-11-23 23:59**, commits after it do not count | `main` must hold the deployed code before then |
 | Must run at a **public URL**, shown live | Deployed on a free host, see §9 |
 | README: deployed URL, member names + student numbers, run and test commands | See `README.md` |
-| Every member commits code and can explain every part | `docs/WALKTHROUGH.md` |
+| Every member commits code and can explain every part | Explained by the members in person; this spec and `DECISIONS.md` are the reference |
 | JavaScript instead of Python | Approved by the teaching staff (team, 2026-11-11) |
 
 Grading: it works 20 %, UI/UX 20 %, scope 20 %, verification 10 %, security 10 %, repository walkthrough 20 %. §11 maps each criterion to what we build.
@@ -48,7 +48,7 @@ Laptop (host page, runs game) ───┘    (static files, rooms, relay, accou
 
 **Reconnect.** A phone that locks or drops keeps its slot, for 30 s in the lobby and the map vote and until the end of a running match, and rejoins with its session token.
 
-**Known limits** (to state in the walkthrough): the host page is trusted to report match results, so the server only checks plausibility (see §8). The free host sleeps when idle. Google Sheets is slow and rate-limited, so simulation never waits for it; tutorial completion uses a queued background write.
+**Known limits:** the host page is trusted to report match results, so the server only checks plausibility (see §8). The free host sleeps when idle. Google Sheets is slow and rate-limited, so simulation never waits for it; tutorial completion uses a queued background write.
 
 ## 4. Accounts and the Google Sheet
 
@@ -271,7 +271,7 @@ Rules for all held items: one held item at a time (the Group Project is the exce
 | **Render free web service** | The public URL in the README. Sleeps after 15 idle minutes; open it two minutes before the demo. |
 | **Mac mini + Tailscale Funnel** | Free backup URL running the same server. Never sleeps. |
 
-Both are free. `docs/DEPLOY.md` has the steps for each.
+Both are free. Render reads `render.yaml` (region Frankfurt, `npm ci --omit=dev`, `npm start`, Node 22, health check `/healthz`, `TRUST_PROXY=cloudflare`); the four secrets of §8 are typed into the Render dashboard. Render is not connected to GitHub, so after a merge to `main` someone clicks **Manual Deploy → Deploy latest commit**. The backup runs `npm start` with the same four values in `.env` plus `HOST=127.0.0.1` (no `TRUST_PROXY`), and `tailscale funnel 3000` gives it a public https address. `/healthz` must show `"ok":true` and `"storeReachable":true` on either.
 
 ## 10. Screens
 
@@ -322,4 +322,53 @@ There is **no leaderboard** on the results screen; it stays in the lobby. A line
 | Scope | Real-time multiplayer over the network, phones as controllers, accounts, leaderboard, achievements, 8 fighters, 3 stages, hazards, items, bots, a first-game guide |
 | Verification | Unit tests for rules, combat, specials, items, hazards, bots; rejected actions and edge cases; server and protocol tests; a test of the sheet script (`Code.gs`); five browser test files; CI on every push and pull request |
 | Security | §8 |
-| Walkthrough | `docs/WALKTHROUGH.md`: how it is built, why, limits, what could change |
+| Walkthrough | The members explain it in person. The reference: this spec (what and how, known limits in §3 and §8), `DECISIONS.md` (why, with the alternatives not taken) and the README |
+
+## 12. Brand
+
+**Name and tagline.** NOVA Brawl (D-020). The repository is still called *Nova-Smash-Bros*, its first working title; the game never uses that name. Tagline: *Scan. Pick. Brawl.* Alternative lines: *Study hard. Surf harder. Brawl hardest.*, *From lecture hall to Bairro Alto in three lives.*, *The only group project where you're allowed to hit your teammates.*
+
+**Pillars.**
+
+| Pillar | What it means | Example in the game |
+|---|---|---|
+| Instant party | Zero friction, phones out, play in under a minute | QR join, no install |
+| Campus satire | Student-life pain turned into game mechanics | Bad Wi-Fi delays inputs, the Cascais Line train runs late |
+| Lisbon setting | Real places around Nova SBE, told in plain English | A Pastel de Nata heals, a mini Tram 28 runs you over |
+| Cheeky, not cringe | Funny enough for a party, clean enough for the professor (D-012) | Drinks cause a short, silly effect plus "Drink water!" |
+
+The test for every feature: can a first-timer at a party understand it in under 10 seconds?
+
+**Audience.** Nova SBE students (international, English-speaking, 18 to 26) at parties, in the student lounge or at the course demo; and the course staff at the live demo, so it must be presentable and understandable.
+
+**Voice and tone.** All text is English only, with no Portuguese words or slang (D-023), so every player gets every joke. Place names stay as they are, and so do the item names the team chose (Pastel de Nata, Bifana, Azulejo; D-140).
+
+| Do | Don't |
+|---|---|
+| Short, punchy lines ("LAUNCHED!", "BURNOUT!") | Long tutorial texts |
+| Shared student pain: deadlines, Wi-Fi, trains, seagulls | Jokes about real, identifiable people |
+| Self-ironic business-school humour ("We're disrupting brawling.") | Mean jokes about nationalities or groups |
+| Cartoon drinks with silly, short effects | Glorifying drinking, crude or sexual content |
+| Plain English names for everything | Portuguese words or slang |
+
+**Signature lines.** "3, 2, 1... BRAWL!" (countdown), "LAUNCHED!" (blast zone KO), "BURNOUT!" (200 % KO), "Nice hit!" (you landed a KO), "Ready!" (lobby), "Drink water!" (tipsy), "You're out! Grab a coffee and watch." (eliminated), "{name} graduates with honours!" (winner). The full list of KO texts is in §6a.
+
+**Visual identity.** HD pixel fighters on detailed, drawn stages (D-048, §7.1). Every fighter has one signature colour and a unique silhouette (gilet and laptop, surfboard, flat cap), big-head proportions so faces read from 3 m away on a projector, few drawn poses and lots of squash and stretch done in code. Player colours as in §6, always with the "P1" to "P4" label so nobody has to tell players apart by colour alone.
+
+| UI colour | Hex | Use |
+|---|---|---|
+| Night | `#1B1330` | Background of menus and the phone |
+| Ink | `#EEF3F8` | Text on dark |
+| Sunset Orange | `#FF7A3D` | Call to action, "BRAWL!" |
+| Tram Yellow | `#F6C343` | Hazard warnings, highlights |
+
+Fonts (SIL Open Font License, bundled in `public/shared/fonts/`, D-119): **Bungee** for the logo, display text and big numbers; **Nunito** for UI and body text, bold in the HUD. The logo is the text "NOVA BRAWL" in Bungee, with "BRAWL" in Sunset Orange.
+
+**Audio identity.** Tram bell, seagull squawk, train horn, Wi-Fi "disconnect" blips and a big thwack on a KO. Upbeat chiptune per stage; Bairro Alto is slower and in a minor key. Everything is synthesised with the Web Audio API (`public/shared/audio.js`, D-068), so there are no sound files and no licences.
+
+**Guardrails.**
+
+- **Original work only.** NOVA Brawl belongs to the platform-fighter genre (damage %, knockback, lives) but uses no characters, names, sprites, music, sounds or logos of any existing game.
+- **Nova SBE is the setting, not the publisher.** The campus roof carries the Nova SBE logo, redrawn from the official mark (D-063, §7.2), credited in `CREDITS.md`; nothing else of the school's branding is used.
+- **No real people.** Fighters are fictional archetypes (D-049). A real person would need permission for anything public.
+- **Drinks stay cartoonish.** Effects are short, silly and never rewarding; the phone always adds "Drink water!".

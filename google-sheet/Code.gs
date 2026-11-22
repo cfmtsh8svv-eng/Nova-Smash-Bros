@@ -1,7 +1,7 @@
 /**
  * NOVA Brawl: the Google Sheet side.
  *
- * This script is deployed as a web app (see docs/SETUP_SHEETS.md). Only the game
+ * This script is deployed as a web app (see google-sheet/README.md). Only the game
  * server calls it. Every request must carry the shared secret; the secret is
  * stored in the script properties, never in this file.
  *

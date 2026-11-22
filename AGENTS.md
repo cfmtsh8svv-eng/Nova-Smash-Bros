@@ -1,6 +1,6 @@
 # Notes for coding agents (and humans in a hurry)
 
-NOVA Brawl: a browser party fighter. A laptop shows the game, phones are the controllers. Read `docs/GAME_SPEC.md` before changing behaviour and `docs/WALKTHROUGH.md` to find your way around.
+NOVA Brawl: a browser party fighter. A laptop shows the game, phones are the controllers. Read `docs/GAME_SPEC.md` before changing behaviour and `docs/DECISIONS.md` to see why things are the way they are.
 
 ## Commands
 
@@ -20,10 +20,10 @@ Node 22 or newer. No build step: the browser loads the ES modules as they are.
 |---|---|
 | `src/game/` | Pure game rules. No DOM, no network, no clock, no `Math.random`. All tuning values in `config.js`. |
 | `server/` | HTTP, WebSocket rooms, accounts, results, store. Limits in `config.js`. |
-| `google-sheet/` | `Code.gs`, the script that runs inside the Google Sheet (Apps Script) and reads and writes its cells. Pasted into the sheet by hand: `docs/SETUP_SHEETS.md`. |
+| `google-sheet/` | `Code.gs`, the script that runs inside the Google Sheet (Apps Script) and reads and writes its cells. Pasted into the sheet by hand: `google-sheet/README.md`. |
 | `public/host/`, `public/play/`, `public/shared/` | Big screen, phone, shared art/sound/connection. |
 | `tests/game/`, `tests/server/`, `tests/browser/` | Tests per package. Shared helpers in `tests/helpers/`. |
-| `docs/` | The spec (`GAME_SPEC.md`), the decision log, the walkthrough, setup and deploy guides. `docs/archive/` holds the build prompts and the first brainstorm: history, not rules. |
+| `docs/` | The spec (`GAME_SPEC.md`, with hosting in §9 and the brand in §12) and the decision log (`DECISIONS.md`). |
 
 ## Rules
 

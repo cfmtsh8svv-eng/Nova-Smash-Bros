@@ -15,7 +15,7 @@ Without a sheet the game still works: the server then keeps accounts and scores 
 5. **Create the tabs.** Back in the editor, choose the function `setup` and click Run. Allow the permissions Google asks for (Advanced → Go to the project). The sheet now has the tabs `players` and `matches` with header rows.
 6. **Deploy as a web app.** Deploy → New deployment → type Web app, Execute as **Me**, Who has access **Anyone** → Deploy. The Web app URL (ending in `/exec`) is `SHEETS_WEBAPP_URL`. "Anyone" is needed because the game server has no Google login; every request without the shared secret is refused.
 7. **Tell the server.** Set the four variables `SHEETS_WEBAPP_URL`, `SHEETS_SHARED_SECRET`, `PIN_PEPPER` and `SESSION_SECRET`: on Render under the service's Environment, locally in `.env` (copy `.env.example`; `.env` is git-ignored). With only one of the two `SHEETS_` values, or with `PIN_PEPPER` or `SESSION_SECRET` missing or shorter than 16 characters, the server refuses to start and names what is missing.
-8. **Check it.** The server's start line says `store: sheets` and then `The Google Sheet answers.`; `/healthz` shows `"store":"sheets"` and `"storeReachable":true`. Register a test player: the `players` tab gets a row with a salt and a hash, never the PIN.
+8. **Check it.** The server's start line says `store: sheets` and then `The Google Sheet answers.`; `/healthz` shows `"store":"sheets"` and `"storeReachable":true` (for a few seconds after the start it is `null`, until the first answer from the sheet has arrived). Register a test player: the `players` tab gets a row with a salt and a hash, never the PIN.
 
 ## After a change to Code.gs
 

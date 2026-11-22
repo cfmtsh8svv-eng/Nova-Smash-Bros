@@ -46,6 +46,22 @@ npm audit --audit-level=high      # dependency check
 
 The same commands run on every push in GitHub Actions (`.github/workflows/ci.yml`).
 
+### What the tests cover and what they do not
+
+Covered by automated tests:
+
+- **Game rules** (`tests/game/`): movement, ledge grab, combat and knockback, every special, every item, every hazard, the stomp, KOs and the end of a match, scoring, the tutorial and the bots (including the measured strength of the three levels). Every rule runs without a browser, and randomness comes from a seed, so each match can be replayed exactly.
+- **Server** (`tests/server/`): registration, login, the PIN lock, sessions, rooms, the map vote, bots on the server, the intro, reconnects, the crown, the result checks (accepted and refused results), malformed and oversized messages, rate limits, HTTP headers, and a sheet outage with recovery. The Apps Script `google-sheet/Code.gs` runs in Node against a stand-in spreadsheet.
+- **Browser** (`tests/browser/`, five tests): a real Chromium with the host page and emulated iPhone and Android phones plays whole matches: register, pick, vote, play, results, bots, the tutorial, a host page that loses its connection, removing a player and logging out.
+
+Not covered by automated tests, checked by hand when playing:
+
+- **Real phones.** The browser tests emulate phones in Chromium. Safari on a real iPhone, vibration on Android, touch on a real screen and the rotation lock are only tried by hand.
+- **The real Google Sheet.** Tests never touch it (GAME_SPEC §4). The server's sheet client runs against a stand-in, and `Code.gs` against a stand-in spreadsheet, so Google's own limits and delays are not tested.
+- **The deployment.** Render, its sleep after 15 minutes and the backup on the Mac mini are checked by hand with `/healthz` (GAME_SPEC §9).
+- **Real network conditions.** The tests cover connections that drop or go silent (a phone or host page that stops talking, then reconnects), but not real latency or packet loss. How the game feels on campus Wi-Fi is checked by playing.
+- **Look and sound.** Whether the art, the animations and the synthesised sound look and sound right is judged by people, not by tests.
+
 ## How to play
 
 1. **Laptop:** open the URL, click *Open a room*. A QR code and a 4-letter room code appear.
@@ -54,16 +70,16 @@ The same commands run on every push in GitHub Actions (`.github/workflows/ci.yml
 4. **Laptop:** add bots if you like (*Add bot*, *Remove bot*; a click on a bot's card changes its fighter, and its ◀ ▶ arrows set it to Easy, Medium or Hard), leave the stage on **Vote** (the default) or pick one, choose the number of lives, then press *Start*. Everyone in the lobby must be Ready, and a match needs at least two fighters, bots included. A match with only one person in it is a practice match and gives no points. With Vote, every phone shows the three stages: swipe, tap **Vote!**; the vote ends when everyone has voted or after 10 s.
 5. **Fight.** Turn the phone sideways. When someone plays their first match, a short guide comes first: everyone tries the joystick and the three buttons, then the match begins.
 
-The left half of the phone is a joystick: put your thumb down anywhere there and drag.
+The left half of the phone is a joystick: put your thumb down anywhere there and drag. The right half has three buttons, labelled **A** (Attack), **J** (Jump) and **S** (Special).
 
 | Control | What it does |
 |---|---|
 | Joystick left / right | Move |
 | Joystick up | Look up: attacks and specials then go upward |
 | Joystick down | Drop through a platform, fall faster |
-| **Jump** | Jump; press again in the air for one double jump. Falling next to the main ground while facing it, you grab its corner: Jump climbs up, down lets go |
-| **Attack** | Normal attack in the direction you look. In the air without up: the **stomp**, a straight drop with a shockwave on landing |
-| **Special** | Your fighter's special; the yellow strip shows when it is ready again |
+| **Jump** (J) | Jump; press again in the air for one double jump. Falling next to the main ground while facing it, you grab its corner: Jump climbs up, down lets go |
+| **Attack** (A) | Normal attack in the direction you look. In the air without up: the **stomp**, a straight drop with a shockwave on landing |
+| **Special** (S) | Your fighter's special; the yellow strip shows when it is ready again |
 
 **Items** appear on the platforms every few seconds: walk into them. Pastel de Nata heals, Bifana makes you heavier, the Lucky Rooster makes you invincible for 5 s; Sardine, Book, Megaphone, Cork Shield and Azulejo are held and change your next attacks. Whoever touches the **Group Project** is stuck with it: hit someone to pass it on before its 5 s fuse runs out.
 
@@ -77,6 +93,7 @@ Each stage has three **hazards**: the Cascais Line train (sometimes late!), Bad 
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | Every decision in one log, with the alternative not taken and the reason |
 | [`google-sheet/README.md`](google-sheet/README.md) | Connecting the Google Sheet |
 | [`CREDITS.md`](CREDITS.md) | Logo, fonts and software credits |
+| [`AGENTS.md`](AGENTS.md) | Commands, folder layout and the rules for every change (branches, secrets, tests) |
 
 ## How it was built
 

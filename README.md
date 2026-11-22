@@ -8,7 +8,7 @@ One to four players scan a QR code, their phones turn into controllers, and they
 
 ## Deployed app
 
-**URL:** <https://nova-brawl.onrender.com> (how it is deployed: [`docs/DEPLOY.md`](docs/DEPLOY.md))
+**URL:** <https://nova-brawl.onrender.com> (how it is hosted: [`docs/GAME_SPEC.md`](docs/GAME_SPEC.md) §9)
 
 The free host sleeps when nobody uses it. Open the URL two minutes before playing.
 
@@ -31,7 +31,7 @@ npm start     # start the server
 
 Then open **http://localhost:3000** on the laptop and click **Open a room**.
 
-- Without any configuration the server keeps accounts and scores in memory (they are gone when it stops). To use the Google Sheet, follow [`docs/SETUP_SHEETS.md`](docs/SETUP_SHEETS.md).
+- Without any configuration the server keeps accounts and scores in memory (they are gone when it stops). To use the Google Sheet, follow [`google-sheet/README.md`](google-sheet/README.md).
 - **Phones** must be able to reach the laptop. Either use the deployed URL, or put laptop and phones in the same Wi-Fi and open the page through the laptop's network address (for example `http://192.168.1.20:3000`) instead of `localhost`, so the QR code points to an address the phones can open.
 - Every human plays from a phone; there are no keyboard players. Two browser tabs on a computer can stand in for phones while developing: open `/play` in each, or open one and add bots in the lobby.
 
@@ -73,14 +73,16 @@ Each stage has three **hazards**: the Cascais Line train (sometimes late!), Bad 
 
 | Document | What's inside |
 |---|---|
-| [`docs/WALKTHROUGH.md`](docs/WALKTHROUGH.md) | **How the project is built, why, its limits and how it could change** |
-| [`docs/GAME_SPEC.md`](docs/GAME_SPEC.md) | The spec: rules, controls, fighters, stages, security, screens |
-| [`docs/CRITERIA_CHECK.md`](docs/CRITERIA_CHECK.md) | The grading criteria and the evidence for each |
-| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Every decision in one log |
-| [`docs/DEPLOY.md`](docs/DEPLOY.md), [`docs/SETUP_SHEETS.md`](docs/SETUP_SHEETS.md) | Deploying, and connecting the Google Sheet |
-| [`docs/SPECS.md`](docs/SPECS.md), [`docs/CONCEPT.md`](docs/CONCEPT.md) | Technical overview, brand and voice |
-| [`docs/archive/`](docs/archive/) | History: the build prompts of each round and the first brainstorm (ideas that were not built) |
+| [`docs/GAME_SPEC.md`](docs/GAME_SPEC.md) | The spec: rules, controls, fighters, stages, security, hosting, screens, brand |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Every decision in one log, with the alternative not taken and the reason |
+| [`google-sheet/README.md`](google-sheet/README.md) | Connecting the Google Sheet |
 | [`CREDITS.md`](CREDITS.md) | Logo, fonts and software credits |
+
+## How it was built
+
+The team decided what to build in planning sessions; every decision is in [`docs/DECISIONS.md`](docs/DECISIONS.md) and the result is [`docs/GAME_SPEC.md`](docs/GAME_SPEC.md). Claude, Anthropic's AI model, wrote most of the code in Claude Code sessions, in three packages: the rules, the server and the client (D-094). After each package, separate reviewer agents that had not written the code checked it against the spec, looked for bugs and security problems and tried to break the tests; every finding was reproduced before it was fixed, and each fixed defect in the rules and the server has a regression test (D-121).
+
+The commits of the first build and many later ones are authored by Claude or carry a `Co-Authored-By: Claude` line. Later build rounds, for example the bots and the bot levels, were also written in Claude sessions but committed under Bastian Volkery's name without that line. Decisions Claude made while building are marked "Claude" in the Who column of `DECISIONS.md`; the team confirmed them.
 
 ## Tech
 

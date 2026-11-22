@@ -1,4 +1,4 @@
-# Render blueprint: one free web service. See docs/DEPLOY.md.
+# Render blueprint: one free web service. See docs/GAME_SPEC.md §9.
 services:
   - type: web
     name: nova-brawl

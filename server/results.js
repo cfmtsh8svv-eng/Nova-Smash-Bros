@@ -2,8 +2,8 @@
 //
 // The match is simulated in the host page, so the server cannot know what really
 // happened. It checks that a result is possible at all (who played, how long,
-// how much damage) and refuses anything that is not. This is a known limit and
-// is explained in docs/WALKTHROUGH.md.
+// how much damage) and refuses anything that is not. This is a known limit
+// (docs/GAME_SPEC.md §3 and §8).
 import { matchPoints } from '../src/game/scoring.js';
 import { STAGE_IDS } from '../src/game/stages.js';
 import { FIGHTER_IDS } from '../src/game/fighters.js';

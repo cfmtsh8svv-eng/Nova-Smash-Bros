@@ -971,7 +971,7 @@ show('title');
 
 // For the browser smoke test and for debugging in the console: a look at the running match.
 // It hands out the live objects, so it gives no more power than the host page already has
-// (the host page runs the match and is trusted with its result; see docs/WALKTHROUGH.md).
+// (the host page runs the match and is trusted with its result; see docs/GAME_SPEC.md §3).
 window.novaBrawl = {
   get screen() { return screen; },
   get intro() { return intro ? { skipped: [...intro.skipped], secondsLeft: introScreen.secondsLeft } : null; },

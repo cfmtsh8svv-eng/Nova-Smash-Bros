@@ -357,7 +357,10 @@ async function submitAuth(event) {
   if (!/^[0-9]{4}$/.test(pin)) return setError('pin', 'The PIN must be exactly 4 digits.');
   if (authMode === 'register' && pin !== pin2) return setError('pin2', 'The two PINs do not match.');
 
+  // With the sheet, registering takes a few seconds: say what is happening instead of a silent grey button.
+  const label = $('authSubmit').textContent;
   $('authSubmit').disabled = true;
+  $('authSubmit').textContent = authMode === 'register' ? 'Creating your player…' : 'Logging in…';
   try {
     const res = await fetch(authMode === 'register' ? '/api/register' : '/api/login', {
       method: 'POST',
@@ -383,6 +386,7 @@ async function submitAuth(event) {
     setError('form', 'No connection to the server. Check your internet and try again.');
   } finally {
     $('authSubmit').disabled = false;
+    $('authSubmit').textContent = label;
   }
   return undefined;
 }

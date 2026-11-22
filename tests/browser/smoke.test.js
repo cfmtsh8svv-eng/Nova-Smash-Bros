@@ -125,9 +125,17 @@ test('host page, an iPhone and an Android phone: register, pick, ready, start, p
   await iphone.click('#authSubmit');
   await iphone.waitForFunction(() => /do not match/.test(document.getElementById('pin2Error').textContent));
   assert.equal(store.players.size, 0, 'nothing was registered by the two wrong attempts');
+  // while the server is slow to answer (the sheet takes a few seconds), the button says what is happening
+  let release;
+  const answered = new Promise((resolve) => { release = resolve; });
+  await iphone.route('**/api/register', async (route) => { await answered; await route.continue(); });
   await iphone.fill('#pin2Input', '1234');
   await iphone.click('#authSubmit');
+  await iphone.waitForFunction(() => { const b = document.getElementById('authSubmit'); return b.disabled && b.textContent === 'Creating your player…'; });
+  release();
   await iphone.waitForSelector('#select:not([hidden])');
+  await iphone.unroute('**/api/register');
+  assert.equal(await iphone.textContent('#authSubmit'), 'Create player', 'the label is back for the next time');
   assert.equal(await iphone.textContent('#selectTag'), 'P1 · Ana');
   assert.equal(store.players.size, 1);
 

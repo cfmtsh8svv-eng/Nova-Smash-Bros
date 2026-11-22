@@ -107,7 +107,9 @@ test('the host page loses its connection around Start, in mid-match and when the
   await cutHost();
   await host.evaluate(() => { window.novaBrawl.state.fighters[1].invincible = 0; window.novaBrawl.state.fighters[1].x = -1000; });
   await host.waitForSelector('#results:not([hidden])', { timeout: 15_000 });
-  assert.match(await host.textContent('#resultNote'), /No connection right now|has not confirmed/);
+  // The note starts as "Saving the result…". If the browser has not noticed the cut yet, the send looks
+  // successful and the note changes only after the 6 s check in submitResult (public/host/main.js), so wait for it.
+  await host.waitForFunction(() => /No connection right now|has not confirmed/.test(document.getElementById('resultNote').textContent), null, { timeout: 10_000 });
   assert.equal(store.matches.size, 0);
   await restoreHost();
   await host.waitForFunction(() => document.getElementById('resultNote').textContent === 'Result saved.', null, { timeout: 10_000 });

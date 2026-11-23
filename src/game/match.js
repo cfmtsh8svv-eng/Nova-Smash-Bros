@@ -29,7 +29,7 @@ function createFighter(player, spawn, lives, index, players) {
   return {
     slot: player.slot,
     name: String(player.name),
-    connected: player.connected !== false, tutorialProtected: false,
+    connected: player.connected !== false, tutorialProtected: false, safeFall: false,
     bot: Boolean(player.bot), // a bot (GAME_SPEC §5a): only the screens use this, the rules do not
     fighterId: def.id,
     weight: def.weight,
@@ -167,6 +167,7 @@ export function step(state, inputs = {}) {
     updateSpecial(state, f);
     updateStomp(state, f);
     moveFighter(state, f, inp);
+    if (f.onGround || f.hang) f.safeFall = false; // the fall that began in free practice is over
   }
 
   updateAttacks(state);
@@ -197,7 +198,11 @@ function checkBlastZones(state) {
   // If several leave in the same frame, the one with more damage goes first (and so places lower).
   out.sort((a, b) => b.percent - a.percent || b.slot - a.slot);
   for (const f of out) {
-    if (f.tutorialProtected) returnToSpawn(state, f);
+    // Protected, or still in a fall that began during free practice (GAME_SPEC §6b): no life lost.
+    if (f.tutorialProtected || f.safeFall) {
+      returnToSpawn(state, f);
+      f.safeFall = false;
+    }
     else knockOut(state, f, 'launched');
   }
 }

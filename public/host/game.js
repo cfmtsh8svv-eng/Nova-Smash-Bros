@@ -76,7 +76,12 @@ export function createGame({ canvas, audio, sendTo, onEnd, onTutorialDone }) {
   const toAllPhones = (msg) => sendTo('all', msg);
 
   const HANDLERS = {
-    tutorialEnd(e) { HANDLERS.go(); if (e.slots.length) onTutorialDone?.(e.slots); },
+    tutorialEnd(e) {
+      // Taps from practice that are still queued must not fire in the first frame of the fight.
+      for (const phone of phones.values()) phone.buffer.dropPresses();
+      HANDLERS.go();
+      if (e.slots.length) onTutorialDone?.(e.slots);
+    },
     countdown(e) { fx.banner(String(e.n), { size: 190, y: 330, life: 55 }); audio.play('count'); },
     go() { if (state?.tutorial?.active) return; fx.banner('BRAWL!', { size: 150, color: '#ff7a3d', y: 330, life: 60 }); audio.play('go'); fx.addFlash(0.35); },
     jump(e) { audio.play(e.double ? 'doubleJump' : 'jump'); fx.burst(e.x, e.y, { count: e.double ? 8 : 5, color: '#ffffff', speed: 2.5, size: 5, life: 16, gravity: 0 }); },

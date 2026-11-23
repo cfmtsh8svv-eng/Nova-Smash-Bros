@@ -30,7 +30,7 @@ export function createTutorialView() {
   root.append(badge, title, line, phone, progress, specials, footer);
   document.body.append(root);
   let last = '';
-  const practiceSeconds = Math.round(CONFIG.match.tutorialPracticeFrames / FPS);
+  const practiceSeconds = Math.ceil(CONFIG.match.tutorialPracticeFrames / FPS); // as tutorialSeconds counts
   return {
     render(state, paused) {
       const t = state?.tutorial;

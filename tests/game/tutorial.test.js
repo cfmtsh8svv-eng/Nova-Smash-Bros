@@ -145,21 +145,54 @@ test('the special that finishes the last step plays out in free practice (D-221)
   assert.ok(ball, 'Padel Smash releases its ball as usual');
 });
 
-test('a fighter who is falling out when free practice ends returns to the spawn point (D-221)', () => {
+// Ends free practice with fighter 0 placed as given one frame before the end; returns the KO events of the next 4 s.
+function endWithFighterAt(place, inputs = {}) {
   const s = guide();
   finishSteps(s);
-  run(s, 585);
-  Object.assign(s.fighters[0], { x: 100, y: 700, vx: -3, vy: 6, onGround: false, jumpsLeft: 0 });
-  run(s, 14);
-  assert.equal(s.tutorial.active, true);
-  const end = step(s);
-  assert.ok(end.some((e) => e.type === 'tutorialEnd'));
-  assert.equal(s.fighters[0].x, s.stage.spawns[0].x);
-  assert.equal(s.fighters[0].y, s.stage.spawns[0].y);
+  run(s, 599 - s.tutorial.practiceFrames);
+  Object.assign(s.fighters[0], place);
+  const events = step(s);
+  assert.ok(events.some((e) => e.type === 'tutorialEnd'));
   const kos = [];
-  for (let i = 0; i < 120; i++) kos.push(...step(s).filter((e) => e.type === 'ko'));
-  assert.deepEqual(kos, [], 'no life is lost for a fall that began during practice');
-  assert.equal(s.fighters[0].lives, 3);
+  for (let i = 0; i < 240; i++) kos.push(...step(s, inputs).filter((e) => e.type === 'ko' && e.slot === 0));
+  return { s, kos };
+}
+
+test('a fall that began in free practice costs no life, also above the ground line and at full speed (D-221)', () => {
+  for (const place of [
+    { x: 100, y: 700, vx: -3, vy: 6, facing: -1 }, // below the ground, beside it, facing away (no ledge grab)
+    { x: 1200, y: 560, vx: 3, vy: 6, facing: 1 }, // just left the edge, still above the ground line
+    { x: 1100, y: 336, vx: 12, vy: 0, facing: 1 }, // a Wave Rider cut off on the roof keeps its speed
+  ]) {
+    const { s, kos } = endWithFighterAt({ ...place, onGround: false, jumpsLeft: 0, hang: null });
+    assert.deepEqual(kos, [], `no KO for ${JSON.stringify(place)}`);
+    assert.equal(s.fighters[0].lives, 3);
+    assert.equal(s.fighters[0].safeFall, false, 'the safe fall is over once the fighter is back');
+  }
+});
+
+test('the safe fall ends on landing, so a later fall counts again (D-221)', () => {
+  const { s } = endWithFighterAt({ x: 640, y: 500, vx: 0, vy: 2, onGround: false });
+  assert.equal(s.fighters[0].onGround, true);
+  assert.equal(s.fighters[0].safeFall, false);
+  s.fighters[0].x = -1000;
+  const ko = step(s).find((e) => e.type === 'ko');
+  assert.equal(ko.slot, 0);
+  assert.equal(s.fighters[0].lives, 2);
+});
+
+test('a fighter hanging on a ledge when free practice ends keeps hanging (D-221)', () => {
+  const s = guide();
+  finishSteps(s);
+  run(s, 599 - s.tutorial.practiceFrames);
+  const f = s.fighters[0];
+  const ground = s.stage.platforms.find((p) => p.solid);
+  Object.assign(f, { hang: { x: ground.x, y: ground.y, facing: 1, t: 0 }, onGround: false, vx: 0, vy: 0 });
+  step(s);
+  assert.equal(s.tutorial.active, false);
+  assert.ok(f.hang, 'still on the ledge');
+  assert.notEqual(f.x, s.stage.spawns[0].x);
+  assert.equal(f.safeFall, false);
 });
 
 test('disconnected humans do not block guide steps; free practice ends without further inputs', () => {

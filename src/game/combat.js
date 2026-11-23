@@ -65,6 +65,7 @@ export function applyHit(state, target, hit) {
     return MISS;
   }
   const M = CONFIG.match;
+  target.safeFall = false; // a real hit: from now on a fall counts
   target.hang = null; // no invincibility on a ledge: any hit knocks the fighter off (D-138)
   target.percent += hit.damage;
   target.stats.damageTaken += hit.damage;

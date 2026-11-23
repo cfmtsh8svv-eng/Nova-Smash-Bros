@@ -26,20 +26,16 @@ export function returnToSpawn(state, f) {
   Object.assign(f, { x: spawn.x, y: spawn.y, vx: 0, vy: 0, onGround: true, groundId: 0, jumpsLeft: 1, attack: null, special: null, pull: null, hang: null, ledgeUsed: false });
 }
 
-// Below the top of the main ground and beside it: this fighter is on the way out.
-function fallingOut(state, f) {
-  const ground = state.stage.platforms.find((p) => p.solid);
-  return Boolean(ground) && f.state === 'alive' && f.y > ground.y && (f.x < ground.x || f.x > ground.x + ground.w);
-}
-
 // When protection ends, nothing from practice may carry into the fight: no attack, special
-// or projectile that could still hit, and no fall that began while falls were safe.
+// or projectile that could still hit, and no fall that began while falls were safe. A fighter
+// in the air keeps a safe fall (match.js) until they land, hang on a ledge or are hit.
+// A fighter hanging on a ledge stays there.
 function endPractice(state) {
   state.projectiles = [];
   for (const f of state.fighters) {
+    const { hang, ledgeUsed } = f;
     clearFighterEffects(f);
-    f.cooldown = 0;
-    if (fallingOut(state, f)) returnToSpawn(state, f);
+    Object.assign(f, { hang, ledgeUsed, cooldown: 0, safeFall: f.state === 'alive' && !f.onGround && !hang });
   }
 }
 

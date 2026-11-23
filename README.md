@@ -11,7 +11,7 @@ One to four players scan a QR code, their phones turn into controllers, and they
 - Build a party fighter that one to four people in the same room play together: the laptop is the shared screen and every player's phone is the controller, with no app to install.
 - Let one person play a full match alone, by filling free places with bots at three levels (Easy, Medium, Hard).
 - Keep player accounts and match results between sessions in a Google Sheet that only the server can reach, so a leaderboard builds up over time.
-- Keep the game rules separate from the browser so they can be tested automatically: 547 tests for the rules and the server and five browser tests, run on every push.
+- Keep the game rules separate from the browser so they can be tested automatically: 554 tests for the rules and the server and five browser tests, run on every push.
 
 ## Deployed app
 
@@ -45,7 +45,7 @@ Then open **http://localhost:3000** on the laptop and click **Open a room**.
 ## Run the tests
 
 ```bash
-npm test                          # game rules and server (547 tests, about 15 seconds)
+npm test                          # game rules and server (554 tests, about 15 seconds)
 npx playwright install chromium   # once, for the browser test (on a fresh Linux: add --with-deps)
 npm run test:browser              # five browser tests: host page + emulated iPhone and Android phones
 npm audit --audit-level=high      # dependency check
@@ -75,7 +75,7 @@ Not covered by automated tests, checked by hand when playing:
 2. **Phones:** scan the QR code. New players choose a gamertag (3 to 12 letters, numbers or `_`) and a 4-digit PIN; returning players are logged in automatically.
 3. **Pick a fighter** by swiping, tap **Ready!**
 4. **Laptop:** add bots if you like (*Add bot*, *Remove bot*; a click on a bot's card changes its fighter, and its ◀ ▶ arrows set it to Easy, Medium or Hard), leave the stage on **Vote** (the default) or pick one, choose the number of lives, then press *Start*. Everyone in the lobby must be Ready, and a match needs at least two fighters, bots included. A match with only one person in it is a practice match and gives no points. With Vote, every phone shows the three stages: swipe, tap **Vote!**; the vote ends when everyone has voted or after 10 s.
-5. **Fight.** Turn the phone sideways. When someone plays their first match, a short guide comes first: everyone tries the joystick and the three buttons, then the match begins.
+5. **Fight.** Turn the phone sideways. When someone plays their first match, a short guide comes first: everyone tries the joystick and the three buttons, then ten seconds of free practice in the arena, then the match begins. Nobody can be hurt until then.
 
 The left half of the phone is a joystick: put your thumb down anywhere there and drag. The right half has three buttons, labelled **A** (Attack), **J** (Jump) and **S** (Special).
 

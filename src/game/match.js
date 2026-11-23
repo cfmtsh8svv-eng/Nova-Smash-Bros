@@ -5,7 +5,7 @@
 // and returns a list of events (hits, KOs, sounds to play, phone messages).
 // The host page draws the state and forwards the events; the tests run the
 // very same code without a browser.
-import { createTutorial, updateTutorial, tutorialSeconds } from './tutorial.js';
+import { createTutorial, updateTutorial, tutorialSeconds, returnToSpawn } from './tutorial.js';
 import { CONFIG, FPS, makeSettings } from './config.js';
 import { getFighter } from './fighters.js';
 import { getStage } from './stages.js';
@@ -29,7 +29,7 @@ function createFighter(player, spawn, lives, index, players) {
   return {
     slot: player.slot,
     name: String(player.name),
-    connected: player.connected !== false, tutorialProtected: false,
+    connected: player.connected !== false, tutorialProtected: false, safeFall: false,
     bot: Boolean(player.bot), // a bot (GAME_SPEC §5a): only the screens use this, the rules do not
     fighterId: def.id,
     weight: def.weight,
@@ -167,6 +167,7 @@ export function step(state, inputs = {}) {
     updateSpecial(state, f);
     updateStomp(state, f);
     moveFighter(state, f, inp);
+    if (f.onGround || f.hang) f.safeFall = false; // the fall that began in free practice is over
   }
 
   updateAttacks(state);
@@ -197,10 +198,12 @@ function checkBlastZones(state) {
   // If several leave in the same frame, the one with more damage goes first (and so places lower).
   out.sort((a, b) => b.percent - a.percent || b.slot - a.slot);
   for (const f of out) {
-    if (f.tutorialProtected) {
-      const spawn = state.stage.spawns[state.fighters.indexOf(f)];
-      Object.assign(f, { x: spawn.x, y: spawn.y, vx: 0, vy: 0, onGround: true, groundId: 0, jumpsLeft: 1, attack: null, special: null, pull: null, hang: null, ledgeUsed: false });
-    } else knockOut(state, f, 'launched');
+    // Protected, or still in a fall that began during free practice (GAME_SPEC §6b): no life lost.
+    if (f.tutorialProtected || f.safeFall) {
+      returnToSpawn(state, f);
+      f.safeFall = false;
+    }
+    else knockOut(state, f, 'launched');
   }
 }
 

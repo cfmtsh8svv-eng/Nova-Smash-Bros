@@ -311,12 +311,14 @@ function clearErrors() {
   for (const field of Object.keys(ERRORS)) setError(field, '');
 }
 
+const authLabel = (mode) => (mode === 'register' ? 'Create player' : 'Log in');
+
 function showAuth(mode = authMode) {
   authMode = mode;
   $('tabRegister').setAttribute('aria-selected', String(mode === 'register'));
   $('tabLogin').setAttribute('aria-selected', String(mode === 'login'));
   $('pin2Row').hidden = mode !== 'register';
-  $('authSubmit').textContent = mode === 'register' ? 'Create player' : 'Log in';
+  $('authSubmit').textContent = authLabel(mode);
   // The room code is only asked for when the QR link did not bring one.
   const needRoom = !me.room;
   $('roomInput').hidden = !needRoom;
@@ -359,6 +361,7 @@ async function submitAuth(event) {
 
   // With the sheet, registering takes a few seconds: say what is happening instead of a silent grey button.
   const label = $('authSubmit').textContent;
+  const mode = authMode;
   $('authSubmit').disabled = true;
   $('authSubmit').textContent = authMode === 'register' ? 'Creating your player…' : 'Logging in…';
   try {
@@ -386,7 +389,8 @@ async function submitAuth(event) {
     setError('form', 'No connection to the server. Check your internet and try again.');
   } finally {
     $('authSubmit').disabled = false;
-    $('authSubmit').textContent = label;
+    // The tabs stay usable while waiting: after a switch, the label belongs to the new tab.
+    $('authSubmit').textContent = authMode === mode ? label : authLabel(authMode);
   }
   return undefined;
 }

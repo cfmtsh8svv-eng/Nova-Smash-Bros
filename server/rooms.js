@@ -25,11 +25,14 @@ import { isValidMask } from '../src/game/input.js';
 import { FIGHTER_IDS } from '../src/game/fighters.js';
 import { HAZARD_IDS, STAGE_IDS } from '../src/game/stages.js';
 import { BOT_NAMES, BOT_LEVELS } from '../src/game/bot.js';
+import { CONFIG, FPS } from '../src/game/config.js';
 
 const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // without I and O, which look like 1 and 0
 const RELAY_TYPES = ['phase', 'status', 'feedback'];
 const PHASE_NAMES = ['lobby', 'vote', 'intro', 'match', 'results'];
 const FIGHTER_STATES = ['alive', 'dead', 'out'];
+// The most seconds of free practice a phone can be shown (src/game/tutorial.js tutorialSeconds).
+const PRACTICE_SECONDS = Math.ceil(CONFIG.match.tutorialPracticeFrames / FPS);
 // Before a match starts (lobby or map vote) a player who leaves frees the slot at once.
 const beforeMatch = (room) => room.phase === 'lobby' || room.phase === 'vote';
 
@@ -89,7 +92,7 @@ export function relayProblem(m) {
   if (m.t === 'status') {
     return !(onlyKeys(m, ['t', 'pct', 'lives', 'state', 'cd', 'cdMax', 'held', 'tipsy', 'fuse', 'buff', 'tutorialStep', 'tutorialDone', 'tutorialLeft'])
       && isInt(m.pct, 0, 999) && isInt(m.lives, 0, 3) && FIGHTER_STATES.includes(m.state) && isInt(m.cd, 0, 3600) && isInt(m.cdMax, 1, 3600)
-      && optional(m.tutorialStep, (v) => isInt(v, 0, 4)) && optional(m.tutorialDone, bool) && optional(m.tutorialLeft, (v) => isInt(v, 0, 10))
+      && optional(m.tutorialStep, (v) => isInt(v, 0, 4)) && optional(m.tutorialDone, bool) && optional(m.tutorialLeft, (v) => isInt(v, 0, PRACTICE_SECONDS))
       && optional(m.held, shortText(12)) && optional(m.tipsy, bool)
       // The Group Project's seconds left, and LUCKY or BIFANA for the phone header (D-142).
       && optional(m.fuse, (v) => isInt(v, 0, 9)) && optional(m.buff, (v) => ['lucky', 'bifana'].includes(v)));

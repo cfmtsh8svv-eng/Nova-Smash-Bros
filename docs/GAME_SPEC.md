@@ -1,6 +1,6 @@
 # NOVA Brawl: Game Spec v2.0
 
-**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards), the round 2 changes of 2026-11-12 (D-132 onwards), the bots of round 4 (D-156 onwards, bot levels D-175 onwards), the special balance (D-184 to D-186) and the first-game tutorial (D-211). Demo mode was built and removed again (D-212). The brand (name, voice, signature lines, colours, fonts, humour rules) is in §12.
+**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards), the round 2 changes of 2026-11-12 (D-132 onwards), the bots of round 4 (D-156 onwards, bot levels D-175 onwards), the special balance (D-184 to D-186) and the first-game tutorial (D-211, with free practice D-219 to D-221). Demo mode was built and removed again (D-212). The brand (name, voice, signature lines, colours, fonts, humour rules) is in §12.
 
 Sound: music per stage and effects are synthesised in the browser, with separate volume controls on the host. There are no keyboard players (D-132). Every human plays from a phone; the host can fill free places with **bots** (§5a, D-156 onwards).
 
@@ -172,7 +172,7 @@ The phone header shows the player's **name tag in their player colour**, damage 
 | Centre | KO texts and the final-KO sequence only |
 | **Bottom centre** | A small, semi-transparent line `Press P or Esc to pause`, in the strip under the main ground so it never covers a platform. It shows during the countdown and the fight and is hidden from the final KO on. |
 
-Whether the special is ready is shown **only on the phone** (a ring on the Special button). The phone header shows name, damage % and hearts, with no points and no placement.
+Whether the special is ready is shown **only on the phone** (the yellow strip in the Special button, §6). The phone header shows name, damage % and hearts, with no points and no placement.
 
 **Damage colour** is a smooth gradient used for the % number and the damage bar: white at 0 %, **yellow at 100 %**, then orange, red, and dark red at 200 %.
 
@@ -180,7 +180,7 @@ Whether the special is ready is shown **only on the phone** (a ring on the Speci
 
 **Final KO.** The last KO of the match is the big moment: the game drops to slow motion for **2 s**, the camera zooms in on the hit, the screen flashes and "FINAL KO!" appears. All phones vibrate. Then the end sequence of §10d starts.
 
-## 6b. First-game tutorial (D-211, updated by D-219/D-220)
+## 6b. First-game tutorial (D-211, updated by D-219 to D-221)
 
 **When.** If at least one player in the match has never finished the guide, the whole match starts with it, right after the countdown. Everyone in the match takes part, also players who know the game and bots.
 
@@ -197,7 +197,7 @@ The next step comes when every connected human has done the current one. Bots ne
 
 **Safe practice.** The interactive guide waits until every connected human has tried the controls. After the last required action, a **separate ten-second free-practice phase** starts for everyone, regardless of how long the explanations took. The full-screen guide gives way to the visible arena with a compact countdown on the laptop and every participating phone. No further input is required to advance this timer. Pause stops it; a dropped phone does not extend it. This replaces the old minimum of 15 seconds from the beginning of the guide.
 
-During both the guide and free practice, everyone can move, jump and try attack/special animations, but nobody can damage, launch or apply a status effect to another fighter, including bots. Falling out of the screen returns the fighter safely without losing a life. Items and hazards wait until real combat starts. Specials are ready at the start of free practice and real combat. Practice attacks, projectiles and buffered actions are cleared at the transition so they cannot hit after protection expires. After exactly **600 active simulation frames** of free practice, protection ends for everyone and combat starts automatically with the BRAWL cue. The host can end the match as usual.
+During both the guide and free practice, everyone can move, jump and try attack/special animations, but nobody can damage, launch or apply a status effect to another fighter, including bots. Falling out of the screen returns the fighter safely without losing a life. Items and hazards wait until real combat starts. Specials are ready at the start of free practice and real combat. A special that is still running when free practice starts (usually the one that finished the last step) plays out; nobody can be hurt by it. When free practice ends, practice attacks, specials, projectiles and buffered actions (also taps still queued on the host) are cleared so they cannot hit after protection expires. A fighter who is in the air at that moment keeps a **safe fall**: leaving the screen before they next land, hang on a ledge or are hit returns them to their spawn point without losing a life. A fighter hanging on a ledge stays there. After exactly **600 active simulation frames** of free practice, protection ends for everyone and combat starts automatically with the BRAWL cue. The host can end the match as usual.
 
 **Saved per player.** After free practice, a connected player who did every step is marked in the sheet (`tutorial_done` = 1) and does not see the guide again, also after a new login or a server restart. This is saved even in a practice match and has nothing to do with points. A match ended before free practice finishes does not save tutorial completion. New accounts start with 0. Old accounts from before the guide (an empty cell) count as done if they have saved matches; writing 0 into the cell by hand shows the guide again. If the sheet is down, the write waits in the server's queue and the server remembers it meanwhile; a server restart during the outage loses it, as with results.
 

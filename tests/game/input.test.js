@@ -165,3 +165,18 @@ test('a phone that goes quiet lets go of everything, and a button still held aft
   buffer.letGo();
   assert.equal(buffer.consume().attackP, false);
 });
+
+test('dropPresses forgets queued taps but keeps held buttons (D-221: practice taps do not fire in the fight)', () => {
+  const b = new InputBuffer();
+  b.receive(encodeInput({ special: true }), 1);
+  b.receive(0, 2);
+  b.receive(encodeInput({ special: true, right: true }), 3); // two taps of S queued, right held
+  b.dropPresses();
+  const out = b.consume();
+  assert.equal(out.specialP, false, 'no queued special plays back');
+  assert.equal(out.right, true, 'a held direction stays held');
+  assert.equal(b.consume().specialP, false);
+  b.receive(encodeInput({ right: true }), 4);
+  b.receive(encodeInput({ right: true, special: true }), 5);
+  assert.equal(b.consume().specialP, true, 'a new tap after it works as usual');
+});

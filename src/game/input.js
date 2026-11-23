@@ -45,6 +45,13 @@ export class InputBuffer {
     this.quiet = null;
   }
 
+  // Forget presses that are still waiting to be played back, but keep what is held.
+  // Used when free practice ends: a tap from practice must not fire in the fight (GAME_SPEC §6b).
+  dropPresses() {
+    this.tapped = neutralInput();
+    this.presses = { attack: 0, jump: 0, special: 0 };
+  }
+
   // The phone went quiet (a network hiccup): let go of everything until it is heard again.
   // What was held is remembered, so a button that is still down when the next message
   // arrives carries on as a hold instead of counting as a new press.

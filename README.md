@@ -11,7 +11,7 @@ One to four players scan a QR code, their phones turn into controllers, and they
 - Build a party fighter that one to four people in the same room play together: the laptop is the shared screen and every player's phone is the controller, with no app to install.
 - Let one person play a full match alone, by filling free places with bots at three levels (Easy, Medium, Hard).
 - Keep player accounts and match results between sessions in a Google Sheet that only the server can reach, so a leaderboard builds up over time.
-- Keep the game rules separate from the browser so they can be tested automatically: 547 tests for the rules and the server and five browser tests, run on every push.
+- Keep the game rules separate from the browser so they can be tested automatically: 551 tests for the rules and the server and five browser tests, run on every push.
 
 ## Deployed app
 
@@ -45,7 +45,7 @@ Then open **http://localhost:3000** on the laptop and click **Open a room**.
 ## Run the tests
 
 ```bash
-npm test                          # game rules and server (547 tests, about 15 seconds)
+npm test                          # game rules and server (551 tests, about 15 seconds)
 npx playwright install chromium   # once, for the browser test (on a fresh Linux: add --with-deps)
 npm run test:browser              # five browser tests: host page + emulated iPhone and Android phones
 npm audit --audit-level=high      # dependency check

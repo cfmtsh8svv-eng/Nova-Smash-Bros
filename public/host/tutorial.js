@@ -1,4 +1,5 @@
 import { TUTORIAL_STEPS, tutorialSeconds } from '/game/tutorial.js';
+import { CONFIG, FPS } from '/game/config.js';
 import { getFighter } from '/game/fighters.js';
 
 const el = (tag, className, text) => {
@@ -29,6 +30,7 @@ export function createTutorialView() {
   root.append(badge, title, line, phone, progress, specials, footer);
   document.body.append(root);
   let last = '';
+  const practiceSeconds = Math.round(CONFIG.match.tutorialPracticeFrames / FPS);
   return {
     render(state, paused) {
       const t = state?.tutorial;
@@ -36,7 +38,8 @@ export function createTutorialView() {
       root.hidden = !t?.active || state.phase !== 'fight' || paused;
       if (root.hidden) return;
       const humans = state.fighters.filter((f) => !f.bot);
-      const key = JSON.stringify([t.step, t.progress, humans.map((f) => f.connected), tutorialSeconds(t)]);
+      // Names and fighters are part of the key: a new match with the same slots must not keep the last match's text.
+      const key = JSON.stringify([t.step, t.progress, state.fighters.map((f) => [f.slot, f.name, f.fighterId, f.connected]), tutorialSeconds(t)]);
       if (key === last) return;
       last = key;
       const practising = t.step === 4;
@@ -49,14 +52,15 @@ export function createTutorialView() {
       [stick, jump, attack, special].forEach((node, i) => node.classList.toggle('guideSpotlight', i === t.step));
       progress.textContent = humans.map((f) => `${f.name}: ${!f.connected ? 'reconnecting…' : t.step === 4 || t.progress[f.slot] & (1 << t.step) ? '✓ Done' : 'your turn'}`).join('  ·  ');
       specials.replaceChildren();
-      if (t.step === 3) for (const f of humans) {
+      // Every fighter's special, the bots' too: the newcomer is about to face them (GAME_SPEC §6b).
+      if (t.step === 3) for (const f of state.fighters) {
         const def = getFighter(f.fighterId);
         const row = el('p', '');
         row.append(el('b', '', `${f.name} · ${def.special.name}: `), document.createTextNode(def.special.text));
         specials.append(row);
       }
       footer.textContent = practising ? 'Everyone is protected. Brawl starts automatically · P or Esc to pause'
-        : `Step ${t.step + 1} / 4 · Everyone is protected · Then 10 seconds of free practice · P or Esc to pause`;
+        : `Step ${t.step + 1} / 4 · Everyone is protected · Then ${practiceSeconds} seconds of free practice · P or Esc to pause`;
     },
   };
 }

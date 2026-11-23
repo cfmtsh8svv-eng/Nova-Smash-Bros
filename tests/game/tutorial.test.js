@@ -91,6 +91,7 @@ test('movement and jumps work during free practice; falls cost no life and item/
   finishSteps(s);
   const itemTimer = s.itemTimer;
   const hazard = structuredClone(s.hazard);
+  run(s, 60); // the trial special from the last step plays out first (D-221)
   const x = s.fighters[0].x;
   both(s, {}); both(s, { right: true });
   assert.ok(s.fighters[0].x > x, 'the controller can still steer');
@@ -127,6 +128,38 @@ test('trial specials and projectiles are cleared before combat and cooldowns are
     assert.equal(f.stats.damageDealt, 0);
     assert.equal(f.stats.damageTaken, 0);
   }
+});
+
+test('the special that finishes the last step plays out in free practice (D-221)', () => {
+  const s = guide([{ ...players[0], fighterId: 'maastricht_blondie' }, ...players.slice(1)]);
+  both(s, { left: true }); both(s, { right: true }); both(s, { jump: true }); both(s, { attack: true });
+  run(s, 60); // the attack from step 3 is over, so the special can start at once
+  step(s, { 1: { special: true } });
+  const events = step(s, { 0: { special: true } });
+  assert.equal(s.tutorial.step, 4);
+  assert.ok(events.some((e) => e.type === 'special' && e.slot === 0));
+  assert.ok(s.fighters[0].special, 'the special is not cancelled when free practice starts');
+  assert.equal(s.fighters[0].cooldown, 0, 'and it is ready again for free practice');
+  let ball = false;
+  for (let i = 0; i < 10; i++) ball = step(s).some((e) => e.type === 'projectile' && e.slot === 0) || ball;
+  assert.ok(ball, 'Padel Smash releases its ball as usual');
+});
+
+test('a fighter who is falling out when free practice ends returns to the spawn point (D-221)', () => {
+  const s = guide();
+  finishSteps(s);
+  run(s, 585);
+  Object.assign(s.fighters[0], { x: 100, y: 700, vx: -3, vy: 6, onGround: false, jumpsLeft: 0 });
+  run(s, 14);
+  assert.equal(s.tutorial.active, true);
+  const end = step(s);
+  assert.ok(end.some((e) => e.type === 'tutorialEnd'));
+  assert.equal(s.fighters[0].x, s.stage.spawns[0].x);
+  assert.equal(s.fighters[0].y, s.stage.spawns[0].y);
+  const kos = [];
+  for (let i = 0; i < 120; i++) kos.push(...step(s).filter((e) => e.type === 'ko'));
+  assert.deepEqual(kos, [], 'no life is lost for a fall that began during practice');
+  assert.equal(s.fighters[0].lives, 3);
 });
 
 test('disconnected humans do not block guide steps; free practice ends without further inputs', () => {

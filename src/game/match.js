@@ -5,7 +5,7 @@
 // and returns a list of events (hits, KOs, sounds to play, phone messages).
 // The host page draws the state and forwards the events; the tests run the
 // very same code without a browser.
-import { createTutorial, updateTutorial, tutorialSeconds } from './tutorial.js';
+import { createTutorial, updateTutorial, tutorialSeconds, returnToSpawn } from './tutorial.js';
 import { CONFIG, FPS, makeSettings } from './config.js';
 import { getFighter } from './fighters.js';
 import { getStage } from './stages.js';
@@ -197,10 +197,8 @@ function checkBlastZones(state) {
   // If several leave in the same frame, the one with more damage goes first (and so places lower).
   out.sort((a, b) => b.percent - a.percent || b.slot - a.slot);
   for (const f of out) {
-    if (f.tutorialProtected) {
-      const spawn = state.stage.spawns[state.fighters.indexOf(f)];
-      Object.assign(f, { x: spawn.x, y: spawn.y, vx: 0, vy: 0, onGround: true, groundId: 0, jumpsLeft: 1, attack: null, special: null, pull: null, hang: null, ledgeUsed: false });
-    } else knockOut(state, f, 'launched');
+    if (f.tutorialProtected) returnToSpawn(state, f);
+    else knockOut(state, f, 'launched');
   }
 }
 

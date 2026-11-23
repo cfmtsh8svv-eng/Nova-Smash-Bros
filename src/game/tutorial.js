@@ -14,12 +14,32 @@ export function createTutorial(players, enabled) {
   return enabled ? { step: 0, frames: 0, practiceFrames: 0, active: true, progress: Object.fromEntries(players.filter((p) => !p.bot).map((p) => [p.slot, 0])), left: [], right: [] } : null;
 }
 
-// Trial attacks must not survive the transition into practice or the real fight.
-function clearTrialAttacks(state) {
+// Specials are ready when free practice starts. A special that is still running then
+// (often the one that just finished the last step) plays out: everyone is protected anyway.
+function resetCooldowns(state) {
+  for (const f of state.fighters) f.cooldown = 0;
+}
+
+// A protected fighter who falls out goes back to their spawn point without losing a life.
+export function returnToSpawn(state, f) {
+  const spawn = state.stage.spawns[state.fighters.indexOf(f)];
+  Object.assign(f, { x: spawn.x, y: spawn.y, vx: 0, vy: 0, onGround: true, groundId: 0, jumpsLeft: 1, attack: null, special: null, pull: null, hang: null, ledgeUsed: false });
+}
+
+// Below the top of the main ground and beside it: this fighter is on the way out.
+function fallingOut(state, f) {
+  const ground = state.stage.platforms.find((p) => p.solid);
+  return Boolean(ground) && f.state === 'alive' && f.y > ground.y && (f.x < ground.x || f.x > ground.x + ground.w);
+}
+
+// When protection ends, nothing from practice may carry into the fight: no attack, special
+// or projectile that could still hit, and no fall that began while falls were safe.
+function endPractice(state) {
   state.projectiles = [];
   for (const f of state.fighters) {
     clearFighterEffects(f);
     f.cooldown = 0;
+    if (fallingOut(state, f)) returnToSpawn(state, f);
   }
 }
 
@@ -31,7 +51,7 @@ export function updateTutorial(state) {
   if (t.step === 4) {
     t.practiceFrames += 1;
     if (t.practiceFrames >= CONFIG.match.tutorialPracticeFrames) {
-      clearTrialAttacks(state);
+      endPractice(state);
       t.active = false;
       for (const f of state.fighters) f.tutorialProtected = false;
       // Only accounts that actually performed every step count as having finished.
@@ -49,7 +69,7 @@ export function updateTutorial(state) {
   }
   if (humans.length && humans.every((f) => t.progress[f.slot] & (1 << t.step))) {
     t.step += 1;
-    if (t.step === 4) clearTrialAttacks(state);
+    if (t.step === 4) resetCooldowns(state);
   }
 }
 

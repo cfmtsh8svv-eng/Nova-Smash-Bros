@@ -1,6 +1,6 @@
 # NOVA Brawl: Game Spec v2.0
 
-**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards), the round 2 changes of 2026-11-12 (D-132 onwards), the bots of round 4 (D-156 onwards, bot levels D-175 onwards), the special balance (D-184 to D-186) and the first-game tutorial (D-211). Demo mode was built and removed again (D-212). The brand (name, voice, signature lines, colours, fonts, humour rules) is in §12.
+**This file is the authoritative spec for the build.** It records the team decisions of 2026-11-11 ([DECISIONS.md](DECISIONS.md), D-042 onwards), the round 2 changes of 2026-11-12 (D-132 onwards), the bots of round 4 (D-156 onwards, bot levels D-175 onwards), the special balance (D-184 to D-186) and the first-game tutorial (D-211, with free practice D-219 to D-221). Demo mode was built and removed again (D-212). The brand (name, voice, signature lines, colours, fonts, humour rules) is in §12.
 
 Sound: music per stage and effects are synthesised in the browser, with separate volume controls on the host. There are no keyboard players (D-132). Every human plays from a phone; the host can fill free places with **bots** (§5a, D-156 onwards).
 
@@ -172,7 +172,7 @@ The phone header shows the player's **name tag in their player colour**, damage 
 | Centre | KO texts and the final-KO sequence only |
 | **Bottom centre** | A small, semi-transparent line `Press P or Esc to pause`, in the strip under the main ground so it never covers a platform. It shows during the countdown and the fight and is hidden from the final KO on. |
 
-Whether the special is ready is shown **only on the phone** (a ring on the Special button). The phone header shows name, damage % and hearts, with no points and no placement.
+Whether the special is ready is shown **only on the phone** (the yellow strip in the Special button, §6). The phone header shows name, damage % and hearts, with no points and no placement.
 
 **Damage colour** is a smooth gradient used for the % number and the damage bar: white at 0 %, **yellow at 100 %**, then orange, red, and dark red at 200 %.
 

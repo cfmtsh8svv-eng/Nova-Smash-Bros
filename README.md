@@ -75,7 +75,7 @@ Not covered by automated tests, checked by hand when playing:
 2. **Phones:** scan the QR code. New players choose a gamertag (3 to 12 letters, numbers or `_`) and a 4-digit PIN; returning players are logged in automatically.
 3. **Pick a fighter** by swiping, tap **Ready!**
 4. **Laptop:** add bots if you like (*Add bot*, *Remove bot*; a click on a bot's card changes its fighter, and its ◀ ▶ arrows set it to Easy, Medium or Hard), leave the stage on **Vote** (the default) or pick one, choose the number of lives, then press *Start*. Everyone in the lobby must be Ready, and a match needs at least two fighters, bots included. A match with only one person in it is a practice match and gives no points. With Vote, every phone shows the three stages: swipe, tap **Vote!**; the vote ends when everyone has voted or after 10 s.
-5. **Fight.** Turn the phone sideways. When someone plays their first match, a short guide comes first: everyone tries the joystick and the three buttons, then the match begins.
+5. **Fight.** Turn the phone sideways. When someone plays their first match, a short guide comes first: everyone tries the joystick and the three buttons, then ten seconds of free practice in the arena, then the match begins. Nobody can be hurt until then.
 
 The left half of the phone is a joystick: put your thumb down anywhere there and drag. The right half has three buttons, labelled **A** (Attack), **J** (Jump) and **S** (Special).
 
